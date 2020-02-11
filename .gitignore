@@ -1,32 +1,11 @@
-# Prerequisites
-*.d
+# Netbeans project folder except private area
+nbproject/private
 
-# Compiled Object files
-*.slo
-*.lo
-*.o
-*.obj
+# a config.ini is a customized version of config.tpl
+# use config.tpl to create your own config.ini before doing the first run
+config.ini
+/WebPage
+.gitignore
 
-# Precompiled Headers
-*.gch
-*.pch
-
-# Compiled Dynamic libraries
-*.so
-*.dylib
-*.dll
-
-# Fortran module files
-*.mod
-*.smod
-
-# Compiled Static libraries
-*.lai
-*.la
-*.a
-*.lib
-
-# Executables
-*.exe
-*.out
-*.app
+# ignore objects and archives, anywhere in the tree.
+*.[oa]
