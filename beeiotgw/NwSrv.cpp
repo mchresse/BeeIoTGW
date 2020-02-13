@@ -122,7 +122,7 @@ void BeeIoTFlow		(u1_t action, beeiotpkg_t * pkg, int ndid, int async);
 extern int	RegisterNode	(beeiotpkg_t * joinpkg, int async);
 extern int	JS_ValidatePkg	(beeiotpkg_t* mystatus);
 extern int	ByteStreamCmp	(byte * bina, byte * binb, int binlen);
-
+extern int  AppProxy		(int ndid, char * framedata, byte framelen);
 
 /******************************************************************************
  * NwNodeScan()
@@ -310,8 +310,12 @@ char *ptr;					// ptr to next sensor parameter field
 			// ignore this package: no action
 			return(rc);
 		}else if (rc == -3) {
-			BHLOG(LOGLORAW) printf("  BeeIoTParse: Node registered but not joined yet (NodeID:0x%02X) -> packet rejected\n", 
+			BHLOG(LOGLORAW) printf("  BeeIoTParse: Node registered but not joined yet (NodeID:0x%02X) -> Request a RE-JOIN\n", 
 				(unsigned char)mystatus->hd.sendID);
+			needaction = CMD_REJOIN;	// Request JOIN command from Node
+			BeeIoTFlow(needaction, mystatus, mystatus->hd.sendID, 0);
+			// but we return a positive status
+			rc=-3;
 			return(rc);
 		}else if(rc == -4){
 			BHLOG(LOGLORAW) printf("  BeeIoTParse: Node joined but using wrong GWID 0x%02X -> should rejoin\n", 
@@ -324,11 +328,11 @@ char *ptr;					// ptr to next sensor parameter field
 		}
 	}
 	int ndid = rc;	// we received Node-ID of curr. Pkg from JS
-	// For JOIN Request ndid ==0 !
+	// For (RE-)JOIN Request ndid ==0 !
 	cp_nb_rx_ok++;			// incr. # of correct received packages	
 	// Validate NwServer process flow:
 	// - Do we already know this BeeIoT Package: check the msgid
-	if(ndid != 0){ // to be skipped during JOIN request
+	if(ndid != 0){ // to be skipped during (RE-)JOIN request
 		if(mystatus->hd.index == NDB[ndid].msg.idx){	// do we have already received this pkgid from this node ?
 			BHLOG(LOGLORAW) printf("  BeeIoTParse: package (%d) duplicate -> package dropped ->send ACK\n\n", (unsigned char) mystatus->hd.index); // yes	
 			// may be last ACK got lost, do it once again
@@ -368,6 +372,23 @@ char *ptr;					// ptr to next sensor parameter field
 			rc=-7;
 		}
 		break;
+	case CMD_REJOIN:	// Node was registered -> reactivate for data collection
+		BHLOG(LOGLORAW) printf("  BeeIoTParse: Node REJOIN Requested, MsgID: 0x%02X\n", mystatus->hd.index);
+		BHLOG(LOGLORAR) hexdump((unsigned char*) mystatus, pkglen);
+
+		rc = RegisterNode(mystatus, 0);	// evaluate WLTable and NDB[] entry
+		if(rc >= 0){	// successfully reactivated
+			ndid = rc;	// get idx of known NDB-entry 
+			BHLOG(LOGLORAW) printf("  BeeIoTParse: Node Reactivated: Just Send CONFIG (with new channel data) as ACK\n");
+			needaction = CMD_CONFIG; // acknowledge JOIN request
+			BeeIoTFlow(needaction, mystatus, ndid, 0);
+			BHLOG(LOGLORAW) printf("  => REJOIN Done.\n");	
+			rc= 0;	
+		}else{
+			BHLOG(LOGLORAW) printf("  BeeIoTParse: REJOIN failed (rc=%i)\n", rc);
+			rc=-7;
+		}
+		break;
 	case CMD_LOGSTATUS: // New BeeIoT node sensor data set received
 		// First save dataset to BHDB
 		BHLOG(LOGLORAW) printf("  BeeIoTParse: Sensor-Status received\n");	
@@ -376,6 +397,8 @@ char *ptr;					// ptr to next sensor parameter field
 		bhdb.ipaddr[0]	= 0;			// no IP yet
 		bhdb.BoardID	= 0;			// no board ID yet
 		bhdb.loopid		= loopid;		// reset sequential index of sample data set
+
+		AppProxy( ndid, mystatus->data, mystatus->hd.frmlen);
 
 		mystatus->data[mystatus->hd.frmlen-2]=0;	// than limit string -> set new end marker (and cut off EOL:0D0A)
 		BHLOG(LOGLORAW) printf("  Status: %s ", mystatus->data); // to be checked if it is a string
@@ -490,6 +513,21 @@ int count;
 		pkglen = BIoT_HDRLEN+BIoT_MICLEN; // just the BeeIoT header + MIC
 		break;
 
+	case CMD_REJOIN:	// Send  a simple REJOIN request (reuse ACK Format buffer)
+		// give node some time to recover from SendMsg before 
+		delay(RXACKGRACETIME);
+
+		pack = (beeiot_header_t*) & actionpkg;
+		pndb = &NDB[ndid];	// get Cfg init data from NDB entry of this node
+		// lets acknowledge action cmd related to received package to sender
+		pack->destID = pkg->hd.sendID;	// The BeeIoT node is the messenger
+		pack->sendID = (u1_t) gwid;;	// New sender: its me
+		pack->cmd = action;				// get our action command
+		pack->index = pkg->hd.index;	// get last pkg msgid
+		pack->frmlen = 0;				// send BeeIoT header for ACK only
+		pkglen = BIoT_HDRLEN+BIoT_MICLEN; // just the BeeIoT header + MIC
+		break;
+
 	case CMD_CONFIG: // Send runtime config param set to node
 		// give node some time to recover from SendMsg before 
 		delay(RXACKGRACETIME);
@@ -503,7 +541,7 @@ int count;
 		pcfg->hd.frmlen = sizeof(devcfg_t); // 
 
 		pndb = &NDB[ndid];	// get Cfg init data from NDB entry of this node
-		pcfg->cfg.channelidx= pndb->nodecfg.channelidx;	// we start with default Channel IDX
+		pcfg->cfg.channelidx= pndb->nodecfg.channelidx;	// we start with assigned Channel IDX
 		pcfg->cfg.gwid		= pndb->nodecfg.gwid;		// store predefined GW
 		pcfg->cfg.nodeid	= pndb->nodecfg.nodeid;
 		pcfg->cfg.freqsensor= pndb->nodecfg.freqsensor;	// [min] loop time of sensor status reports in Seconds
@@ -515,9 +553,11 @@ int count;
 		pkglen = BIoT_HDRLEN + sizeof(devcfg_t) + BIoT_MICLEN;	// Cfg-Payload + BIOT Header
 		BHLOG(LOGLORAR) hexdump((byte*) &actionpkg, pkglen);
 	break;
+	
 	default: // don't know what to do  
 		return;	
 	}
+	
 	// Do TX
 	BeeIotTXFlag = 0;					// spawn IRQ-> Userland TX flag
 	starttx((byte *)&actionpkg, pkglen );	// send LoRa pkg

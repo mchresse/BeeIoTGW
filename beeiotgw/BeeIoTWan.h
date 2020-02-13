@@ -21,12 +21,15 @@
 // Format: V.maj.min.minsub		starting with V1.0.00
 #define BIoT_VMAJOR		1
 #define BIoT_VMINOR		0
-#define BIoT_VMINSUB 	0		// internal only not reported to GW
+#define BIoT_VMINSUB 	1		// internal only not reported to GW
 
 //***********************************************
 // LoRa MAC Presets
 //***********************************************
-#define BIoT_EUID (0xBB, 0xEE, 0xEE, 0xBB, 0xEE, 0xEE, 0x00, 0x00)
+// AppServer EUIDs:
+#define BIoT_EUID	0xBB, 0xEE, 0xEE, 0xBB, 0xEE, 0xEE, 0xCC, 0xEE
+#define TURTLE_EUID 0xBB, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF, 0xAA, 0xBB
+#define GH_EUID		0xBB, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07
 
 enum _cr_t { CR_4_5=0, CR_4_6, CR_4_7, CR_4_8 };
 enum _sf_t { FSK=0, SF7, SF8, SF9, SF10, SF11, SF12, SFrfu };
@@ -79,6 +82,7 @@ typedef unsigned char bw_t;
 // CMD: Sensor Node Command/function codes for GW action
 enum {
 	CMD_JOIN =0,	// JOIN Request to GW (e.g. register NodeID)
+	CMD_REJOIN,		// REJOIN Request to GW (Connection got lost -> restart with Default Cfg Channel)
 	CMD_LOGSTATUS,	// process Sensor log data set
 	CMD_GETSDLOG,	// one more line of SD card log file
 	CMD_RETRY,		// Tell target: Package corrupt, do it again
@@ -97,6 +101,7 @@ extern const char * beeiot_ActString[];
 // for enum def. -> see beelora.h
 const char * beeiot_ActString[] = {
 	[CMD_JOIN]		= "JOIN",
+	[CMD_REJOIN]	= "REJOIN",
 	[CMD_LOGSTATUS]	= "LOGSTATUS",
 	[CMD_GETSDLOG]	= "GETSDLOG",
 	[CMD_RETRY]		= "RETRY",
@@ -145,7 +150,7 @@ typedef struct { // generic BeeIoT Package format
 } beeiotpkg_t;
 
 //***************************
-// JOIN-CMD Pkg:
+// (RE-)JOIN-CMD Pkg:
 typedef struct {
 	byte	devEUI[8];	// could be e.g. 0xFFFE + node board ID (extended from 6 -> 8Byte)
 	byte	joinEUI[8];	// ==AppEUI to address the right App service behind GW+NWserver
@@ -234,6 +239,8 @@ enum {
 // ChannelTable[]:
 enum { MAX_CHANNELS = 16 };      //!< Max supported channels
 enum { MAX_BANDS    =  3 };
+enum { JOINCFGIDX   =  0 };		// default Channel configuration for joining: Idx  = 0
+
 typedef struct {
 unsigned long frq;	// Frequence EU86x
 bw_t	band;		// Bandwidth BWxxx
