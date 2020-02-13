@@ -48,7 +48,7 @@ typedef struct {				// data elements of one log line entry
 	float	Board5V;			// Board 5000 mV Power line voltage level
 	float	BattCharge;			// Battery Charge voltage input >0 ... 5000mV 
 	float	BattLoad;			// Battery voltage level (typ. 3700 mV)
-	int		BattLevel;			// Battery Level in % (3200mV (0%) - 4150mV (100%))
+	int	BattLevel;			// Battery Level in % (3200mV (0%) - 4150mV (100%))
 	char	comment[DROWNOTELEN];
 } datrow;
 
@@ -60,15 +60,16 @@ typedef struct {				// data elements of one log line entry
 #define LENMACADDR	18
 typedef struct {
 	// save timestamp of last datarow entry:
-    char	formattedDate[LENFDATE]; // Variable to save date and time; 2019-10-28T08:09:47Z
+    char	formattedDate[LENFDATE];// Variable to save date and time; 2019-10-28T08:09:47Z
     char	date[LENDATE];		// Date Stamp: 2019-10-28
     char	time[LENTIME];		// Time Stamp: 08:10:15
     char	ipaddr[LENIPADDR];	// local IPv4 Address xxx:xxx:xxx:xxx
-    char	macaddr[LENMACADDR];// local MAC  Address xx:xx:xx:xx:xx:xx
-    int     loopid;             // sensor data set sample ID assigned by the node
-	int		packid;				// package index to assure LoRa sequentiality
-    uint64_t  BoardID;          // unique Identifier of MUC board (6 Byte effective) not used by now
-	datrow	dlog[datasetsize];	// all sensor data set logs till upload to server
+    char	macaddr[LENMACADDR];    // local MAC  Address xx:xx:xx:xx:xx:xx
+    int         loopid;                 // sensor data set sample ID assigned by the node
+    int		packid;			// package index to assure LoRa sequentiality
+    uint64_t    BoardID;                // unique Identifier of MIC board (6 Byte effective) not used by now
+    unsigned char NodeID;               // unique Identifier (short) of BIoT Network to expand CSV file name
+    datrow	dlog[datasetsize];	// all sensor data set logs till upload to server
 } dataset;
 
 #define	CSV_HEADER		"Datum,Zeit,GewichtBeute,Temp.Extern,TempIntern,Temp.Beute1,Temp.RTC,Batt.ESP3V,Board5V,BattCharge,BattLoad,BattLevel"

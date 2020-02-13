@@ -166,14 +166,14 @@ int		idx;
 		logline[4] = '/';
 		logline[7] = '/';		
 	}
-	BHLOG(LOGBH) printf("    BeeCSV: %s\n", logline);
+//	BHLOG(LOGBH) printf("    BeeCSV: %s\n", logline);
 
 	// now write logdata to log file
 	// first, get timestamp of curr. log data -> year only	
 	//	strftime(TimeString, 80, "%Y", localtime(&data->dlog[idx].tvsec));
-	strncpy(TimeString, logline, 4);	// get year string only
+	strncpy(TimeString, bhdb.date, 4);	// get year string only
 	TimeString[4]=0;
-	sprintf(logpath, "%s/%s%s.csv", cfgini.web_root, cfgini.bh_CSVFILE, TimeString); 
+	sprintf(logpath, "%s/%s%02X_%s.csv", cfgini.web_root, cfgini.bh_CSVFILE, data->NodeID, TimeString); 
 
 	// do we have already a log file existing
 	bhlog = fopen(logpath, "a");
@@ -202,5 +202,7 @@ int		idx;
 
 	fflush(bhlog);			// write and flash file
 	fclose(bhlog);
-return(0);	
+	BHLOG(LOGBH) printf("    BeeCSV: Sensor Data forwarded to %s\n",logpath);
+
+	return(0);	
 }

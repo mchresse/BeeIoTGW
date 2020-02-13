@@ -69,7 +69,13 @@
 #include "beeiot.h"
 
 
-extern unsigned int	lflags;               // BeeIoT log flag field
+extern unsigned int	lflags; // BeeIoT log flag field
+extern nodedb_t NDB[];		// if 'NDB[x].nodeinfo.version == 0' => empty entry
+// -> typeset see beelora.h; instance in JoinSrv.cpp
+
+// Central Database of all measured values and runtime parameters
+extern dataset	bhdb;		// central beeIoT data DB
+
 //******************************************************************
 // Set my GPS location (preset manually, if no GPS access
 float lat=0.0;
@@ -104,11 +110,13 @@ uint32_t cp_up_pkt_fwd	= 0; // # of sent status packages to TTN
 uint32_t cp_nb_rx_bad;
 uint32_t cp_nb_rx_nocrc;
 
+extern struct timeval now;          // current tstamp used each time a time check is done
+extern char	TimeString[128];        // contains formatted Timestamp string of each loop(in main())
 
 //******************************************************************************
 // local Function prototypes
 int AppBIoT		(int ndid, char* data, byte len);		// Bee Weight Scale App
-int AppTurtle	(int ndid, char* data, byte len);		// Turtle House Control App
+int AppTurtle   	(int ndid, char* data, byte len);		// Turtle House Control App
 int AppGH		(int ndid, char* data, byte len);		// GreenHouse Control App
 
 void UploadPkg( char * msg, int pkglen, int SNR, byte rssi);
@@ -119,33 +127,111 @@ void sendstat(void);
 //******************************************************************************
 // AppBIoT()
 // Analysing BIoT Frame payloads for Weight Scale lifecycle
-//
+// return:
+//  0       Data processed successfully -> ACK can be sent
+// -1       wrong number of parsed sensor parameters -> Retry needed
+// -2       problems with CSV file creation/concatenation
+// -99      Wrong input data ; call rejected
 int AppBIoT	(int ndid, char* data, byte len){
+    int rc = 0;
+    int idx;
+    int nparam;
 
-	BHLOG(LOGBH) printf("  AppBIoT: Processing new Sensor Status data (len:%i)\n", len);
-	/*
-		// send TTN status message each STATUSLOOP seconds
+    if(data && len == 0){    // prevent NULL ptr. and bitlen=0
+        BHLOG(LOGBH) printf("  AppBIoT: Wrong input data (%p, %i)\n", data, (int)len);
+        return(-99);        // wrong input data
+    }
+
+	// get current timestamp
+	gettimeofday(&now, 0);
+	strftime(TimeString, 80, "%Y-%m-%d %H:%M:%S", localtime(&now.tv_sec));
+    BHLOG(LOGBH) printf("  AppBIoT: %s -Processing new Sensor Status data (len:%i) from Node 0x%02X\n", 
+				TimeString, (int)len, (unsigned char) NDB[ndid].nodecfg.nodeid);
+
+
+    idx = 0; // start with first entry (by now the only one)
+
+    data[len-2]=0;	// limit string by EOL -> set new end marker (and cut off EOL:0D0A)
+    BHLOG(LOGBH) printf("    Status: %s ", data); // to be checked if it is a string
+    BHLOG(LOGBH) printf("%iBy.\n", (int) len);
+
+    // parse sensor status stream for whitespace chars conflicting with sscanf()
+    for(int i=0; i<strlen(data); i++){
+            if(data[i]== ',' | data[i]== ';')
+                data[i] = ' ';	// and replace them by space
+    }
+    // parse all BeeIoT-WAN status parameters from stream to bhdb-dataset row
+    nparam = sscanf(data, "%s %s %f %f %f %f %f %f %f %f %f %d #%d %s", 
+            bhdb.date,
+            bhdb.time, 
+            & bhdb.dlog[idx].HiveWeight,
+            &(bhdb.dlog[idx].TempExtern),
+            &(bhdb.dlog[idx].TempIntern),
+            &(bhdb.dlog[idx].TempHive),
+            &(bhdb.dlog[idx].TempRTC),
+            &(bhdb.dlog[idx].ESP3V),		// in V !
+            &(bhdb.dlog[idx].Board5V),		// in V !
+            &(bhdb.dlog[idx].BattCharge),   // in V !
+            &(bhdb.dlog[idx].BattLoad),		// in V !
+            &(bhdb.dlog[idx].BattLevel),
+            &(bhdb.dlog[idx].index),
+            &(bhdb.dlog[idx].comment) );
+            if(strlen(bhdb.date) + strlen(bhdb.time) <= LENTMSTAMP){
+                sprintf(bhdb.dlog[idx].timeStamp, "%s %s", bhdb.date, bhdb.time);
+            }
+	strftime(bhdb.date, LENDATE, "%Y/%M/%D", localtime(&now.tv_sec));
+	strftime(bhdb.time, LENTIME, "%H:%M:%S", localtime(&now.tv_sec));
+
+    // is Sensor parameter set complete ?
+    if(nparam != BEEIOT_STATUSCNT || nparam == EOF){
+            BHLOG(LOGBH) printf("  AppBIoT: Sensor-Status incomplete, found # of status parameters: %i (expected %i)\n", nparam, BEEIOT_STATUSCNT);
+            // lets acknowledge received package to sender to send it again
+            // ToDo: prevent endless Retry loop: only once
+            rc= -1;
+            return(rc);
+    }
+
+    // We have received a complete sensor parameter Set => Store it !
+        // complete DB datarow by Node information
+        bhdb.packid     = (int)0 + (short)NDB[ndid].nodeinfo.frmid[0]; // get sequential index of payload packages
+        bhdb.loopid     = bhdb.dlog[idx].index;     // save sensor scan loop counter of sensor data set
+        bhdb.ipaddr[0]  = 0;                        // no IP yet
+        memcpy((byte*)& bhdb.BoardID, (byte*) & NDB[ndid].nodeinfo.devEUI, sizeof(uint64_t));
+        bhdb.NodeID     = NDB[ndid].nodecfg.nodeid; // BIoT network identifier to expand CSV File name
+
+        // 1. Forward Data to local Web Service 
+//        BHLOG(LOGBH) printf("  AppBIoT: Forward Data as CSV file to local WebPage\n");		
+        rc = beecsv(&bhdb); // save it in CSV format first
+        if(rc != 0){
+            BHLOG(LOGBH) printf("  AppBIoT: CSV file not found (rc=%i)\n", rc);		
+            rc= -2;
+            // ToDo: error recovery of CSV file handling
+            return(rc);     // drop this frame data
+        }
+
+        // Further Options: Forward dataset to remote WebSpace as CSV file, via FTP, or via MQTT or to TTN
+/*
+	// send TTN status message each STATUSLOOP seconds (untested code)
         gettimeofday(&nowtime, NULL);
         uint32_t nowseconds = (uint32_t)(nowtime.tv_sec);
         if (nowseconds - lasttime >= STATUSLOOP) {
             lasttime = nowseconds;
-
-			// here we could forward the data via TTN
+            // forward the data via TTN
             sendstat();
-            cp_nb_rx_rcv = 0;		// reset # received packages
-            cp_nb_rx_ok = 0;		// reset # of correct received packages
-            cp_up_pkt_fwd = 0;		// reset # of sent status packages to TTN
         }
 */
-	return(0);
-}
+        cp_up_pkt_fwd++;    // Statistics: incr. # of forwarded status packages
+    
+    return(rc);
+} // end of AppBIoT()
+
 
 //******************************************************************************
 // AppTurtle()
 // Analysing Turtle House Sensor data
 //
 int AppTurtle (int ndid, char* data, byte len){
-	BHLOG(LOGBH) printf("  AppTurtle: Processing new Sensor Status data (len:%i)\n", len);
+	BHLOG(LOGBH) printf("  AppTurtle: Processing new Sensor Status data (len:%i)\n", (int)len);
 
 	return(0);
 }
@@ -155,7 +241,7 @@ int AppTurtle (int ndid, char* data, byte len){
 // Analysing GH House Sensor data
 //
 int AppGH (int ndid, char* data, byte len){
-	BHLOG(LOGBH) printf("  AppGH: Processing new Sensor Status data (len:%i)\n", len);
+	BHLOG(LOGBH) printf("  AppGH: Processing new Sensor Status data (len:%i)\n", (int)len);
 
 	return(0);
 }

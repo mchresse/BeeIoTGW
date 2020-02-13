@@ -35,7 +35,7 @@ enum _cr_t { CR_4_5=0, CR_4_6, CR_4_7, CR_4_8 };
 enum _sf_t { FSK=0, SF7, SF8, SF9, SF10, SF11, SF12, SFrfu };
 enum _bw_t { BW125=0, BW250, BW500, BWrfu, BW10, BW15, BW20, BW31, BW41, BW62};
 
-typedef unsigned int  devaddr_t;		// Node dynmic Device address (given by GW)
+typedef unsigned int  devaddr_t;		// Node dynamic Device address (given by GW)
 typedef unsigned char cr_t;
 typedef unsigned char sf_t;
 typedef unsigned char bw_t;
