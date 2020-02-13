@@ -973,6 +973,7 @@ byte mode = readReg(RegOpMode);
 
 		BHLOG(LOGLORAR) printf("IRQ<%ul>: FSK-IRQ%d - should never happen (1) (OPMode: 0x%0.2X)-> RD-OPMode Retry...\n", 
 					(unsigned long)tstamp, (unsigned char)dio, (unsigned char) readReg(RegOpMode));
+		delay(200);
 		mode = readReg(RegOpMode);						// read again;
 	}
 	

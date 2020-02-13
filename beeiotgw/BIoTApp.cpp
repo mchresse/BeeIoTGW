@@ -107,16 +107,22 @@ uint32_t cp_nb_rx_nocrc;
 
 //******************************************************************************
 // local Function prototypes
+int AppBIoT		(int ndid, char* data, byte len);		// Bee Weight Scale App
+int AppTurtle	(int ndid, char* data, byte len);		// Turtle House Control App
+int AppGH		(int ndid, char* data, byte len);		// GreenHouse Control App
+
 void UploadPkg( char * msg, int pkglen, int SNR, byte rssi);
 void sendudp(char *msg, int length);
 void sendstat(void);
 
 
 //******************************************************************************
-// BIoTApp Main Function
+// AppBIoT()
 // Analysing BIoT Frame payloads for Weight Scale lifecycle
 //
-void BIoTApp(void){
+int AppBIoT	(int ndid, char* data, byte len){
+
+	BHLOG(LOGBH) printf("  AppBIoT: Processing new Sensor Status data (len:%i)\n", len);
 	/*
 		// send TTN status message each STATUSLOOP seconds
         gettimeofday(&nowtime, NULL);
@@ -131,8 +137,31 @@ void BIoTApp(void){
             cp_up_pkt_fwd = 0;		// reset # of sent status packages to TTN
         }
 */
-	return;
+	return(0);
 }
+
+//******************************************************************************
+// AppTurtle()
+// Analysing Turtle House Sensor data
+//
+int AppTurtle (int ndid, char* data, byte len){
+	BHLOG(LOGBH) printf("  AppTurtle: Processing new Sensor Status data (len:%i)\n", len);
+
+	return(0);
+}
+
+//******************************************************************************
+// AppGH Main Function
+// Analysing GH House Sensor data
+//
+int AppGH (int ndid, char* data, byte len){
+	BHLOG(LOGBH) printf("  AppGH: Processing new Sensor Status data (len:%i)\n", len);
+
+	return(0);
+}
+
+
+
 
 
 void UploadPkg( char * msg, int pkglen, long int SNR, byte rssi ) {

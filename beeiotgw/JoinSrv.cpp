@@ -64,24 +64,22 @@ extern unsigned int	lflags;               // BeeIoT log flag field
 nodewltable_t WLTab[MAXNODES+1]={ // +1 for dummy JOIN line ID=0
 // => The index position in this table results in corresponding NodeID: NODEIDBASE+idx !
 // 0: Dummy start marker of table (NODEID == 0x00 -> used for JOIN requests => don't change)
-	0x00,     0x00, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0,  0,0,
+	0x00, 0x00, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0,  0,0,
 //---------------------------------------------------
 // 1: BeeIoT Prototype 1:	DC8AD5286F24
-	NODEID1, GWID1,	
-	0xBB, 0xEE, 0xEE, 0xBB, 0xEE, 0xEE, 0x00, 0x00,	// AppEUI
+	NODEID1, GWID1,	BIoT_EUID,						// AppEUI: BIoT
 	0xDC, 0x8A, 0xD5, 0xFF, 0xFE, 0x28, 0x6F, 0x24, // DevEUI 
 	10, 0,											// reportfrq, joinflag
 //---------------------------------------------------
 // 2: WROVER ESP32
-	NODEID2, GWID1,	
-	0xBB, 0xEE, 0xEE, 0xBB, 0xEE, 0xEE, 0x00, 0x00, // AppEUI
+	NODEID2, GWID1,	BIoT_EUID,						// AppEUI: BIoT
 	0xAC, 0x0D, 0xF0, 0xFF, 0xFE, 0x28, 0x6F, 0x24, // DevEUI
 	1, 0,											// reportfrq, joinflag
 //---------------------------------------------------
 // 3: fill in more nodes here ...
 //---------------------------------------------------
 // N: Dummy end marker of table (NODEID == 0x00)
-	0x00, 0x00,  0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0,  0,0,
+	0x00, 0x00, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0,  0,0,
 };//-------------------------------------------------
 
 
@@ -93,6 +91,13 @@ nodedb_t NDB[MAXNODES];	// if 'NDB[x].nodeinfo.version == 0' => empty entry
 int RegisterNode	(beeiotpkg_t * joinpkg, int async);
 int JS_ValidatePkg	(beeiotpkg_t* mystatus);
 int	ByteStreamCmp	(byte * bina, byte * binb, int binlen);
+
+int AppProxy(int ndid, char * framedata, byte framelen);
+
+// in BIoTApp.cpp
+extern int AppBIoT		(int ndid, char* data, byte len);	// Bee Weight Scale App
+extern int AppTurtle	(int ndid, char* data, byte len);	// Turtle House Control App
+extern int AppGH		(int ndid, char* data, byte len);	// GreenHouse Control App
 
 
 //***************************************************************************
@@ -115,7 +120,7 @@ nodedb_t	  * pndb;	// ptr for update of nodedb[]
 byte ndid =0;
 int  rc =0;
 
-	pjoin = (beeiot_join_t*) pkg; // map generic packet to CMD_JOIN type 
+	pjoin = (beeiot_join_t*) pkg; // map generic packet to CMD_JOIN/CMD_REJOIN type 
 	BHLOG(LOGLORAW) printf("  RegisterNode: search WLTable[]\n");
 	for(ndid=1; ndid < MAXNODES; ndid++){
 		pwltab = & WLTab[ndid];	//0..MAXNODES-1
@@ -124,7 +129,7 @@ int  rc =0;
 			rc=-1;
 			return(rc);	// nothing more to do => DevEUI unknown -> have to reject this join request
 		}
-		BHLOG(LOGLORAW) printf("    Cmp[%d] ", ndid);
+		BHLOG(LOGLORAW) printf("    Cmp[%d] ", (byte) ndid);
 		BHLOG(LOGLORAW) Printhex((byte*)& pjoin->info.devEUI,  8, "  Pkg-DEVEUI: 0x-"); 
 		BHLOG(LOGLORAW) Printhex((byte*)& pwltab->DevEUI,  8, "  WL-DEVEUI: 0x-"); 
 		BHLOG(LOGLORAW) printf("\n");
@@ -139,9 +144,23 @@ int  rc =0;
 		return(rc); // nothing more to do => DevEUI unknown -> have to reject this join request
 	}
 	if(pwltab->joined){		// already joined known node ?	-> was a rejoin ?
-		BHLOG(LOGLORAW) printf("  RegisterNode: Node found in WLTable[%d] -> but already joined\n", ndid);
-		// NDB[] already initialized with this node
-		return(pwltab->nodeid-NODEIDBASE);	// return index to NDB[]
+		BHLOG(LOGLORAW) printf("  RegisterNode: Node found in WLTable[%d] -> and already joined\n", ndid);
+		// assumed NDB[] was already initialized with this node till last session
+		pndb = & NDB[ndid];					// get pointer to already initialized NDB entry
+		pndb->nodecfg.channelidx= 0;		// but we start with default Channel IDX = 0 again
+		
+		// may be node wants to rejoin to another AppID
+		memcpy(&pndb->nodeinfo.joinEUI, &pjoin->info.joinEUI, 8);
+		
+		// may be FW was updated in between
+		pndb->nodeinfo.vmajor	= pjoin->info.vmajor;	// get Version of BIoT protocol of node
+		pndb->nodeinfo.vminor	= pjoin->info.vminor;
+
+		pndb->nodecfg.nonce		= pjoin->hd.index;
+		// ToDo split FrameIdx and PkgIdx
+		pndb->nodeinfo.frmid[1]	= pjoin->hd.index;		// by now FrameIdx and Pkg Idx are identical
+		pndb->msg.idx			= pjoin->hd.index;		// keep using current counter status as devnonce;
+		return(ndid);	// return index to NDB[]
 	}
 
 	// Else, use same nodeid of WL-Table for NDB -> should be always a free entry in NodeDB
@@ -155,7 +174,7 @@ int  rc =0;
 	pwltab->joined = 1;				// mark WL Table entry as "joined"
 	// initialize NDB entry:
 	memcpy(&pndb->nodeinfo.devEUI, &pwltab->DevEUI,8);
-	memcpy(&pndb->nodeinfo.joinEUI, &pwltab->AppEUI,8);
+	memcpy(&pndb->nodeinfo.joinEUI, &pjoin->info.joinEUI, 8);
 	pndb->nodeinfo.frmid[0] = 0;			// MSB: init "last frame msg id"
 	pndb->nodeinfo.frmid[1] = 0;			// LSB:  -> First Session to be started with 0x01
 	pndb->nodeinfo.vmajor	= pjoin->info.vmajor;	// get Version of BIoT protocol of node
@@ -181,7 +200,8 @@ int  rc =0;
 	pndb->AppSKey[0] = 0;
 	pndb->NwSKey[0]  = 0;
 
-    BHLOG(LOGLORAW) printf("  Node Joined ! Assigned: GWID:0x%02X, NodeID:0x%02X, ", pwltab->gwid, pwltab->nodeid);
+    BHLOG(LOGLORAW) printf("  Node Joined ! Assigned: GWID:0x%02X, NodeID:0x%02X, ", 
+			(byte) pwltab->gwid, (byte)pwltab->nodeid);
 	BHLOG(LOGLORAW) Printhex((byte*)& pndb->DevAddr, 4,  "DevAddr: 0x", 4); 
 	BHLOG(LOGLORAW) printf("\n");
     BHLOG(LOGLORAW) Printhex( pndb->nodeinfo.devEUI,  8, "    DEVEUI: 0x-"); 
@@ -240,12 +260,22 @@ int JS_ValidatePkg(beeiotpkg_t* mystatus){
 		rc=-3;
 		return(rc);
 	}
+	// Hint: A REJOIN PKG is bypassed as normal CMD package -> parsed later by detected nodeid
+	if(mystatus->hd.cmd == CMD_REJOIN){
+		if(mystatus->hd.destID != GWIDx){
+			// No negaitive GWID check for REJOIN: accept REJOIN request via all GWIDs but serving is done by GWIDx only.
+			// for cleaner process: Node should always use GWIDx also for REJOIN
+			BHLOG(LOGLORAW) printf("  JS_ValidateNode: Warning: Wrong GWID used for REJOIN: 0x%02X\n", 
+					(byte) mystatus->hd.destID);
+		}
+			// o.k. Node is already joined and requests reactivation -> lets do it...
+			return(0);	// forget ndid by now to followup the JOIN process -> RegisterNode() will find it again
+	}
 	if(NDB[ndid].nodecfg.gwid != mystatus->hd.destID){
 		// this joined node is (still) using the wrong GWID -> should rejoin
-		BHLOG(LOGLORAW) printf("  JS_ValidateNode: joined node is (still) using the wrong GWID (0x%02X) -> should rejoin",
-				mystatus->hd.destID);
+		BHLOG(LOGLORAW) printf("  JS_ValidateNode: joined node is (still) using the wrong GWID (0x%02X) -> should rejoin", (byte) mystatus->hd.destID);
 		// Do it here or layer above ?
-//		needaction = CMD_REJOIN;		// not implemented yet
+//		needaction = CMD_REJOIN;		// request rejoin -> not implemented yet
 //		BeeIoTFlow(needaction, mystatus, 0);
 		rc=-4;
 		return(rc);
@@ -256,8 +286,7 @@ int JS_ValidatePkg(beeiotpkg_t* mystatus){
 	// This check normally to be done by AppServer:
 	// Check User Status data length
 	if(mystatus->hd.frmlen > BIoT_FRAMELEN){
-		BHLOG(LOGLORAW) printf("  BeeIoTParse: Wrong package size detected (%i) -> retry requested\n", 
-					mystatus->hd.frmlen);		
+		BHLOG(LOGLORAW) printf("  BeeIoTParse: Wrong package size detected (%i) -> retry requested\n", (byte) mystatus->hd.frmlen);		
 		// for test purpose: dump payload in hex format
 		BHLOG(LOGLORAR) hexdump((unsigned char*) mystatus, MAX_PAYLOAD_LENGTH);
 		BHLOG(LOGLORAR) printf("\n");
@@ -276,6 +305,7 @@ int JS_ValidatePkg(beeiotpkg_t* mystatus){
 
 
 
+//******************************************************************************
 // compare 2 binary streams with given length "binlen".
 // rc=0 if equal: if not equal, rc provides # of equal bytes found in stream
 int ByteStreamCmp(byte * bina, byte * binb, int binlen){
@@ -285,4 +315,42 @@ int ByteStreamCmp(byte * bina, byte * binb, int binlen){
 			return(i+1);
 	}
 	return(0);
+}
+
+
+//******************************************************************************
+// AppProxy(){
+int AppProxy(int ndid, char * framedata, byte framelen){	// ndid refers to valid WLTab entry	
+nodedb_t	  * pndb;	// ptr for update of nodedb[]
+int idx;
+int rc;
+
+#define MAXAPPNUM	3	// number of defined JoinEUIDs and correspnding AppServer Functions
+	static char TJoinEUI[MAXAPPNUM][8] = {
+		BIoT_EUID, 
+		TURTLE_EUID, 
+		GH_EUID,
+	};
+
+	// Jump table for node assigned App Server functions
+	static int (* const fapp[])(int, char *, byte) ={
+		AppBIoT,	// 0: Bee weight cell App
+		AppTurtle,	// 1: Turtle House control App
+		AppGH,		// 2: GreenHouse Control App
+	};
+	
+	pndb = &NDB[ndid];
+	for(int idx=0; idx< MAXAPPNUM; idx++){
+		if(ByteStreamCmp( (byte*)& TJoinEUI[idx][0], (byte*)& pndb->nodeinfo.joinEUI, 8) == 0)
+			break; // we have a hit -> known DevEUI found		
+	}
+	
+	if(idx=MAXAPPNUM){	// no match in APP function EUID table found
+		return(-99);
+	}
+
+	// call assigned APP Server function with given Frame-payload
+	rc = fapp[idx](ndid, framedata, framelen);
+
+	return(rc);
 }
