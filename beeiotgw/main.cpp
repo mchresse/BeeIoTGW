@@ -105,7 +105,7 @@ int main () {
 
 //  lflags = 0;   // Define Log level (search for Log values in beeiot.h)
 //  lflags = LOGBH + LOGOW + LOGHX + LOGLAN + LOGEPD + LOGSD + LOGADS + LOGSPI + LOGLORAR + LOGLORAW;
-	lflags = LOGBH + LOGLORAW;
+	lflags = LOGBH + LOGLORAW ;
 
 	// get current timestamp
 	gettimeofday(&now, 0);
@@ -158,6 +158,7 @@ int main () {
 	bhdb.macaddr[0]	= 0;
 	bhdb.ipaddr[0]	= 0;			// no IP yet
 	bhdb.BoardID	= 0;			// no board ID yet
+        bhdb.NodeID     = 0;
 	bhdb.date[0]	= 0;
 	bhdb.time[0]	= 0;
 	bhdb.formattedDate[0]=0;
