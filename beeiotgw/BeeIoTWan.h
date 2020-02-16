@@ -74,7 +74,8 @@ typedef unsigned char bw_t;
 #define MAXRXACKWAIT	10	// # of Wait loops of MSGRESWAIT
 #define MSGMAXRETRY		5	// Do it max. n times again
 #define RXACKGRACETIME  1000 // in ms: time to wait for sending Ack after RX pkg in BeeIoTParse()
-#define WAITRX1PKG		5	// # of sec. to wait for add. RX pkg after last ACK
+#define MSGRX1DELAY		500	// [ms] wait for start of RX1 window
+#define WAITRX1PKG		5	// [sec] till RX1 window is closed
 
 //*******************************************************************
 // BeeIoT-WAN command package types

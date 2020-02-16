@@ -48,7 +48,7 @@
 #include <wiringPiSPI.h>
 
 
-#include "loraregs.h"
+#include "regslora.h"
 
 #define BEEIOT_ACTSTRINGS
 #include "BeeIoTWan.h"
@@ -71,7 +71,11 @@ extern unsigned int	lflags;               // BeeIoT log flag field
 
 //******************************************************************************
 // Global NodeDB[] for Node registration via JOIN command
-#define STATUSLOOP	1000		// in main(): wait loop delay in ms
+#define SCANDELAY	1000		// in main(): wait loop delay in ms
+
+// Central Database of all measured values and runtime parameters
+extern dataset			bhdb;       // central beeIoT data DB
+extern configuration	cfgini;     // runtime parameter init source
 
 extern nodedb_t NDB[];			// if 'NDB[x].nodeinfo.version == 0' => empty entry
 // -> typeset see beelora.h; instance in JoinSrv.cpp
@@ -108,10 +112,6 @@ beeiotpkg_t MyRXData[MAXRXPKG];     // RX Pkg Queue: received messages for userl
 
 extern uint32_t cp_nb_rx_ok;        // # of correct received packages (correct header) -> Statistics for BIoTApp() calls
 extern uint32_t cp_nb_rx_rcv;       // # of raw received LoRa packages
-
-// Central Database of all measured values and runtime parameters
-extern dataset		bhdb;       // central beeIoT data DB
-extern configuration	cfgini;     // runtime parameter init source
 	
 //******************************************************************************
 // local Function prototypes
@@ -120,10 +120,10 @@ int  BeeIoTParse	(beeiotpkg_t * mystatus);
 void BeeIoTFlow		(u1_t action, beeiotpkg_t * pkg, int ndid, int async);
 
 // in JoinSrv.cpp:
-extern int	RegisterNode	(beeiotpkg_t * joinpkg, int async);
+extern int	JS_RegisterNode	(beeiotpkg_t * joinpkg, int async);
 extern int	JS_ValidatePkg	(beeiotpkg_t* mystatus);
 extern int	ByteStreamCmp	(byte * bina, byte * binb, int binlen);
-extern int      AppProxy	(int ndid, char * framedata, byte framelen);
+extern int	JS_AppProxy	(int ndid, char * framedata, byte framelen);
 
 /******************************************************************************
  * NwNodeScan()
@@ -205,9 +205,6 @@ LoRa Modem Register Status:     Version: 0x12  LoRa Modem OpMode : 0x80
 */
 	BHLOG(LOGLORAW) printf("  NwS: LoRa Modem Setup finished\n");
 
-	// Start LoRa Mode continuous read loop
-	startrx(RXMODE_SCAN, 0);	// RX in RX_CONT Mode 
-
 	// get current timestamp
 	gettimeofday(&now, 0);
 	strftime(TimeString, 80, "%d-%m-%y %H:%M:%S", localtime(&now.tv_sec));
@@ -215,7 +212,9 @@ LoRa Modem Register Status:     Version: 0x12  LoRa Modem OpMode : 0x80
     BHLOG(LOGLORAW) printf("  NwS<%s>:  Waiting for LoRa Node Packets in Contiguous Mode (%.6lf Mhz - SF%i)\n",
 		TimeString, (double)freq/1000000, (unsigned char)sf+6);
 
-	int counter =0;
+	// Start LoRa Mode continuous read loop
+	startrx(RXMODE_SCAN, 0);	// RX in RX_CONT Mode 
+
 	// run forever: wait for incoming packages via radio_irq_handler()
     while(1) {
 		// ISR waiting for rising DIO0 level -> starting receivepacket() directly
@@ -243,9 +242,8 @@ LoRa Modem Register Status:     Version: 0x12  LoRa Modem OpMode : 0x80
 	
 			BHLOG(LOGLORAR) printf("  NwS: New RX-Queue Status: SrvIdx:%i, IsrIdx:%i, RXFlag:%i, IRQlevel=%i\n",
 				(int)RXPkgSrvIdx, (int)RXPkgIsrIdx, (int)BeeIotRXFlag, (int)irqlevel);
-			counter =0;
 		}
-		if((currentMode & OM_LORA_RX_CONT)!= OM_LORA_RX_CONT){
+		if((currentMode & OPMODE_RX)!= OPMODE_RX){
 			// Start LoRa MOde continuous read loop
 			BHLOG(LOGLORAR) printf("  NwS: Enter RX_Cont Mode (SF%i - %.6lf Mhz)\n", (int) sf+6,(double)freq/1000000);
 			startrx(RXMODE_SCAN, 0);	// RX in RX_CONT Mode (Beacon Mode)
@@ -253,11 +251,8 @@ LoRa Modem Register Status:     Version: 0x12  LoRa Modem OpMode : 0x80
 //			PrintLoraStatus(LOGALL);
 		}
 
-		delay(STATUSLOOP);					// wait per loop in ms -> no time to loose.
-/*		printf("%i ", counter++);
-		if ((counter%25) == 0)
-			printf("\n");
-*/    }
+		delay(SCANDELAY);					// wait per loop in ms -> no time to loose.
+    }
     return (0);
 }
 
@@ -303,7 +298,7 @@ char *ptr;					// ptr to next sensor parameter field
 	rc = JS_ValidatePkg(mystatus);
 	if(rc < 0){
 	// no valid Node packet header -> node IDs unknown or not joined yet
-		if (rc == -1 || rc == -2){ // -1 -> GWID;  -2 -> NodeID
+		if (rc == -1 || rc == -2){ // -1: -> GWID;  -2: -> NodeID
 			BHLOG(LOGLORAW) printf("  BeeIoTParse: Unknown Node/GW (NodeID:0x%02X -> GWID: 0x%02X) -> packet rejected\n", 
 					(unsigned char)mystatus->hd.sendID, (unsigned char)mystatus->hd.destID);		
 			// for test purpose: dump payload in hex format
@@ -363,7 +358,7 @@ char *ptr;					// ptr to next sensor parameter field
 		BHLOG(LOGLORAW) printf("  BeeIoTParse: Node JOIN Requested, MsgID: 0x%02X\n", (unsigned char)mystatus->hd.index);
 		BHLOG(LOGLORAR) hexdump((unsigned char*) mystatus, pkglen);
 
-		rc = RegisterNode(mystatus, 0);	// evaluate WLTable and create NDB[] entry
+		rc = JS_RegisterNode(mystatus, 0);	// evaluate WLTable and create NDB[] entry
 		if(rc >= 0){
 			ndid = rc;	// get index of new NDB-entry 
 			BHLOG(LOGLORAW) printf("  BeeIoTParse: New Node: Send CONFIG (with new channel data) as ACK\n");
@@ -380,7 +375,7 @@ char *ptr;					// ptr to next sensor parameter field
 		BHLOG(LOGLORAW) printf("  BeeIoTParse: Node REJOIN Requested, MsgID: 0x%02X\n", (unsigned char) mystatus->hd.index);
 		BHLOG(LOGLORAR) hexdump((unsigned char*) mystatus, pkglen);
 
-		rc = RegisterNode(mystatus, 0);	// evaluate WLTable and NDB[] entry
+		rc = JS_RegisterNode(mystatus, 0);	// evaluate WLTable and NDB[] entry
 		if(rc >= 0){	// successfully reactivated
 			ndid = rc;	// get idx of known NDB-entry 
 			BHLOG(LOGLORAW) printf("  BeeIoTParse: Node Reactivated: Just Send CONFIG (with new channel data) as ACK\n");
@@ -398,7 +393,7 @@ char *ptr;					// ptr to next sensor parameter field
 		BHLOG(LOGLORAW) printf("  BeeIoTParse: AppPkg -> Sensor-Status received\n");	
 
 		// Forward Frame Payload to the assigned AppServer
-		rc = AppProxy( (int) ndid, (char*) mystatus->data, (byte) mystatus->hd.frmlen);
+		rc = JS_AppProxy( (int) ndid, (char*) mystatus->data, (byte) mystatus->hd.frmlen);
 
 		// Was FramePayload complete ?
 		if(rc == -1){   // wrong parameter set => request a resend of same message: RETRY
@@ -415,25 +410,22 @@ char *ptr;					// ptr to next sensor parameter field
                     // AppProblem: no break here -> ACK pkg is needed to Node; Sent data was o.k.
 		}
 
-                BHLOG(LOGLORAW) printf("  BeeIoTParse: Send ACK\n");		
-                needaction = CMD_ACK;	// no saved data, but o.k.
-                BeeIoTFlow(needaction, mystatus, ndid, 0);  // send ACK in sync mode
+        BHLOG(LOGLORAW) printf("  BeeIoTParse: Send ACK\n");		
+        needaction = CMD_ACK;	// no saved data, but o.k.
+        BeeIoTFlow(needaction, mystatus, ndid, 0);  // send ACK in sync mode
 
-
-
-                if(rc == 1){
-                    BHLOG(LOGLORAW) printf("  BeeIoTParse: Processing RX1 Msg prepared by AppServer\n");		
-                    delay(MSGRESWAIT);	// spend some gracetime to RX1 window
-                    // ToDo: detect addon packages to send in RX1
-                    // NOP
-//		E.g.	needaction = CMD_CONFIG;
-//			BeeIoTFlow(needaction, mystatus, 0);	// hand over mystatus for header data
-                }else{
-                    BHLOG(LOGLORAW) printf("  BeeIoTParse: No RX1 Msg requested by AppServer\n");		
-                }
-                rc=0;
-		
+        if(rc == 1){
+			BHLOG(LOGLORAW) printf("  BeeIoTParse: Processing RX1 Msg prepared by AppServer\n");		
+			delay(MSGRX1DELAY);		// wait for RX1 window
+			// ToDo: detect addon packages to send in RX1 if any
+			//		E.g.	needaction = CMD_CONFIG;
+			//			BeeIoTFlow(needaction, mystatus, 0);	// hand over mystatus for header data
+		}else{
+			BHLOG(LOGLORAW) printf("  BeeIoTParse: No RX1 Msg requested by AppServer\n");		
+		}
+		rc=0;	
 		break;
+
 	case CMD_GETSDLOG: // SD LOG data package received
 		BHLOG(LOGLORAW) printf("  BeeIoTParse: SDLOG Save command: CMD(%d) not supported yet\n", (unsigned char) mystatus->hd.cmd);		
 		// for test purpose: dump paload in hex format
@@ -547,7 +539,7 @@ int count;
 			// ToDO: timeout if TX fails in a certain time 
 			if(++count == MAXTXTO){
 				BHLOG(LOGLORAR) printf("  BeeIoTFlow: TX Time Out !\n");
-				opmode(OM_LORA_SLEEP);	// reset Modem FIFO
+				opmode(OPMODE_SLEEP);	// reset Modem FIFO and go sleeping
 				break;
 			}
 		}

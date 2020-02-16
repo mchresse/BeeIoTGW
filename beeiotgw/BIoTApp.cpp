@@ -63,7 +63,7 @@
 #include <linux/sockios.h>
 
 #include "base64.h"
-#include "loraregs.h"
+// #include "loraregs.h"
 #include "BeeIoTWan.h"
 #include "beelora.h"
 #include "beeiot.h"
@@ -83,6 +83,18 @@ float lon=0.0;
 int   alt=0;
 
 /* Informal status fields for TTN Upload JSON package*/
+// Upload buffer settings
+#define TX_BUFF_SIZE		2048
+#define STATUS_SIZE			1024
+// ----------------------------------------
+#define PROTOCOL_VERSION	1
+#define PKT_PUSH_DATA		0
+#define PKT_PUSH_ACK		1
+#define PKT_PULL_DATA		2
+#define PKT_PULL_RESP		3
+#define PKT_PULL_ACK		4
+
+
 static char platform[24]    = "Single Channel Gateway";  /* platform definition */
 static char email[40]       = "";                        /* used for contact email */
 static char description[64] = "";                        /* used for free form description */
@@ -129,6 +141,7 @@ void sendstat(void);
 // Analysing BIoT Frame payloads for Weight Scale lifecycle
 // return:
 //  0       Data processed successfully -> ACK can be sent
+//	1		add. Message for RX1 available in TXBUFFER
 // -1       wrong number of parsed sensor parameters -> Retry needed
 // -2       problems with CSV file creation/concatenation
 // -99      Wrong input data ; call rejected
@@ -206,7 +219,7 @@ int AppBIoT	(int ndid, char* data, byte len){
             BHLOG(LOGBH) printf("  AppBIoT: CSV file not found (rc=%i)\n", rc);		
             rc= -2;
             // ToDo: error recovery of CSV file handling
-            return(rc);     // drop this frame data
+            return(rc);     // frame data aceoted, but not forwarded/stored
         }
 
         // Further Options: Forward dataset to remote WebSpace as CSV file, via FTP, or via MQTT or to TTN
@@ -221,8 +234,11 @@ int AppBIoT	(int ndid, char* data, byte len){
         }
 */
         cp_up_pkt_fwd++;    // Statistics: incr. # of forwarded status packages
-    
-    return(rc);
+
+		// ToDo: if add. Message to Node: prepare in TXBUFFER
+		// rc = 1; / Let NwSrv send it back to Node
+
+		return(rc);
 } // end of AppBIoT()
 
 
@@ -408,33 +424,6 @@ void UploadPkg( char * msg, int pkglen, long int SNR, byte rssi ) {
 } // received a message
 
 
-// Send status update packe to TTN networj in JSON format
-void sendudp(char *msg, int length) {
-
-	// shortcut for test purpose
-BHLOG(LOGLORAW) printf("sendudp(): len=%i <%s> (deactivated!)\n", length, msg);
-BHLOG(LOGLORAW) hexdump((unsigned char*) msg, length);
-	return;
-
-//send the update
-#ifdef SERVER1
-    inet_aton(SERVER1 , &si_other.sin_addr);
-    if (sendto(s, (char *)msg, length, 0 , (struct sockaddr *) &si_other, slen)==-1)
-    {
-        die("sendto()");
-    }
-#endif
-
-#ifdef SERVER2
-    inet_aton(SERVER2 , &si_other.sin_addr);
-    if (sendto(s, (char *)msg, length , 0 , (struct sockaddr *) &si_other, slen)==-1)
-    {
-        die("sendto()");
-    }
-#endif
-}
-
-
 // Prepare  status update package in JSON format
 void sendstat() {
     static char status_report[STATUS_SIZE]; /* status report as a JSON object */
@@ -477,6 +466,32 @@ void sendstat() {
 
     //send the update
     sendudp(status_report, stat_index);
+}
 
+
+// Send status update packe to TTN networj in JSON format
+void sendudp(char *msg, int length) {
+
+	// shortcut for test purpose
+BHLOG(LOGLORAW) printf("sendudp(): len=%i <%s> (deactivated!)\n", length, msg);
+BHLOG(LOGLORAW) hexdump((unsigned char*) msg, length);
+	return;
+
+//send the update
+#ifdef SERVER1
+    inet_aton(SERVER1 , &si_other.sin_addr);
+    if (sendto(s, (char *)msg, length, 0 , (struct sockaddr *) &si_other, slen)==-1)
+    {
+        die("sendto()");
+    }
+#endif
+
+#ifdef SERVER2
+    inet_aton(SERVER2 , &si_other.sin_addr);
+    if (sendto(s, (char *)msg, length , 0 , (struct sockaddr *) &si_other, slen)==-1)
+    {
+        die("sendto()");
+    }
+#endif
 }
 

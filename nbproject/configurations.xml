@@ -8,7 +8,7 @@
       <itemPath>beeiotgw/base64.h</itemPath>
       <itemPath>beeiotgw/beeiot.h</itemPath>
       <itemPath>beeiotgw/beelora.h</itemPath>
-      <itemPath>beeiotgw/loraregs.h</itemPath>
+      <itemPath>beeiotgw/regslora.h</itemPath>
     </logicalFolder>
     <logicalFolder name="ResourceFiles"
                    displayName="Resource Files"
@@ -79,11 +79,11 @@
       </item>
       <item path="beeiotgw/beelora.h" ex="false" tool="3" flavor2="0">
       </item>
-      <item path="beeiotgw/loraregs.h" ex="false" tool="3" flavor2="0">
-      </item>
       <item path="beeiotgw/main.cpp" ex="false" tool="1" flavor2="0">
       </item>
       <item path="beeiotgw/radio.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="beeiotgw/regslora.h" ex="false" tool="3" flavor2="0">
       </item>
     </conf>
     <conf name="Release" type="1">
@@ -127,11 +127,11 @@
       </item>
       <item path="beeiotgw/beelora.h" ex="false" tool="3" flavor2="0">
       </item>
-      <item path="beeiotgw/loraregs.h" ex="false" tool="3" flavor2="0">
-      </item>
       <item path="beeiotgw/main.cpp" ex="false" tool="1" flavor2="0">
       </item>
       <item path="beeiotgw/radio.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="beeiotgw/regslora.h" ex="false" tool="3" flavor2="0">
       </item>
     </conf>
   </confs>

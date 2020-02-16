@@ -47,7 +47,7 @@
 #include <sys/time.h>
 
 #include "base64.h"
-#include "loraregs.h"
+// #include "loraregs.h"
 
 #define CHANNELTAB_EXPORT // enable channelcfg tab instance here: channeltable_t	txchntab[MAX_CHANNELS]
 #include "BeeIoTWan.h"
@@ -88,11 +88,11 @@ nodedb_t NDB[MAXNODES];	// if 'NDB[x].nodeinfo.version == 0' => empty entry
 
 //******************************************************************************
 // local Function prototypes
-int RegisterNode	(beeiotpkg_t * joinpkg, int async);
+int JS_RegisterNode	(beeiotpkg_t * joinpkg, int async);
 int JS_ValidatePkg	(beeiotpkg_t* mystatus);
 int	ByteStreamCmp	(byte * bina, byte * binb, int binlen);
 
-int AppProxy(int ndid, char * framedata, byte framelen);
+int JS_AppProxy(int ndid, char * framedata, byte framelen);
 
 // in BIoTApp.cpp
 extern int AppBIoT		(int ndid, char* data, byte len);	// Bee Weight Scale App
@@ -101,7 +101,7 @@ extern int AppGH		(int ndid, char* data, byte len);	// GreenHouse Control App
 
 
 //***************************************************************************
-// RegisterNode()
+// JS_RegisterNode()
 // - check if node is already registered in NodeDB or known in DevID list (const)
 // - create new noder registration entry in NodeDB[devid]
 // - setup Node cfg runtime params in NodeDB[devid] => for CMD_CONFIG action
@@ -112,7 +112,7 @@ extern int AppGH		(int ndid, char* data, byte len);	// GreenHouse Control App
 //  -2		registration failed (NodeDB full) -> MAXDEVID reached
 //***************************************************************************
 
-int RegisterNode(beeiotpkg_t * pkg, int async){
+int JS_RegisterNode(beeiotpkg_t * pkg, int async){
 // default = sync mode -> async = 0
 beeiot_join_t * pjoin;  // ptr. on JOIN message format field (reusing pkg buffer)
 nodewltable_t * pwltab;	// ptr. for walking through the WL Table
@@ -318,7 +318,7 @@ int ByteStreamCmp(byte * bina, byte * binb, int binlen){
 
 //******************************************************************************
 // AppProxy()
-int AppProxy(int ndid, char * framedata, byte framelen){	// ndid refers to valid WLTab entry	
+int JS_AppProxy(int ndid, char * framedata, byte framelen){	// ndid refers to valid WLTab entry	
 nodedb_t	  * pndb;	// ptr for update of nodedb[]
 int idx;
 int rc;
