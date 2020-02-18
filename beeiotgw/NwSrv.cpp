@@ -362,6 +362,8 @@ char *ptr;					// ptr to next sensor parameter field
 		if(rc >= 0){
 			ndid = rc;	// get index of new NDB-entry 
 			BHLOG(LOGLORAW) printf("  BeeIoTParse: New Node: Send CONFIG (with new channel data) as ACK\n");
+			// give node some time to recover from SendMsg before 
+			delay(MSGRX1DELAY);
 			needaction = CMD_CONFIG; // acknowledge JOIN request
 			BeeIoTFlow(needaction, mystatus, ndid, 0);
 			BHLOG(LOGLORAW) printf("  => JOIN Done.\n");	
@@ -379,6 +381,8 @@ char *ptr;					// ptr to next sensor parameter field
 		if(rc >= 0){	// successfully reactivated
 			ndid = rc;	// get idx of known NDB-entry 
 			BHLOG(LOGLORAW) printf("  BeeIoTParse: Node Reactivated: Just Send CONFIG (with new channel data) as ACK\n");
+			// give node some time to recover from SendMsg before 
+			delay(MSGRX1DELAY);
 			needaction = CMD_CONFIG; // acknowledge JOIN request
 			BeeIoTFlow(needaction, mystatus, ndid, 0);
 			BHLOG(LOGLORAW) printf("  => REJOIN Done.\n");	
@@ -482,9 +486,6 @@ int count;
 		break;
 
 	case CMD_REJOIN:	// Send  a simple REJOIN request (reuse ACK Format buffer)
-		// give node some time to recover from SendMsg before 
-		delay(RXACKGRACETIME);
-
 		pack = (beeiot_header_t*) & actionpkg;
 		pndb = &NDB[ndid];	// get Cfg init data from NDB entry of this node
 		// lets acknowledge action cmd related to received package to sender
