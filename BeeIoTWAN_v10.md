@@ -22,15 +22,15 @@ Nach der Beschreinung der BeeIot Sensor Knoten auf Basis des ESP32 chipset, nun 
 - Gateway Server
 	- Entgegennahme der BIoT LoRa Pakete (Uplink) auf der vereinbarten Modem Channel configuration
 	- Versenden von BIoT Antwort Paketen.
-- NetworkServer 
-	- Koordination der RX/TX Paket 
+- NetworkServer
+	- Koordination der RX/TX Paket
 	- Bedienung des RX1 Commando Fensters im Anschluss an jedes Node Paket (optional)
 - JOIN Server
 	- Evaluierung von JOIN request auf Basis einer statischen DevUID Referenztabelle
 	- Verwaltung einer dynamischen Node Tabelle incl RX/Queue.
 - Application Server
 	- Auswertung des Frame-Payloads applikationsspezifisch nach zugewiesener AppEUI.
-	- Default App: BIoT zur Auswertung der BeeIoT Node Sensordaten 
+	- Default App: BIoT zur Auswertung der BeeIoT Node Sensordaten
 	- Weiterleitung der validierten Datenpakete an die Webdarstellung in Form einer CSV Datei
 
 
@@ -39,7 +39,8 @@ Für die remote Connection ohne "stromfressenden" WiFi Betrieb oder nicht-erreic
 
 Das LoRa-WAN Protokoll ist auf geringe Band-Belastung und geringem Stromverbrauch ausgelegt.
 
-Das verbaute Funkmodul bietet erst einmal nur den LoRa-MAC layer Übertragungssupport. Den Rest für das **[LoRaWAN Protokoll](https://lora-alliance.org/about-lorawan)** leisten die dazugehörigen Bibliotheken (z.B. die OSS Lib: LMIC von IBM -> search in GitHub).
+Die Netzwerkverwaltung z.B. in Form des **[LoRaWAN(TM) Protokolls](https://lora-alliance.org/about-lorawan)** leisten die dazugehörigen Bibliotheken (z.B. die OSS Lib: LMIC von IBM -> search in GitHub).
+
 Darin sind dann eine Peer2Peer Verbindung über unique Sender/Empfänger IDs und Verschlüsselungs-keys ähnlich wie bei TCP/IP kombiniert mit SSH enthalten.
 Es zeigten sich bei der Migration der LMIC Lib Instablitäten des LoRa Modes -> es wurden immer wieder FSK Mode IRQs empfangen, was die LoRa Statusführung durcheinander bringt.
 Auch ist das von IBM gewählte OS layer Model nicht so handsam wie erwartet.
