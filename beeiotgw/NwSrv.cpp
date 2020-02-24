@@ -187,8 +187,6 @@ int NwNodeScan () {
     SetupLoRa();	// -> enter SLEEP Mode	
 //	PrintLoraStatus(LOGALL);
 
-	myisr_init();		// assign ISRs to IRQ Port
-
 	BHLOG(LOGLORAR)PrintLoraStatus(LOGALL);
 /* Working Example Output right from here:
 LoRa Modem Register Status:     Version: 0x12  LoRa Modem OpMode : 0x80

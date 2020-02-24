@@ -468,6 +468,7 @@ LoRa Modem Register Status:     Version: 0x12  LoRa Modem OpMode : 0x80
 */
 
 	radio_init();	// setup Radio layer houskeeping data + get Random bit field
+	myisr_init();	// assign ISRs to IRQ Port
 
 	BHLOG(LOGLORAR) printf("  SetupLora(): Done\n");
 	return;

@@ -13,7 +13,51 @@
 //     https://github.com/mchresse/BeeIoT/license
 // For used 3rd party open source see also Readme_OpenSource.txt
 //*******************************************************************
-
+// BSD 3-Clause License
+// 
+// BeeIoT Weight Scale project using an own BeeIoTWAN based on LoRa Radio functions
+// using a SX1276 LoRa modem chip (e.g. Dragino LoRa/GPS HAT) connected to a 
+// Raspberry Pi platform.
+//	
+// Copyright (c) 2019, Randolph Esser
+// All rights reserved.
+// 
+// This file provides incorporated routines from hal.c + hal.h layer of the project:
+//	Hardware Abstraction Layer (HAL) targeted to Raspberry Pi and 
+//	Dragino LoRa/GPS HAT
+// implemented by
+// 
+// Copyright (c) 2017, Wolfgang Klenk
+// All rights reserved.
+/*
+ * This file provides incorporated routines out of the great LMIC project 
+ *		from radio.c + lmic.h files 
+ * as implemented by
+ * Copyright (c) 2014-2016 IBM Corporation.
+ * All rights reserved.
+ *
+ *  Redistribution and use in source and binary forms, with or without
+ *  modification, are permitted provided that the following conditions are met:
+ *  * Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ *  * Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ *  * Neither the name of the <organization> nor the
+ *    names of its contributors may be used to endorse or promote products
+ *    derived from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL <COPYRIGHT HOLDER> BE LIABLE FOR ANY
+ * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
 #ifndef REGSLORA_H
 #define REGSLORA_H
 
@@ -131,50 +175,50 @@
 
 // ----------------------------------------
 // spread factors and mode for RegModemConfig2
-#define SX1272_MC2_FSK  0x00
-#define SX1272_MC2_SF7  0x70
-#define SX1272_MC2_SF8  0x80
-#define SX1272_MC2_SF9  0x90
-#define SX1272_MC2_SF10 0xA0
-#define SX1272_MC2_SF11 0xB0
-#define SX1272_MC2_SF12 0xC0
+#define SX1272_MC2_FSK  					0x00
+#define SX1272_MC2_SF7  					0x70
+#define SX1272_MC2_SF8  					0x80
+#define SX1272_MC2_SF9  					0x90
+#define SX1272_MC2_SF10 					0xA0
+#define SX1272_MC2_SF11 					0xB0
+#define SX1272_MC2_SF12 					0xC0
 // bandwidth for RegModemConfig1
-#define SX1272_MC1_BW_125  0x00
-#define SX1272_MC1_BW_250  0x40
-#define SX1272_MC1_BW_500  0x80
+#define SX1272_MC1_BW_125					0x00
+#define SX1272_MC1_BW_250					0x40
+#define SX1272_MC1_BW_500					0x80
 // coding rate for RegModemConfig1
-#define SX1272_MC1_CR_4_5 0x08
-#define SX1272_MC1_CR_4_6 0x10
-#define SX1272_MC1_CR_4_7 0x18
-#define SX1272_MC1_CR_4_8 0x20
-#define SX1272_MC1_IMPLICIT_HEADER_MODE_ON 0x04 // required for receive
-#define SX1272_MC1_RX_PAYLOAD_CRCON        0x02
-#define SX1272_MC1_LOW_DATA_RATE_OPTIMIZE  0x01 // mandated for SF11 and SF12
+#define SX1272_MC1_CR_4_5					0x08
+#define SX1272_MC1_CR_4_6					0x10
+#define SX1272_MC1_CR_4_7					0x18
+#define SX1272_MC1_CR_4_8					0x20
+#define SX1272_MC1_IMPLICIT_HEADER_MODE_ON	0x04 // required for receive
+#define SX1272_MC1_RX_PAYLOAD_CRCON			0x02
+#define SX1272_MC1_LOW_DATA_RATE_OPTIMIZE	0x01 // mandated for SF11 and SF12
 // transmit power configuration for RegPaConfig
-#define SX1272_PAC_PA_SELECT_PA_BOOST 0x80
-#define SX1272_PAC_PA_SELECT_RFIO_PIN 0x00
+#define SX1272_PAC_PA_SELECT_PA_BOOST		0x80
+#define SX1272_PAC_PA_SELECT_RFIO_PIN		0x00
 
 
 // sx1276 RegModemConfig1
-#define SX1276_MC1_BW_125                0x70
-#define SX1276_MC1_BW_250                0x80
-#define SX1276_MC1_BW_500                0x90
-#define SX1276_MC1_CR_4_5            0x02
-#define SX1276_MC1_CR_4_6            0x04
-#define SX1276_MC1_CR_4_7            0x06
-#define SX1276_MC1_CR_4_8            0x08
+#define SX1276_MC1_BW_125					0x70
+#define SX1276_MC1_BW_250					0x80
+#define SX1276_MC1_BW_500					0x90
+#define SX1276_MC1_CR_4_5					0x02
+#define SX1276_MC1_CR_4_6					0x04
+#define SX1276_MC1_CR_4_7					0x06
+#define SX1276_MC1_CR_4_8					0x08
 
-#define SX1276_MC1_IMPLICIT_HEADER_MODE_ON    0x01 
+#define SX1276_MC1_IMPLICIT_HEADER_MODE_ON	0x01 
                                                     
 // sx1276 RegModemConfig2          
-#define SX1276_MC2_RX_PAYLOAD_CRCON        0x04
+#define SX1276_MC2_RX_PAYLOAD_CRCON			0x04
 
 // sx1276 RegModemConfig3          
-#define SX1276_MC3_LOW_DATA_RATE_OPTIMIZE  0x08
-#define SX1276_MC3_AGCAUTO                 0x04
+#define SX1276_MC3_LOW_DATA_RATE_OPTIMIZE	0x08
+#define SX1276_MC3_AGCAUTO					0x04
 
 // preamble for lora networks (nibbles swapped)
-#define LORA_MAC_PREAMBLE                  0x34
+#define LORA_MAC_PREAMBLE					0x34
 
 #define RXLORA_RXMODE_RSSI_REG_MODEM_CONFIG1 0x0A
 #define RXLORA_RXMODE_RSSI_REG_MODEM_CONFIG2 0x70	// fo SX1276 only
@@ -182,29 +226,29 @@
 
 // ---------------------------------------- 
 // Constants for radio registers
-#define OPMODE_LORA      0x80
-#define OPMODE_MASK      0x07
-#define OPMODE_LFMASK	 0x08
+#define OPMODE_LORA						0x80
+#define OPMODE_MASK						0x07
+#define OPMODE_LFMASK					0x08
 
-#define OPMODE_SLEEP     0x00
-#define OPMODE_STANDBY   0x01
-#define OPMODE_FSTX      0x02
-#define OPMODE_TX        0x03
-#define OPMODE_FSRX      0x04
-#define OPMODE_RX        0x05
-#define OPMODE_RX_SINGLE 0x06 
-#define OPMODE_CAD       0x07 
+#define OPMODE_SLEEP					0x00
+#define OPMODE_STANDBY					0x01
+#define OPMODE_FSTX						0x02
+#define OPMODE_TX						0x03
+#define OPMODE_FSRX						0x04
+#define OPMODE_RX						0x05
+#define OPMODE_RX_SINGLE				0x06 
+#define OPMODE_CAD						0x07 
 
 // ----------------------------------------
 // Bits masking the corresponding IRQs from the radio
-#define IRQ_LORA_RXTOUT_MASK 0x80
-#define IRQ_LORA_RXDONE_MASK 0x40
-#define IRQ_LORA_CRCERR_MASK 0x20
-#define IRQ_LORA_HEADER_MASK 0x10
-#define IRQ_LORA_TXDONE_MASK 0x08
-#define IRQ_LORA_CDDONE_MASK 0x04
-#define IRQ_LORA_FHSSCH_MASK 0x02
-#define IRQ_LORA_CDDETD_MASK 0x01
+#define IRQ_LORA_RXTOUT_MASK			0x80
+#define IRQ_LORA_RXDONE_MASK			0x40
+#define IRQ_LORA_CRCERR_MASK			0x20
+#define IRQ_LORA_HEADER_MASK			0x10
+#define IRQ_LORA_TXDONE_MASK			0x08
+#define IRQ_LORA_CDDONE_MASK			0x04
+#define IRQ_LORA_FHSSCH_MASK			0x02
+#define IRQ_LORA_CDDETD_MASK			0x01
 
 #define IRQ_FSK1_MODEREADY_MASK         0x80
 #define IRQ_FSK1_RXREADY_MASK           0x40
@@ -238,29 +282,27 @@
 
 
 // FSK IMAGECAL defines
-#define RF_IMAGECAL_AUTOIMAGECAL_MASK               0x7F
-#define RF_IMAGECAL_AUTOIMAGECAL_ON                 0x80
-#define RF_IMAGECAL_AUTOIMAGECAL_OFF                0x00  // Default
+#define RF_IMAGECAL_AUTOIMAGECAL_MASK	0x7F
+#define RF_IMAGECAL_AUTOIMAGECAL_ON		0x80
+#define RF_IMAGECAL_AUTOIMAGECAL_OFF	0x00  // Default
 
-#define RF_IMAGECAL_IMAGECAL_MASK                   0xBF
-#define RF_IMAGECAL_IMAGECAL_START                  0x40
+#define RF_IMAGECAL_IMAGECAL_MASK		0xBF
+#define RF_IMAGECAL_IMAGECAL_START		0x40
 
-#define RF_IMAGECAL_IMAGECAL_RUNNING                0x20
-#define RF_IMAGECAL_IMAGECAL_DONE                   0x00  // Default
+#define RF_IMAGECAL_IMAGECAL_RUNNING	0x20
+#define RF_IMAGECAL_IMAGECAL_DONE		0x00  // Default
 
 
 // RADIO STATE
 /*!
  * Constant values need to compute the RSSI value
  */
-#define RSSI_OFFSET_LF              -164.0
-#define RSSI_OFFSET_HF              -157.0
-#define RF_MID_BAND_THRESH          525000000
+#define RSSI_OFFSET_LF					-164.0
+#define RSSI_OFFSET_HF					-157.0
+#define RF_MID_BAND_THRESH				525000000
 
-
-#define LNA_RX_GAIN (0x20|0x00)		// MaxLNAGain + NoBoost
-#define LNA_MAX_GAIN (0x20|0x03)		// MaxLNAGain + Boost(150%) -> Default for SX1276
-
+#define LNA_RX_GAIN		(0x20|0x00)		// MaxLNAGain + NoBoost
+#define LNA_MAX_GAIN	(0x20|0x03)		// MaxLNAGain + Boost(150%) -> Default for SX1276
 
 #endif /* REGSLORA_H */
 
