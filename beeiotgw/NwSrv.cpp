@@ -138,8 +138,8 @@ int NwNodeScan () {
 	// get current timestamp
 	gettimeofday(&now, 0);
 	strftime(TimeString, 80, "%d-%m-%y %H:%M:%S", localtime(&now.tv_sec));
-	 BHLOG(LOGBH) printf("  NwS<%s>: Setup started for BIoTWAN V%d.%d.%d\n", 
-		TimeString,  (int)BIoT_VMAJOR, (int)BIoT_VMINOR, (int)BIoT_VMINSUB);
+	 BHLOG(LOGBH) printf("  NwS<%s>: Setup started for BIoTWAN v%d.%d\n", 
+		TimeString,  (int)BIoT_VMAJOR, (int)BIoT_VMINOR);
     
 	pinMode(LORAcs,	 OUTPUT);
     pinMode(LORArst, OUTPUT);
@@ -431,7 +431,7 @@ char *ptr;					// ptr to next sensor parameter field
 	case CMD_GETSDLOG: // SD LOG data package received
 		BHLOG(LOGLORAW) printf("  BeeIoTParse: SDLOG Save command: CMD(%d) not supported yet\n", (unsigned char) mystatus->hd.cmd);		
 		// for test purpose: dump paload in hex format
-		hexdump((unsigned char*) mystatus, pkglen);
+		BHLOG(LOGLORAR) hexdump((unsigned char*) mystatus, pkglen);
 
 		// ToDO: we can send ACK or SD data packages directly ?!
 		needaction = CMD_ACK;	// o.k. we got it
@@ -526,12 +526,12 @@ int count;
 	}
 	
 	// Do TX
-	BeeIotTXFlag = 0;					// spawn IRQ-> Userland TX flag
+	BeeIotTXFlag = 0;						// spawn IRQ-> Userland TX flag
 	starttx((byte *)&actionpkg, pkglen );	// send LoRa pkg
-	if (async) {						// wait till bytes are out ?
+	if (async) {							// wait till bytes are out ?
 		// no, but spend some grace time for the radio to be save
-		delayMicroseconds(150); // wait for 150 max. send bytes in Tsymb=1ms (SF7)
-	} else {				// lets wait till TXDone-ISR reports TX completion
+		delayMicroseconds(150);		// wait for 150 max. send bytes in Tsymb=1ms (SF7)
+	} else {						// lets wait till TXDone-ISR reports TX completion
 		count = 0;
 		while (!BeeIotTXFlag) {		// check for TX compl. flag processed by ISR routine
 			delay(MAX_PAYLOAD_LENGTH);	// Give ISR also some time to validate TXDone

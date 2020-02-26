@@ -105,13 +105,13 @@ int main () {
 
 //  lflags = 0;   // Define Log level (search for Log values in beeiot.h)
 //  lflags = LOGBH + LOGOW + LOGHX + LOGLAN + LOGEPD + LOGSD + LOGADS + LOGSPI + LOGLORAR + LOGLORAW;
-	lflags = LOGBH + LOGLORAW;
+	lflags = LOGBH + LOGLORAW + LOGLORAR;
 
 	// get current timestamp
 	gettimeofday(&now, 0);
 	strftime(TimeString, 80, "%d-%m-%y %H:%M:%S", localtime(&now.tv_sec));
-	 BHLOG(LOGBH) printf("%s: Setup started with V%d.%d.%d\n", 
-		TimeString,  (int)BIoT_VMAJOR, (int)BIoT_VMINOR, (int)BIoT_VMINSUB);
+	 BHLOG(LOGBH) printf("%s: Setup starts with BIoTWAN v%d.%d\n", 
+		TimeString,  (int)BIoT_VMAJOR, (int)BIoT_VMINOR);
 
 
 	int fd = wiringPiSetup () ;
@@ -122,7 +122,7 @@ int main () {
 
 	// Get Local LAN Port settings
     if ( (s=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1) {
-        printf("  No LAN socket detectd !!!\n");	// if no LAN Port -> do nothing
+        printf("  No LAN socket detected !!!\n");	// if no LAN Port -> do nothing
 		ifr.ifr_hwaddr.sa_data[0] = 0;
 		// -> no LAN Port => BIoTWan communication only (no upload)
     }else{

@@ -716,9 +716,147 @@ static const u2_t LORA_TXDONE_FIXUP = us2osticks(43);
 //******************************************************************************
 // My ISR function
 
-// based on LMIC radio.c radio_irq_handler()
+// derived from LMIC radio.c radio_irq_handler()
 // ISR called by HAL ext IRQ handler on DIOx line
 // (If != OM_LORA_RX_CONT radio goes automatically to standby mode after tx/rx operations)
+void myradio_irq_handler2 (byte dio) {
+unsigned long tstamp;
+byte flags;
+
+	flags = readReg(LORARegIrqFlags);
+	writeReg(LORARegIrqFlags, flags);		// clear all IRQ flag
+	
+	byte mode = readReg(RegOpMode);
+	// final mode check for ISR handling
+	if( (mode & OPMODE_LORA) == OPMODE_LORA) { // LORA modem Mode ?
+
+		gettimeofday(&now, 0);
+		unsigned long tstamp = (unsigned long)(now.tv_sec*1000000 + now.tv_usec); // get TimeStamp in seconds
+		BHLOG(LOGLORAR) printf("  IRQ%i<%ul>: LoRa-IRQ flags: 0x%02X - Mask:0x%02X: \n", 
+			(unsigned char)dio, (unsigned long)tstamp, (unsigned char)flags, (unsigned char)readReg(LORARegIrqFlagsMask));
+
+		if((currentMode & OPMODE_TX)== OPMODE_TX){ // we are in TX Mode ?
+			if(flags & IRQ_LORA_TXDONE_MASK) { 		// TXDONE expected
+				// TXDone expected -> save exact tx time
+				txend = tstamp - txstart - LORA_TXDONE_FIXUP; // TXDONE FIXUP
+				BHLOG(LOGLORAR) printf(" TXDONE <%u ticks = %.4fsec.>\n", (unsigned long)txend, (float) txend / OSTICKS_PER_SEC);
+				fflush(stdout);
+
+				BeeIotTXFlag =1;		// tell the user land : TX Done
+			}
+			
+		}else if( ((currentMode & OPMODE_RX)== OPMODE_RX) ||
+				  ((currentMode & OPMODE_RX_SINGLE)== OPMODE_RX_SINGLE)){ // we are in any RX Mode ?{
+			
+			// RX Queue full condition (Could be RXDONE, but no Qbuffer left)
+		    if(BeeIotRXFlag >= MAXRXPKG){ // Check RX Semaphor: RX-Queue full ?
+				// same situation as: RXPkgIsrIdx+1 == RXPkgSrvIdx (but hard to check with ring buffer)
+				BHLOG(LOGLORAR) printf(" RxQueue full(#%d)\n", (unsigned char) BeeIotRXFlag);
+			 // Pkg has to be ignored User RX service must work harder
+				rxtime = tstamp;
+				// ISR flags cleared for all at the end...
+			// RXDONE
+			} else if(flags & IRQ_LORA_RXDONE_MASK)  {  // receiving a LoRa package
+				if((flags & IRQ_LORA_CRCERR_MASK) == IRQ_LORA_CRCERR_MASK){
+					BHLOG(LOGLORAR) printf(" CRCError -> ignore IRQ\n");
+				}else{ // valid payload expected
+					BHLOG(LOGLORAR) printf(" RXDone");
+					// Save exact rx time
+					rxtime = tstamp;
+					if(bw == BW125) {
+						rxtime -= LORA_RXDONE_FIXUP[sf];
+					}		
+
+					// read the payload FIFO
+					rxdlen = (readReg(LORARegModemConfig1) & SX1272_MC1_IMPLICIT_HEADER_MODE_ON) ?
+					readReg(LORARegPayloadLength) : readReg(LORARegRxNbBytes);
+					// LoRa (max) payload length' (in implicite header mode) or 
+					// default: 'Number of payload bytes of latest packetreceived' 
+					BHLOG(LOGLORAR) printf(" (0x%0.2X Byte) \n", (unsigned char)rxdlen);
+
+					// read rx quality parameters SNR & RSSI
+					long int PSNR;
+					long int PRSSI;
+
+					byte value = readReg(LORARegPktSnrValue);
+					if( value & 0x80 ){ // The SNR sign bit is 1
+						value = ( ( ~value + 1 ) & 0xFF ) >> 2; // Invert and divide by 4
+						PSNR = -value;
+					} else {
+						PSNR = ( value & 0xFF ) >> 2;           // Divide by 4
+					}
+
+					int16_t rssi = readReg(LORARegPktRssiValue);
+					// get dB adjustment for RSSI values
+					if( PSNR < 0 ){
+						if( freq > RF_MID_BAND_THRESH ){
+							PRSSI = RSSI_OFFSET_HF + rssi + ( rssi >> 4 ) + PSNR;
+						}else{
+							PRSSI = RSSI_OFFSET_LF + rssi + ( rssi >> 4 ) + PSNR;
+						}
+					}else{
+						if( freq > RF_MID_BAND_THRESH ){
+							PRSSI = RSSI_OFFSET_HF + rssi + ( rssi >> 4 );
+						}else{
+							PRSSI = RSSI_OFFSET_LF + rssi + ( rssi >> 4 );
+						}
+					}
+
+					BHLOG(LOGLORAW) printf("  IRQ%d: PRSSI:%i, RSSI:%li, ",  (unsigned char)dio, rssi, PRSSI);
+					BHLOG(LOGLORAW) printf("SNR: %li, OPMode(Reg:0x%02X) %s\n", 
+								(long int) PSNR, readReg(RegOpMode),rxloraOMstring[currentMode & OPMODE_MASK]);
+
+					// Now we can fetch the received payload from FiFo to given buffer
+					// set FIFO read address pointer
+					writeReg(LORARegFifoAddrPtr, readReg(LORARegFifoRxCurrentAddr)); 
+
+					// Package size in range of BeeIoT WAN definitions ?
+					if (rxdlen < BIoT_HDRLEN || rxdlen > MAX_PAYLOAD_LENGTH) {
+						// Non BeeIoT Package -> store for future use
+						readBuf(RegFifo, (byte *) rxframe, rxdlen);				
+						BHLOG(LOGLORAR) printf("  IRQ%d: New RXPkg size out of range: %iBy -> ignored\n", (unsigned char)dio, (int) rxdlen);
+	//					hexdump((byte *) & rxframe, (byte) rxdlen);
+						rxdlen = 0;	// got all data
+						// ToDO: further processing of this proprietary message ?
+						// by now ignored...
+	//					opmode(OPMODE_STANDBY); // the radio should have received Standby Mode
+
+					}else{ // seems to be a valid BeeIoT package, put it to RXQueue
+						BHLOG(LOGLORAR) printf("  IRQ%d: Get BeeIoT RXDataPkg[%i] - len=%iBy\n",(unsigned char)dio, (int)RXPkgIsrIdx, (int)rxdlen);
+						readBuf(RegFifo, (byte *) & MyRXData[RXPkgIsrIdx], (byte) rxdlen);
+	//					BHLOG(LOGLORAR) hexdump((byte *) & MyRXData[RXPkgIsrIdx], (byte) rxdlen);
+
+						 // Correct RXQueue ISR-Write pointer to next free queue buffer  
+						if(++RXPkgIsrIdx >= MAXRXPKG){  // no next free RX buffer left in sequential queue round robin
+							BHLOG(LOGLORAR) printf("  IRQ%d: RX Queue end reached > back to IsrIdx:0\n",(unsigned char)dio);
+							RXPkgIsrIdx=0;  // wrap around
+						}
+
+						// Signal to Userland: New Entry in RX Queue
+						BeeIotRXFlag++;		// polled by Main() loop
+						cp_nb_rx_rcv++;		// statistics for BIoTApp(): # received pkgs.
+
+						opmode(OPMODE_SLEEP); // Force SLEEP Mode
+					} // RD BeeIoT Pkg
+				}// CRC check
+			} // end RX DONE
+		// RXTOUT
+        } else if((flags & IRQ_LORA_RXTOUT_MASK) == IRQ_LORA_RXTOUT_MASK){
+            // indicate timeout
+            rxdlen = 0;
+			rxtime = tstamp;
+			BHLOG(LOGLORAR) printf(" RXTout\n");
+			// ToDO How to tell user about this case ?
+		} // end of IRQ validation chain
+
+    } else { // FSK modem IRQ -> should never happen
+ 		BHLOG(LOGLORAR) printf("IRQ<%ul>: FSK-IRQ%d - should never happen (2)(OPMode: 0x%0.2X)\n", 
+					(unsigned long)tstamp, (unsigned char)dio, (unsigned char) readReg(RegOpMode));
+    } // FSK IRQ
+
+} // end of IRQ ISR
+
+
 void myradio_irq_handler (byte dio) {
 unsigned long tstamp;
 byte flags;
@@ -738,7 +876,7 @@ byte mode = readReg(RegOpMode);
 	}
 	
 	// final mode check for ISR handling
-	if( (mode & OPMODE_LORA) != 0) { // LORA modem Mode ?
+	if( (mode & OPMODE_LORA) == OPMODE_LORA) { // LORA modem Mode ?
 		flags = readReg(LORARegIrqFlags);
 
 		gettimeofday(&now, 0);
@@ -915,12 +1053,11 @@ byte mode = readReg(RegOpMode);
 
 
 
-
 static void MyIRQ0(void) {
   BHLOG(LOGLORAR) printf("IRQ at DIO 0 (level %i)\n", (unsigned char) irqlevel);
   if (irqlevel==0) {
 	hal_disableIRQs();
-	myradio_irq_handler(0);			// instead receivepacket();
+	myradio_irq_handler2(0);			// instead receivepacket();
 	hal_enableIRQs();
 	return;
   }
@@ -930,7 +1067,7 @@ static void MyIRQ1(void) {
   BHLOG(LOGLORAR) printf("IRQ at DIO 1 (level %i)\n", (unsigned char) irqlevel);
   if (irqlevel==0){
 	hal_disableIRQs();
-    myradio_irq_handler(1);
+    myradio_irq_handler2(1);
 	hal_enableIRQs();
   }
 }
@@ -939,7 +1076,7 @@ static void MyIRQ2(void) {
   BHLOG(LOGLORAR) printf("IRQ at DIO 2 (level %i)\n", (unsigned char) irqlevel);
   if (irqlevel==0){
 	hal_disableIRQs();
-    myradio_irq_handler(2);
+    myradio_irq_handler2(2);
 	hal_enableIRQs();
   }
 }
