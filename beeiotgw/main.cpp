@@ -1,7 +1,7 @@
 /*******************************************************************************
 * The "BeeIoTWAN_GW" Module is distributed under the New BSD license:
 *
-* Copyright (c) 2020, Randolph Eser
+* Copyright (c) 2020, Randolph Esser
 * All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
@@ -74,8 +74,13 @@ unsigned int	lflags;               // BeeIoT log flag field
  *******************************************************************************/
 
 // Central Database of all measured values and runtime parameters
-dataset			bhdb;		// central beeIoT data DB
-configuration	cfgini;		// runtime parameter init source
+dataset	bhdb;					// central beeIoT data DB
+
+// The one and only global init parameter set buffer parsed from config.ini file
+configuration * cfgini;			// ptr. to struct with initial parameters
+
+char	csv_notice[MAXMSGLEN];	// free notice field for *.csv file
+int		curlcount;				// count curllib ftp xfer calls for debugging reasons
 	
 // to retrieve local LAN Port MAC address
 struct sockaddr_in si_other;
@@ -85,10 +90,13 @@ struct ifreq ifr;
 extern struct timeval now;		// current tstamp used each time a time check is done
 extern char	  TimeString[128];	// contains formatted Timestamp string of each loop(in main())
 
+#define MAXMSGLEN	1024		// length of univ. message buffer
 
 //******************************************************************************
 //  Function prototypes
 extern int  NwNodeScan (void);
+int beelog(char * comment);
+int * initall();
 
 
 /******************************************************************************
@@ -97,15 +105,13 @@ extern int  NwNodeScan (void);
 int main () {
     struct timeval nowtime;
     uint32_t lasttime;
-	int rc;
+	char	msg[MAXMSGLEN];		// universals string buffer for log line creation	
+	char *	notice;				// notice buffer for logfile and csv comment fields
+	int		rc;
 
 	
 	setbuf(stdout, 0);		// disable buffering on stdout
 	printf("*** BeeIoT-WAN MAIN ***\n");
-
-//  lflags = 0;   // Define Log level (search for Log values in beeiot.h)
-//  lflags = LOGBH + LOGOW + LOGHX + LOGLAN + LOGEPD + LOGSD + LOGADS + LOGSPI + LOGLORAR + LOGLORAW;
-	lflags = LOGBH + LOGLORAW + LOGLORAR;
 
 	// get current timestamp
 	gettimeofday(&now, 0);
@@ -113,12 +119,17 @@ int main () {
 	 BHLOG(LOGBH) printf("%s: Setup starts with BIoTWAN v%d.%d\n", 
 		TimeString,  (int)BIoT_VMAJOR, (int)BIoT_VMINOR);
 
+	
+//  lflags = 0;   // Define Log level (search for Log values in beeiot.h)
+//  lflags = LOGBH + LOGOW + LOGHX + LOGLAN + LOGEPD + LOGSD + LOGADS + LOGSPI + LOGLORAR + LOGLORAW;
 
-	int fd = wiringPiSetup () ;
-    if(fd== -1){
-		printf("  Wiring Pi Setup failed: %i", fd);
-		exit(-1);
-	}
+	 // read of config.ini runtime parameters
+	initall();	// expecting one HX711 Module; only Port A is connected
+
+
+
+	sprintf(msg, "<%s> BIoT started", TimeString);
+	beelog (msg);	// remember used offset 
 
 	// Get Local LAN Port settings
     if ( (s=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1) {
@@ -149,21 +160,6 @@ int main () {
 		 strncpy(bhdb.macaddr, ifr.ifr_hwaddr.sa_data, LENMACADDR);
 	}
 	
-		// preset some local config settings
-	strcpy(cfgini.web_root, "/var/www/html/beeiot");
-	strcpy(cfgini.bh_CSVFILE, "beeiotlog");		// results in beeiotlogYYYY.csv
-
-	bhdb.loopid		= -1;			// get sequential index of sample data set
-	bhdb.packid		= -1;			// get sequential index of payload packages
-	bhdb.macaddr[0]	= 0;
-	bhdb.ipaddr[0]	= 0;			// no IP yet
-	bhdb.BoardID	= 0;			// no board ID yet
-        bhdb.NodeID     = 0;
-	bhdb.date[0]	= 0;
-	bhdb.time[0]	= 0;
-	bhdb.formattedDate[0]=0;
-	bhdb.packid		= -1;
-
 	// run forever: wait for incoming packages via radio_irq_handler()
 	// STart BIoT WAN Node scan routine
 	NwNodeScan ();
@@ -171,8 +167,75 @@ int main () {
 	// Further processing of BIoT messages by BIoTApp() function
 
     return (0);
-}
+} // end of main ()
+
+/*******************************************************************************
+* Function: InitAll()
+* Creation: 29.02.2020
+* 
+* Initialize all program related infrastructure and runtime settings:
+* - setup WiringPi Lib
+* - get config.ini start runtime parameters
+* - init all IO modules
+*   
+* Input :	none
+* Global:	
+*	cfgini		struct of runtime parameters	-> get runtime params
+*	bhdb		virt. database of statistic data -> set to "no data"
+*	alarmflag	field of alarmflags dep. on type.-> set to 0
+*   csv_notice	field for service notices for csv-file logging
+*
+* Output:
+*	0		Init successful
+*	-1		something essential went wrong -> break main
+*********************************************************************************
+*/
+int * initall(){
+int		i,rc=0;
+char	sbuf[MAXMSGLEN];
+
+	
+	// retrieve initial config runtime settings
+	cfgini = getini(CONFIGINI);
+	if( cfgini == NULL){
+		printf("    BeeIoT-Init: INI FIle not found at: %s\n", CONFIGINI);
+		exit(EXIT_FAILURE);
+	}
+	lflags		= (unsigned int) cfgini->biot_verbose;	// now we have the custom verbose mode
+
+	printf("============== BIoTWAN v%i.%i =========================\n\n", cfgini->vmajor, cfgini->vminor);
+	sprintf(sbuf, "##### BeeIoT Server v%i.%i - started #####", cfgini->vmajor, cfgini->vminor);  
+	beelog(sbuf);	// log init of program log file
 
 
+	//  setup Wiring-PI Lib
+	if(wiringPiSetup() < 0) {    // using wPi pin mapping
+		BHLOG(LOGBH) printf("    BeeIoT-Init: wiringPi-Init for wPi# Error\n");
+		beelog(" - Exit: Wiring-Pi Lib GPIO init failed\n");
+		if(cfgini->biot_actionIOfailure != AOF_NOOP){
+			exit(EXIT_FAILURE);
+		}
+	}	
 
-// end of main()
+//	reset datastor, alarmflag field and weather forecast field
+//		initbhdb(&bhdb);
+	bhdb.loopid		= -1;			// get sequential index of sample data set
+	bhdb.packid		= -1;			// get sequential index of payload packages
+	bhdb.macaddr[0]	= 0;
+	bhdb.ipaddr[0]	= 0;			// no IP yet
+	bhdb.BoardID	= 0;			// no board ID yet
+    bhdb.NodeID     = 0;
+	bhdb.date[0]	= 0;
+	bhdb.time[0]	= 0;
+	bhdb.formattedDate[0]=0;
+	bhdb.packid		= -1;
+	
+
+// Inhouse stuff init
+	sprintf(csv_notice, "started");	// prepare "Start" notice of new value series	
+	
+	return(0);
+} // end of InitAll()
+
+
+// end of main.cpp

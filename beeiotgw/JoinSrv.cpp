@@ -1,7 +1,7 @@
 /*******************************************************************************
 * The "JoinSrv" Module is distributed under the New BSD license:
 *
-* Copyright (c) 2020, Randolph Eser
+* Copyright (c) 2020, Randolph Esser
 * All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
@@ -60,6 +60,8 @@
 //******************************************************************************
 // central Logging flags
 extern unsigned int	lflags;               // BeeIoT log flag field
+extern configuration * cfgini;			// ptr. to struct with initial parameters
+
 
 nodewltable_t WLTab[MAXNODES+1]={ // +1 for dummy JOIN line ID=0
 // => The index position in this table results in corresponding NodeID: NODEIDBASE+idx !
@@ -69,7 +71,7 @@ nodewltable_t WLTab[MAXNODES+1]={ // +1 for dummy JOIN line ID=0
 // 1: BeeIoT Prototype 1:	DC8AD5286F24
 	NODEID1, GWID1,	BIoT_EUID,						// AppEUI: BIoT
 	0xDC, 0x8A, 0xD5, 0xFF, 0xFE, 0x28, 0x6F, 0x24, // DevEUI 
-	10, 0,											// reportfrq, joinflag
+	1, 0,											// reportfrq, joinflag
 //---------------------------------------------------
 // 2: WROVER ESP32
 	NODEID2, GWID1,	BIoT_EUID,						// AppEUI: BIoT
@@ -160,6 +162,7 @@ int  rc =0;
 		// ToDo split FrameIdx and PkgIdx
 		pndb->nodeinfo.frmid[1]	= pjoin->hd.index;		// by now FrameIdx and Pkg Idx are identical
 		pndb->msg.idx			= pjoin->hd.index;		// keep using current counter status as devnonce;
+		pndb->nodecfg.freqsensor= cfgini->biot_loopwait;// [min] loop time of sensor status reports in Seconds (from config.ini)
 		return(ndid);	// return index to NDB[]
 	}
 
@@ -182,7 +185,10 @@ int  rc =0;
 	pndb->nodecfg.channelidx= 0;					// we start with default Channel IDX = 0
 	pndb->nodecfg.gwid		= pwltab->gwid;			// store predefined GW
 	pndb->nodecfg.nodeid	= pwltab->nodeid;
-	pndb->nodecfg.freqsensor= pwltab->reportfrq;	// [min] loop time of sensor status reports in Seconds
+
+	//	pndb->nodecfg.freqsensor= pwltab->reportfrq;	// [min] loop time of sensor status reports in Seconds
+	pndb->nodecfg.freqsensor= cfgini->biot_loopwait;// [min] loop time of sensor status reports in Seconds (from config.ini)
+
 	pndb->nodecfg.verbose	= 0;					// reserved
 	pndb->nodecfg.vmajor	= pjoin->info.vmajor;	// get Version of BIoT protocol of node
 	pndb->nodecfg.vminor	= pjoin->info.vminor;	// gives room for backward support stepping

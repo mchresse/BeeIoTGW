@@ -47,7 +47,9 @@ extern struct timeval	now;		// my current local time buffer
 extern char	TimeString[128];		// Timestamp object of current action
 									// loop common for all Log files -> beelog()
 extern dataset			bhdb;
-extern configuration	cfgini;
+extern configuration * cfgini;			// ptr. to struct with initial parameters
+
+
 
 /*******************************************************************************
 * Function: beelog()
@@ -85,7 +87,7 @@ char	logpath[1024];			// log file path buffer
 	BHLOG(LOGBH) printf("    BeeLog: %s", logline);
 	
 	// now write logdata to file
-	sprintf(logpath, "%s/%s", cfgini.web_root, cfgini.bh_LOGFILE); 
+	sprintf(logpath, "%s/%s", cfgini->web_root, cfgini->biot_LOGFILE); 
 	bhlog = fopen(logpath, "a");
 	
 	if (!bhlog) {
@@ -173,7 +175,7 @@ int		idx;
 	//	strftime(TimeString, 80, "%Y", localtime(&data->dlog[idx].tvsec));
 	strncpy(TimeString, bhdb.date, 4);	// get year string only
 	TimeString[4]=0;
-	sprintf(logpath, "%s/%s%02X_%s.csv", cfgini.web_root, cfgini.bh_CSVFILE, data->NodeID, TimeString); 
+	sprintf(logpath, "%s/%s%02X_%s.csv", cfgini->web_root, cfgini->biot_CSVFILE, data->NodeID, TimeString); 
 
 	// do we have already a log file existing
 	bhlog = fopen(logpath, "a");

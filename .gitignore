@@ -7,5 +7,6 @@ config.ini
 /WebPage
 .gitignore
 /beeiotgw/loraregs.h
+
 # ignore objects and archives, anywhere in the tree.
 *.[oa]

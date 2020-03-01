@@ -8,6 +8,8 @@
       <itemPath>beeiotgw/base64.h</itemPath>
       <itemPath>beeiotgw/beeiot.h</itemPath>
       <itemPath>beeiotgw/beelora.h</itemPath>
+      <itemPath>beeiotgw/getini.h</itemPath>
+      <itemPath>beeiotgw/ini.h</itemPath>
       <itemPath>beeiotgw/regslora.h</itemPath>
     </logicalFolder>
     <logicalFolder name="ResourceFiles"
@@ -23,6 +25,10 @@
       <itemPath>beeiotgw/aes.cpp</itemPath>
       <itemPath>beeiotgw/base64.cpp</itemPath>
       <itemPath>beeiotgw/beelog.cpp</itemPath>
+      <itemPath>config.ini</itemPath>
+      <itemPath>config.tpl</itemPath>
+      <itemPath>beeiotgw/getini.c</itemPath>
+      <itemPath>beeiotgw/ini.c</itemPath>
       <itemPath>beeiotgw/main.cpp</itemPath>
       <itemPath>beeiotgw/radio.cpp</itemPath>
     </logicalFolder>
@@ -79,11 +85,23 @@
       </item>
       <item path="beeiotgw/beelora.h" ex="false" tool="3" flavor2="0">
       </item>
+      <item path="beeiotgw/getini.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="beeiotgw/getini.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="beeiotgw/ini.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="beeiotgw/ini.h" ex="false" tool="3" flavor2="0">
+      </item>
       <item path="beeiotgw/main.cpp" ex="false" tool="1" flavor2="0">
       </item>
       <item path="beeiotgw/radio.cpp" ex="false" tool="1" flavor2="0">
       </item>
       <item path="beeiotgw/regslora.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="config.ini" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="config.tpl" ex="false" tool="3" flavor2="0">
       </item>
     </conf>
     <conf name="Release" type="1">
@@ -127,11 +145,23 @@
       </item>
       <item path="beeiotgw/beelora.h" ex="false" tool="3" flavor2="0">
       </item>
+      <item path="beeiotgw/getini.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="beeiotgw/getini.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="beeiotgw/ini.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="beeiotgw/ini.h" ex="false" tool="3" flavor2="0">
+      </item>
       <item path="beeiotgw/main.cpp" ex="false" tool="1" flavor2="0">
       </item>
       <item path="beeiotgw/radio.cpp" ex="false" tool="1" flavor2="0">
       </item>
       <item path="beeiotgw/regslora.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="config.ini" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="config.tpl" ex="false" tool="3" flavor2="0">
       </item>
     </conf>
   </confs>

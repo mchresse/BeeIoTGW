@@ -15,7 +15,7 @@
 // Copyright (c) 2017, Wolfgang Klenk
 // All rights reserved.
 /*
- * This file provides incorporated routines out of the great LMIC project 
+ * This file provides incorporated routines out of the great MCCI-LMIC project 
  *		from radio.c + lmic.h files 
  * as implemented by
  * Copyright (c) 2014-2016 IBM Corporation.
@@ -249,8 +249,8 @@ static void configLoraModem () {
         }
         writeReg(LORARegModemConfig1, mc1);
 
-    // set ModemConfig2
-        mc2 = (SX1272_MC2_SF7 + ((sf-1)<<4));
+    // set ModemConfig2 (rxsymto typ. 0x0)
+        mc2 = (SX1272_MC2_SF7 + ((sf-1)<<4) /* + ((rxsymto >> 8) & 0x3)*/ );
         if (!nocrc) { 
             mc2 |= SX1276_MC2_RX_PAYLOAD_CRCON;
         }
@@ -263,10 +263,31 @@ static void configLoraModem () {
             mc3 |= SX1276_MC3_LOW_DATA_RATE_OPTIMIZE;
         }
         writeReg(LORARegModemConfig3, mc3);
+
+    // Errata 2.1: Sensitivity optimization with 500 kHz bandwidth
+        u1_t rHighBwOptimize1;
+        u1_t rHighBwOptimize2;
+
+        rHighBwOptimize1 = 0x03;
+        rHighBwOptimize2 = 0;
+
+        if (bw == BW500) {
+            if (freq > SX127X_FREQ_LF_MAX) { // e.g. for 868MHz
+                rHighBwOptimize1 = 0x02;	
+                rHighBwOptimize2 = 0x64;
+            } else {
+                rHighBwOptimize1 = 0x02;
+                rHighBwOptimize2 = 0x7F;
+            }
+        }
+
+        writeReg(LORARegHighBwOptimize1, rHighBwOptimize1);
+        if (rHighBwOptimize2 != 0)
+            writeReg(LORARegHighBwOptimize2, rHighBwOptimize2);
 		
 		BHLOG(LOGLORAR) printf("    ConfigLoRa: mc1=0x%02X, mc2=0x%02X, mc3=0x%02X, Channel= %.6lf MHz\n",
 				(unsigned char)mc1, (unsigned char)mc2, (unsigned char)mc3, (double)freq/1000000);
-}
+} // end configLoraModem()
 
 static void configChannel () {
     // set frequency: FQ = (FRF * 32 Mhz) / (2 ^ 19)
@@ -277,7 +298,32 @@ static void configChannel () {
 //	printf("    ConfigChannel= %.6lf MHz\n", (double)freq/1000000);
 }
 
-static void configPower () {
+// On the SX1276, we have several possible configs.
+// 1) using RFO, MaxPower==0: in that case power is -4 to 11 dBm
+// 2) using RFO, MaxPower==7: in that case, power is 0 to 14 dBm
+//      (can't select 15 dBm).
+//	note we can use -4..11 w/o Max and then 12..14 w/Max, and
+//	we really don't need to ask anybody.
+// 3) using PA_BOOST, PaDac = 4: in that case power range is 2 to 17 dBm;
+//	use this for 15..17 if authorized.
+// 4) using PA_BOOST, PaDac = 7, OutputPower=0xF: in that case, power is 20 dBm
+//		(and perhaps 0xE is 19, 0xD is 18 dBm, but datasheet isn't clear.)
+//    and duty cycle must be <= 1%.
+//
+// In addition, there are some boards for which PA_BOOST can only be used if the
+// channel frequency is greater than SX127X_FREQ_LF_MAX.
+//
+// The SX1272 is similar but has no MaxPower bit:
+// 1) using RFO: power is -1 to 13 dBm (datasheet implies max OutputPower value is 14 for 13 dBm)
+// 2) using PA_BOOST, PaDac = 0x84: power is 2 to 17 dBm;
+//	use this for 14..17 if authorized
+// 3) using PA_BOOST, PaDac = 0x87, OutputPower = 0xF: power is 20dBm
+//    and duty cycle must be <= 1%
+//
+// The general policy is to use the lowest power variant that will get us where we
+// need to be.
+//
+static void configPower () {	// the easy way to config PA
 	// no boost used for now
     if(pw >= 17) {
         pw = 15;
@@ -293,12 +339,104 @@ static void configPower () {
 		(byte)readReg(RegPaConfig), (byte)readReg(RegPaDac));
 }
 
+//*****************************************
+// enhanced version for diff. power classes
+enum policy_t {
+	LMICHAL_radio_tx_power_policy_20dBm, 
+	LMICHAL_radio_tx_power_policy_paboost,
+	LMICHAL_radio_tx_power_policy_rfo
+};
+
+static void configPower2 () {
+    // our input paramter -- might be different than pw!
+    s1_t const req_pw = (s1_t)pw;
+    s1_t eff_pw;	// the effective power
+    u1_t policy;	// the policy; we're going to compute this.
+    u1_t rPaConfig; // what we'll write to RegPaConfig
+    u1_t rPaDac;	// what we'll write to RegPaDac
+    u1_t rOcp;		// what we'll write to RegOcp
+
+	// negotiate power class
+    if (req_pw >= 20) {
+        policy = LMICHAL_radio_tx_power_policy_20dBm;
+        eff_pw = 20;
+    } else if (req_pw >= 14) {
+        policy = LMICHAL_radio_tx_power_policy_paboost;
+        if (req_pw > 17) {
+            eff_pw = 17;
+        } else {
+            eff_pw = req_pw;
+        }
+    } else { // default e.g. for pw=14
+        policy = LMICHAL_radio_tx_power_policy_rfo;
+        if (req_pw < -4) {
+            eff_pw = -4;
+        } else {
+            eff_pw = req_pw;
+        }
+    }
+
+//	ask for forgiveness: but not here
+//    policy = hal_getTxPowerPolicy(policy, eff_pw, freq);
+
+    switch (policy) {
+    default:
+    case LMICHAL_radio_tx_power_policy_rfo:
+        rPaDac = SX127X_PADAC_POWER_NORMAL;
+        rOcp = SX127X_OCP_MAtoBITS(80);
+
+        if (eff_pw > 14)
+            eff_pw = 14;
+        if (eff_pw > 11) {
+            // some Semtech code uses this down to eff_pw == 0.
+            rPaConfig = eff_pw | SX1276_PAC_MAX_POWER_MASK;
+        } else {
+            if (eff_pw < -4)
+                eff_pw = -4;
+            rPaConfig = eff_pw + 4;
+        }
+        break;
+
+    // some radios (HopeRF RFM95W) don't support RFO well,
+    // so the policy might *raise* rfo to paboost. That means
+    // we have to re-check eff_pw, which might be too small.
+    // (And, of course, it might also be too large.)
+    case LMICHAL_radio_tx_power_policy_paboost:
+        // It seems that SX127x doesn't like eff_pw 10 when in FSK mode.
+        if (sf == FSK && eff_pw < 11) {
+            eff_pw = 11;
+        }
+        rPaDac = SX127X_PADAC_POWER_NORMAL;
+        rOcp = SX127X_OCP_MAtoBITS(100);
+        if (eff_pw > 17)
+            eff_pw = 17;
+        else if (eff_pw < 2)
+            eff_pw = 2;
+        rPaConfig = (eff_pw - 2) | SX1276_PAC_PA_SELECT_PA_BOOST;
+        break;
+
+    case LMICHAL_radio_tx_power_policy_20dBm:
+        rPaDac = SX127X_PADAC_POWER_20dBm;
+        rOcp = SX127X_OCP_MAtoBITS(130);
+        rPaConfig = 0xF | SX1276_PAC_PA_SELECT_PA_BOOST;
+        break;
+    }
+
+
+    writeReg(RegPaConfig, rPaConfig);
+    writeReg(RegPaDac, (readReg(RegPaDac) & ~SX127X_PADAC_POWER_MASK) | rPaDac);
+    writeReg(RegOcp, rOcp | SX127X_OCP_ENA);
+}
 
 // get random seed from wideband noise rssi
 void radio_init () {
 	// initial init: no IRQ request allowed
 	irqlevel = 0;
     hal_disableIRQs();
+	
+// set the tcxo input, if needed ???
+//    if (hal_queryUsingTcxo())
+//        writeReg(RegTcxo, readReg(RegTcxo) | RegTcxo_TcxoInputOn);
 
      // seed 15-byte randomness via noise rssi
     rxlora(RXMODE_RSSI,0);
@@ -339,6 +477,10 @@ static u1_t radio_rand1 () {
     return v;
 }
 
+byte LoRa_random(){
+  return readReg(LORARegRssiWideband);
+}
+
 static u1_t radio_rssi () {
     hal_disableIRQs();
     u1_t r = readReg(LORARegRssiValue);
@@ -346,9 +488,7 @@ static u1_t radio_rssi () {
     return r;
 }
 
-byte LoRa_random(){
-  return readReg(LORARegRssiWideband);
-}
+
 
 
 //******************************************************************************
@@ -557,7 +697,9 @@ static void txlora ( byte* frame, byte dataLen) {
     // configure LoRa modem/channel for TX (requires Standby/Sleep Mode)
     configLoraModem();	// Set Modem Cfg. registers 1,2,3
     configChannel();	// configure Channel frequency
-    configPower();		// configure Antenna Output power
+	
+	writeReg(RegPaRamp, 0x08);     // set PA ramp-up time 50 uSec, clear FSK bits
+    configPower2();		// configure Antenna Output power
 
 
 	// set sync word
@@ -582,6 +724,7 @@ static void txlora ( byte* frame, byte dataLen) {
     // enable antenna switch for TX
 	// Nothing to do. There is no such pin in the Lora/GPS HAT module.
 	//    digitalWrite(pins.rxtx, val);
+	//  or   hal_pin_rxtx(1);
     
     // now we actually start the transmission
     opmode(OPMODE_TX);
@@ -645,6 +788,16 @@ static void rxlora (u1_t rxmode, int rxto) {
         writeReg(LORARegInvertIQ, readReg(LORARegInvertIQ)|(1<<6));
     }	
 
+	// Errata 2.3 - receiver spurious reception of a LoRa signal
+    u1_t const rDetectOptimize = (readReg(LORARegDetectOptimize) & 0x78) | 0x03;
+    if (bw < BW500) {
+        writeReg(LORARegDetectOptimize, rDetectOptimize);
+        writeReg(LORARegIffReq1, 0x40);
+        writeReg(LORARegIffReq2, 0x40);
+    } else {
+        writeReg(LORARegDetectOptimize, rDetectOptimize | 0x80);
+    }
+	
     // set symbol timeout (for single rx)
     writeReg(LORARegSymbTimeoutLsb, RX_TOUT_LSB);
     // set sync word
@@ -652,7 +805,7 @@ static void rxlora (u1_t rxmode, int rxto) {
     // configure DIO mapping DIO0=RxDone DIO1=RxTout DIO2=NOP (orig)
 	// on Cont. RX Mode: DIO0 Active if SyncAddress bits are valid
 	// IRQ routine have to wait for Payload ready before reading Payload data !
-    writeReg(RegDioMapping1, MAP_DIO0_LORA_RXDONE|MAP_DIO1_LORA_NOP|MAP_DIO2_LORA_NOP);
+    writeReg(RegDioMapping1, MAP_DIO0_LORA_RXDONE|MAP_DIO1_LORA_RXTOUT|MAP_DIO2_LORA_NOP);
 
 //	Freq Hopping not supported yet
 //	writeReg(LORARegHopPeriod, 0xFF);
@@ -666,6 +819,10 @@ static void rxlora (u1_t rxmode, int rxto) {
     // enable antenna switch for RX -> not needed here
 	//     hal_pin_rxtx(0);
 
+	// Use FIFO from the buttom up: 0...n (255)
+    writeReg(LORARegFifoAddrPtr, 0);
+    writeReg(LORARegFifoRxBaseAddr, 0);
+
 	gettimeofday(&now, NULL);
     uint32_t tstamp = (uint32_t)(now.tv_sec*1000000 + now.tv_usec); // get TimeStamp in seconds
 	BHLOG(LOGLORAR) printf("    <%ul> RXMODE:%d, freq=%ul,SF=%d, BW=%d, CR=4/%d, IH=%d\n",
@@ -676,9 +833,9 @@ static void rxlora (u1_t rxmode, int rxto) {
 
     // now instruct the radio to receive new pkg
     if (rxmode == RXMODE_SINGLE) { // one shot with TimeOUT
-//        hal_waitUntil(LMIC.rxtime); // busy wait until exact rx time
-		delay(rxto*1000);			// wait in sec for incoming data
+//        hal_waitUntil(LMIC.rxtime); // busy wait until exact rx time window ends
         opmode(OPMODE_RX_SINGLE);
+		delay(rxto*1000);			// wait in sec for incoming data
 		BHLOG(LOGLORAR) printf("    rxlora(): STart RX in SINGLE Mode for %i sec.)\n", rxto);
     } else if (rxmode == RXMODE_SCAN){ // continous rx (scan or rssi)
         opmode(OPMODE_RX); 
@@ -859,14 +1016,15 @@ byte flags;
 
 void myradio_irq_handler (byte dio) {
 unsigned long tstamp;
+struct timeval now;
 byte flags;
+byte mode;
 
-byte mode = readReg(RegOpMode);	
+	gettimeofday(&now, NULL);
+	mode = readReg(RegOpMode);	
 	
 	// workaround for spurious missing LoRa OPMode flag ... just wait some ms and read again
     if( (mode & OPMODE_LORA) == 0) { // FSK Mode ?
-		struct timeval now;
-		gettimeofday(&now, 0);
 		tstamp = (unsigned long)(now.tv_sec*1000000 + now.tv_usec);
 
 		BHLOG(LOGLORAR) printf("IRQ<%ul>: FSK-IRQ%d - should never happen (1) (OPMode: 0x%0.2X)-> RD-OPMode Retry...\n", 
@@ -876,31 +1034,26 @@ byte mode = readReg(RegOpMode);
 	}
 	
 	// final mode check for ISR handling
-	if( (mode & OPMODE_LORA) == OPMODE_LORA) { // LORA modem Mode ?
+	if( (mode & OPMODE_LORA) != 0) {		// Really LORA modem Mode ?
 		flags = readReg(LORARegIrqFlags);
 
-		gettimeofday(&now, 0);
-		unsigned long tstamp = (unsigned long)(now.tv_sec*1000000 + now.tv_usec); // get TimeStamp in seconds
+		tstamp = (unsigned long)(now.tv_sec*1000000 + now.tv_usec); // get TimeStamp in seconds
 		BHLOG(LOGLORAR) printf("  IRQ%i<%ul>: LoRa-IRQ flags: 0x%02X - Mask:0x%02X: ", 
 			(unsigned char)dio, (unsigned long)tstamp, (unsigned char)flags, (unsigned char)readReg(LORARegIrqFlagsMask));
 
-// not really of interest for us
+// not really of interest for us here
 //		if((flags & IRQ_LORA_HEADER_MASK) == IRQ_LORA_HEADER_MASK) printf(" ValidHeader");
 //		if((flags & IRQ_LORA_FHSSCH_MASK) == IRQ_LORA_FHSSCH_MASK) printf(" FHSSChannel");
 
 		// TXDONE
-		if(flags & IRQ_LORA_TXDONE_MASK) {
-			if((currentMode & OPMODE_TX)== OPMODE_TX){ // we are in TX Mode ?
+		if( ((currentMode & OPMODE_TX)== OPMODE_TX) && (flags & IRQ_LORA_TXDONE_MASK))  {
 				// TXDone expected -> save exact tx time
 				txend = tstamp - txstart - LORA_TXDONE_FIXUP; // TXDONE FIXUP
 				BHLOG(LOGLORAR) printf(" TXDONE <%u ticks = %.4fsec.>\n", (unsigned long)txend, (float) txend / OSTICKS_PER_SEC);
 				fflush(stdout);
 
 				BeeIotTXFlag =1;		// tell the user land : TX Done
-			}else{
-				BHLOG(LOGLORAR) printf(" No RX Mode -> TXDONE not expected: ignored!\n"); 
-			}
-			writeReg(LORARegIrqFlags, IRQ_LORA_TXDONE_MASK);		// clear TXDone IRQ flag
+				writeReg(LORARegIrqFlags, IRQ_LORA_TXDONE_MASK);		// clear TXDone IRQ flag
 			//			opmode(OPMODE_STANDBY); // Force Idle Mode
 
 		// RX Queue full condition (Could be RXDONE, but no Qbuffer left)
@@ -944,7 +1097,7 @@ byte mode = readReg(RegOpMode);
 				// ToDO How to tell user about this case ?
 //				opmode(OPMODE_STANDBY); // Force Idle Mode -> results in recfg in main loop to RXCont
 
-			}else{ // valid payload expected
+			}else{ // now valid and complete payload in FiFo expected
 				BHLOG(LOGLORAR) printf("\n");
 	            // read rx quality parameters SNR & RSSI
 				long int PSNR;
@@ -1057,7 +1210,7 @@ static void MyIRQ0(void) {
   BHLOG(LOGLORAR) printf("IRQ at DIO 0 (level %i)\n", (unsigned char) irqlevel);
   if (irqlevel==0) {
 	hal_disableIRQs();
-	myradio_irq_handler2(0);			// instead receivepacket();
+	myradio_irq_handler(0);			// instead receivepacket();
 	hal_enableIRQs();
 	return;
   }
@@ -1067,7 +1220,7 @@ static void MyIRQ1(void) {
   BHLOG(LOGLORAR) printf("IRQ at DIO 1 (level %i)\n", (unsigned char) irqlevel);
   if (irqlevel==0){
 	hal_disableIRQs();
-    myradio_irq_handler2(1);
+    myradio_irq_handler(1);
 	hal_enableIRQs();
   }
 }
@@ -1076,7 +1229,7 @@ static void MyIRQ2(void) {
   BHLOG(LOGLORAR) printf("IRQ at DIO 2 (level %i)\n", (unsigned char) irqlevel);
   if (irqlevel==0){
 	hal_disableIRQs();
-    myradio_irq_handler2(2);
+    myradio_irq_handler(2);
 	hal_enableIRQs();
   }
 }

@@ -41,6 +41,8 @@ OBJECTFILES= \
 	${OBJECTDIR}/beeiotgw/aes.o \
 	${OBJECTDIR}/beeiotgw/base64.o \
 	${OBJECTDIR}/beeiotgw/beelog.o \
+	${OBJECTDIR}/beeiotgw/getini.o \
+	${OBJECTDIR}/beeiotgw/ini.o \
 	${OBJECTDIR}/beeiotgw/main.o \
 	${OBJECTDIR}/beeiotgw/radio.o
 
@@ -98,6 +100,16 @@ ${OBJECTDIR}/beeiotgw/beelog.o: beeiotgw/beelog.cpp
 	${MKDIR} -p ${OBJECTDIR}/beeiotgw
 	${RM} "$@.d"
 	$(COMPILE.cc) -O2 -std=c++98 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/beeiotgw/beelog.o beeiotgw/beelog.cpp
+
+${OBJECTDIR}/beeiotgw/getini.o: beeiotgw/getini.c
+	${MKDIR} -p ${OBJECTDIR}/beeiotgw
+	${RM} "$@.d"
+	$(COMPILE.c) -O2 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/beeiotgw/getini.o beeiotgw/getini.c
+
+${OBJECTDIR}/beeiotgw/ini.o: beeiotgw/ini.c
+	${MKDIR} -p ${OBJECTDIR}/beeiotgw
+	${RM} "$@.d"
+	$(COMPILE.c) -O2 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/beeiotgw/ini.o beeiotgw/ini.c
 
 ${OBJECTDIR}/beeiotgw/main.o: beeiotgw/main.cpp
 	${MKDIR} -p ${OBJECTDIR}/beeiotgw

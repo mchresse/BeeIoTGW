@@ -36,12 +36,12 @@ typedef          int       s4_t;
 typedef unsigned long long u8_t;
 typedef          long long s8_t;
 typedef unsigned int       uint;
-typedef const char*		   str_t;
+typedef const char*        str_t;
 typedef              u1_t* xref2u1_t;
 typedef        const u1_t* xref2cu1_t;
 
-typedef				  u4_t devaddr_t;		// Device address
-typedef				 s4_t  ostime_t;		// tome stamp for LoRa messages
+typedef              u4_t  devaddr_t;		// Device address
+typedef              s4_t  ostime_t;		// tome stamp for LoRa messages
 
 // Dragino RPi Hat with SX127x at Raspberry 40p connection: 
 // -> wPi Mode !

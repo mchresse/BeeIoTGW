@@ -138,7 +138,9 @@
 #define FSKRegSyncValue6                           0x2D
 #define FSKRegSyncValue7                           0x2E
 #define FSKRegSyncValue8                           0x2F
+#define LORARegIffReq1                             0x2F
 #define FSKRegPacketConfig1                        0x30
+#define LORARegIffReq2                             0x30
 #define FSKRegPacketConfig2                        0x31
 #define LORARegDetectOptimize                      0x31
 #define FSKRegPayloadLength                        0x32
@@ -147,12 +149,14 @@
 #define FSKRegBroadcastAdrs                        0x34
 #define FSKRegFifoThresh                           0x35
 #define FSKRegSeqConfig1                           0x36
+#define LORARegHighBwOptimize1                     0x36
 #define FSKRegSeqConfig2                           0x37
 #define LORARegDetectionThreshold                  0x37
 #define FSKRegTimerResol                           0x38
 #define FSKRegTimer1Coef                           0x39
 #define LORARegSyncWord                            0x39
 #define FSKRegTimer2Coef                           0x3A
+#define LORARegHighBwOptimize2                     0x3A
 #define FSKRegImageCal                             0x3B
 #define FSKRegTemp                                 0x3C
 #define FSKRegLowBat                               0x3D
@@ -167,11 +171,14 @@
 // #define RegAgcThresh3                              0x46 // common
 // #define RegPllHop                                  0x4B // common
 // #define RegTcxo                                    0x58 // common
-#define RegPaDac                                   0x5A // common
+#define RegTcxo                                    0x4B // common       different addresses, same bits
+#define RegPaDac                                   0x4D // common       differnet addresses, same bits
 // #define RegPll                                     0x5C // common
 // #define RegPllLowPn                                0x5E // common
 // #define RegFormerTemp                              0x6C // common
 #define RegBitRateFrac                             0x70 // common
+
+#define RegTcxo_TcxoInputOn                        (1u << 4)
 
 // ----------------------------------------
 // spread factors and mode for RegModemConfig2
@@ -208,7 +215,28 @@
 #define SX1276_MC1_CR_4_7			0x06
 #define SX1276_MC1_CR_4_8			0x08
 
-#define SX1276_MC1_IMPLICIT_HEADER_MODE_ON      0x01 
+#define SX1276_MC1_IMPLICIT_HEADER_MODE_ON      0x01
+// transmit power configuration for RegPaConfig
+#define SX1276_PAC_PA_SELECT_PA_BOOST           0x80
+#define SX1276_PAC_PA_SELECT_RFIO_PIN           0x00
+#define SX1276_PAC_MAX_POWER_MASK               0x70
+
+// the bits to change for max power.
+#define SX127X_PADAC_POWER_MASK                 0x07
+#define SX127X_PADAC_POWER_NORMAL               0x04
+#define SX127X_PADAC_POWER_20dBm                0x07
+
+// convert milliamperes to equivalent value for
+// RegOcp; delivers conservative value.
+#define SX127X_OCP_MAtoBITS(mA)                 \
+    ((mA) < 45   ? 0 :                          \
+     (mA) <= 120 ? ((mA) - 45) / 5 :            \
+     (mA) < 130  ? 0xF :                        \
+     (mA) < 240  ? ((mA) - 130) / 10 + 0x10 :   \
+                   27)
+
+// bit in RegOcp that enables overcurrent protect.
+#define SX127X_OCP_ENA                          0x20
                                                     
 // sx1276 RegModemConfig2          
 #define SX1276_MC2_RX_PAYLOAD_CRCON		0x04
@@ -221,8 +249,23 @@
 #define LORA_MAC_PREAMBLE			0x34
 
 #define RXLORA_RXMODE_RSSI_REG_MODEM_CONFIG1    0x0A
-#define RXLORA_RXMODE_RSSI_REG_MODEM_CONFIG2    0x70	// fo SX1276 only
+#define RXLORA_RXMODE_RSSI_REG_MODEM_CONFIG2    0x70	// for SX1276 only
 
+//-----------------------------------------
+// Parameters for RSSI monitoring
+#define SX127X_FREQ_LF_MAX      525000000       // per datasheet 6.3
+#define RF_MID_BAND_THRESH	SX127X_FREQ_LF_MAX
+
+// Constant values need to compute the RSSI value
+// SX1276: per datasheet 5.5.3 and 5.5.5:
+#define SX1276_RSSI_ADJUST_LF           -164    // add to rssi value to get dB (LF)
+#define SX1276_RSSI_ADJUST_HF           -157    // add to rssi value to get dB (HF)
+#define RSSI_OFFSET_LF			SX1276_RSSI_ADJUST_LF
+#define RSSI_OFFSET_HF			SX1276_RSSI_ADJUST_HF
+
+// per datasheet 2.5.2 (but note that we ought to ask Semtech to confirm, because
+// datasheet is unclear).
+#define SX127X_RX_POWER_UP      us2osticks(500) // delay this long to let the receiver power up.
 
 // ---------------------------------------- 
 // Constants for radio registers
@@ -237,7 +280,11 @@
 #define OPMODE_FSRX			0x04
 #define OPMODE_RX			0x05
 #define OPMODE_RX_SINGLE		0x06 
-#define OPMODE_CAD			0x07 
+#define OPMODE_CAD			0x07
+// ----------------------------------------
+// LoRa opmode bits
+#define OPMODE_LORA_SX127x_AccessSharedReg              (1u << 6)
+#define OPMODE_LORA_SX1276_LowFrequencyModeOn           (1u << 3)
 
 // ----------------------------------------
 // Bits masking the corresponding IRQs from the radio
@@ -294,14 +341,8 @@
 
 
 // RADIO STATE
-/*!
- * Constant values need to compute the RSSI value
- */
-#define RSSI_OFFSET_LF			-164.0
-#define RSSI_OFFSET_HF			-157.0
-#define RF_MID_BAND_THRESH		525000000
 
-#define LNA_RX_GAIN                     (0x20|0x00) // MaxLNAGain + NoBoost
+#define LNA_RX_GAIN                     (0x20|0x03) // MaxLNAGain + NoBoost
 #define LNA_MAX_GAIN                    (0x20|0x03) // MaxLNAGain + Boost(150%) -> Default for SX1276
 
 #endif /* REGSLORA_H */

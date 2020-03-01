@@ -1,7 +1,7 @@
 /*******************************************************************************
 * The "BIoTApp" Module is distributed under the New BSD license:
 *
-* Copyright (c) 2020, Randolph Eser
+* Copyright (c) 2020, Randolph Esser
 * All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
@@ -75,6 +75,8 @@ extern nodedb_t NDB[];		// if 'NDB[x].nodeinfo.version == 0' => empty entry
 
 // Central Database of all measured values and runtime parameters
 extern dataset	bhdb;		// central beeIoT data DB
+extern configuration * cfgini;			// ptr. to struct with initial parameters
+
 
 //******************************************************************
 // Set my GPS location (preset manually, if no GPS access
@@ -219,7 +221,7 @@ int AppBIoT	(int ndid, char* data, byte len){
             BHLOG(LOGBH) printf("  AppBIoT: CSV file not found (rc=%i)\n", rc);		
             rc= -2;
             // ToDo: error recovery of CSV file handling
-            return(rc);     // frame data aceoted, but not forwarded/stored
+            return(rc);     // frame data accepted, but not forwarded/stored
         }
 
         // Further Options: Forward dataset to remote WebSpace as CSV file, via FTP, or via MQTT or to TTN
@@ -244,7 +246,7 @@ int AppBIoT	(int ndid, char* data, byte len){
 
 //******************************************************************************
 // AppTurtle()
-// Analysing Turtle House Sensor data
+// Analyzing Turtle House Sensor data
 //
 int AppTurtle (int ndid, char* data, byte len){
 	BHLOG(LOGBH) printf("  AppTurtle: Processing new Sensor Status data (len:%i)\n", (int)len);
@@ -254,7 +256,7 @@ int AppTurtle (int ndid, char* data, byte len){
 
 //******************************************************************************
 // AppGH Main Function
-// Analysing GH House Sensor data
+// Analyzing GH House Sensor data
 //
 int AppGH (int ndid, char* data, byte len){
 	BHLOG(LOGBH) printf("  AppGH: Processing new Sensor Status data (len:%i)\n", (int)len);

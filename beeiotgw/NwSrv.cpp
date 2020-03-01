@@ -1,7 +1,7 @@
 /*******************************************************************************
 * The "NwSrv" Module is distributed under the New BSD license:
 *
-* Copyright (c) 2020, Randolph Eser
+* Copyright (c) 2020, Randolph Esser
 * All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
@@ -75,7 +75,7 @@ extern unsigned int	lflags;               // BeeIoT log flag field
 
 // Central Database of all measured values and runtime parameters
 extern dataset			bhdb;       // central beeIoT data DB
-extern configuration	cfgini;     // runtime parameter init source
+extern configuration * cfgini;			// ptr. to struct with initial parameters
 
 extern nodedb_t NDB[];			// if 'NDB[x].nodeinfo.version == 0' => empty entry
 // -> typeset see beelora.h; instance in JoinSrv.cpp
@@ -213,7 +213,7 @@ LoRa Modem Register Status:     Version: 0x12  LoRa Modem OpMode : 0x80
 	// Start LoRa Mode continuous read loop
 	startrx(RXMODE_SCAN, 0);	// RX in RX_CONT Mode 
 
-	// run forever: wait for incoming packages via radio_irq_handler()
+		// run forever: wait for incoming packages via radio_irq_handler()
     while(1) {
 		// ISR waiting for rising DIO0 level -> starting receivepacket() directly
 		while(BeeIotRXFlag){	// Do we have a new package in the RX Queue ?
@@ -241,14 +241,24 @@ LoRa Modem Register Status:     Version: 0x12  LoRa Modem OpMode : 0x80
 			BHLOG(LOGLORAR) printf("  NwS: New RX-Queue Status: SrvIdx:%i, IsrIdx:%i, RXFlag:%i, IRQlevel=%i\n",
 				(int)RXPkgSrvIdx, (int)RXPkgIsrIdx, (int)BeeIotRXFlag, (int)irqlevel);
 		}
+		
 		if((currentMode & OPMODE_RX)!= OPMODE_RX){
+			//re-read config.ini file again (could have been changed in between) 
+			cfgini = getini(CONFIGINI);
+			if( cfgini == NULL){
+				printf("    BeeIoT-Init: INI FIle not found at: %s\n", CONFIGINI);
+				// exit(EXIT_FAILURE);
+				// continue with already buffered config struct data till we have access again
+			}
+			lflags	= (unsigned int) cfgini->biot_verbose;	// get the custom verbose mode again
+
 			// Start LoRa MOde continuous read loop
 			BHLOG(LOGLORAR) printf("  NwS: Enter RX_Cont Mode (SF%i - %.6lf Mhz)\n", (int) sf+6,(double)freq/1000000);
 			startrx(RXMODE_SCAN, 0);	// RX in RX_CONT Mode (Beacon Mode)
 			BHLOG(LOGBH) printf("NwS:*********************New Packet*****************************************\n");
-//			PrintLoraStatus(LOGALL);
+			//	PrintLoraStatus(LOGALL);
 		}
-
+		
 		delay(SCANDELAY);					// wait per loop in ms -> no time to loose.
     }
     return (0);
