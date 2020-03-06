@@ -105,6 +105,8 @@ configuration* pconfig = (configuration*) inibuf;
 			pconfig->hc_lora = atoi(value);
 		} else if (MATCH("HWCONFIG", "HCLORAWAN")) {
 			pconfig->hc_lorawan = atoi(value);
+		} else if (MATCH("HWCONFIG", "HCWIFICLIENT")) {
+			pconfig->hc_wifi = atoi(value);
 		} else if (MATCH("HWCONFIG", "HCGPS")) {
 			pconfig->hc_gps = atoi(value);
 		} else if (MATCH("HWCONFIG", "HCLOCWEB")) {
@@ -142,8 +144,13 @@ configuration* pconfig = (configuration*) inibuf;
 			pconfig->owtcint = atof(value);
 		} else if (MATCH("ONEWIRE", "TEMPCEXT")) {
 			pconfig->owtcext = atof(value);
-		} else if (MATCH("ONEWIRE", "TEMPCHIVE1")) {
+		} else if (MATCH("ONEWIRE", "TEMPCHIVE")) {
 			pconfig->owtchive = atof(value);
+    } else 
+		if (       MATCH("WIFI", "WIFISSID")) {
+			strcpy(pconfig->wifi_ssid,value);
+		} else if (MATCH("WIFI", "WIFIKEY")) {
+			strcpy(pconfig->wifi_key,value);
     } else 
                 if (       MATCH("WEBUI", "AUTOUPDATE")) {
 			pconfig->web_autoupdate = atoi(value);

@@ -65,65 +65,70 @@ typedef struct{
 	int	loradefchn;		// Default channel number for JOIN requests
 
 	// LoRA Port 0 GPIO connection 	
-	int		lora0cs;		// SPI0 CS
-	int		lora0miso;		// SPI0 MISO
-	int		lora0mosi;		// SPI0 MOSI
-	int		lora0clk;		// SPI0 SCLK
-	int		lora0rst;		// Lora RST
-	int		lora0dio0;		// Lora DIO0
-	int		lora0dio1;		// Lora DIO1
-	int		lora0dio2;		// Lora DIO2
-	int		lora0dio3;		// Lora DIO3
-	int		lora0dio4;		// Lora DIO4
-	int		lora0dio5;		// Lora DIO5
-	int		gps0RX;			// GPS  RX
-	int		gps0TX;			// GPS  TX
+	int	lora0cs;		// SPI0 CS
+	int	lora0miso;		// SPI0 MISO
+	int	lora0mosi;		// SPI0 MOSI
+	int	lora0clk;		// SPI0 SCLK
+	int	lora0rst;		// Lora RST
+	int	lora0dio0;		// Lora DIO0
+	int	lora0dio1;		// Lora DIO1
+	int	lora0dio2;		// Lora DIO2
+	int	lora0dio3;		// Lora DIO3
+	int	lora0dio4;		// Lora DIO4
+	int	lora0dio5;		// Lora DIO5
+	int	gps0RX;			// GPS  RX
+	int	gps0TX;			// GPS  TX
 
 	// component enabler flags
-	int		hc_lora;
-	int		hc_lorawan;     // =0 BIoTWAN; =1 LoRaWAN
-	int		hc_gps;
+	int	hc_lora;
+	int	hc_lorawan;     // =0 BIoTWAN; =1 LoRaWAN
+        int     hc_wifi;        // =1 WIFI enabled on client side
+	int	hc_gps;
 	int 	hc_locweb;		// report to local webpage at BEEIOTWEB
-	int		hc_remweb;
+	int	hc_remweb;
 
 	// section BeeIoT
-	int		biot_loopwait;
+	int	biot_loopwait;
 	char	biot_home[PATHLEN];
 	char	biot_LOGFILE[LOGFILELEN];
 	char	biot_CSVFILE[LOGFILELEN];
 	char	biot_CSVDAYS[LOGFILELEN];
-	int		biot_actionIOfailure;
-	int		biot_verbose;
+	int	biot_actionIOfailure;
+	int	biot_verbose;
 
 	// section HX711
 	long	hxtara;
-	int		hxtaraset;
+	int	hxtaraset;
 	long	hxrefkg;
 	float	hxtempcomp;
-	int		hxnsamples;
+	int	hxnsamples;
         
 	// section OneWire
 	float	owtcint;			// temp. correction internal sensor
 	float	owtcext;			// temp. compensation external sensor
 	float	owtchive;			// temp. compensation hive sensor
         
+        // section WIFI
+        char wifi_ssid[32];                     // Server/client WIFI SSID
+        char wifi_key[32];                      // Server/client WIFI PWD
+        
 	// section WEBUI
-	int		web_autoupdate;                 // =0 disabled remote Web Space update via FTP
+	int	web_autoupdate;                 // =0 disabled remote Web Space update via FTP
 	char	web_root[PATHLEN];
 	char	web_beekeeper[LOGFILELEN];
 	char	web_locdat1[LOGFILELEN];
 	char	web_locdat2[LOGFILELEN];
 	char	web_locdat3[LOGFILELEN];
-	int		web_locplz;					// PLZ for weather data from web
+	int	web_locplz;					// PLZ for weather data from web
 	char	web_picsmall[LOGFILELEN];
 	char	web_piclarge[LOGFILELEN];
 	char	web_noticefile[LOGFILELEN];
 	char	web_deffile[LOGFILELEN];	// default web page file for update
-	int		web_alarm_on;
-	int		web_alarm_weight;
-	int		web_alarm_swarm;
-	int		web_alarm_batt1;			// =0 disabled; 1..100% enabled, typical 100%
-	int		web_alarm_batt2;			// =0 disabled; 1..100% enabled, typical 0%
+	int	web_alarm_on;
+	int	web_alarm_weight;
+	int	web_alarm_swarm;
+	int	web_alarm_batt1;			// =0 disabled; 1..100% enabled, typical 100%
+	int	web_alarm_batt2;			// =0 disabled; 1..100% enabled, typical 0%
 
 	// section EXPORT
 	char	exp_ftpurl[PATHLEN];

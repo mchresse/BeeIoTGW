@@ -35,7 +35,7 @@
 #include <time.h>
 #include <sys/time.h>
 
-#include "loraregs.h"
+#include "regslora.h"
 #include "beeiot.h"
 
 extern unsigned int	lflags;               // BeeIoT log flag field
