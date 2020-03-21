@@ -1130,39 +1130,40 @@ byte mode;
 				BHLOG(LOGLORAW) printf("  IRQ%d: PRSSI:%i, RSSI:%li, ",  (unsigned char)dio, rssi, PRSSI);
 				BHLOG(LOGLORAW) printf("SNR: %li, OPMode(Reg:0x%02X) %s\n", 
 							(long int) PSNR, readReg(RegOpMode),rxloraOMstring[currentMode & OPMODE_MASK]);
+				if(PSNR >= RF_SNR_THRESH){
+					// Now we can fetch the received payload from FiFo to given buffer
+					// set FIFO read address pointer
+					writeReg(LORARegFifoAddrPtr, readReg(LORARegFifoRxCurrentAddr)); 
 
-				// Now we can fetch the received payload from FiFo to given buffer
-				// set FIFO read address pointer
-		        writeReg(LORARegFifoAddrPtr, readReg(LORARegFifoRxCurrentAddr)); 
+					// Package size in range of BeeIoT WAN definitions ?
+					if (rxdlen < BIoT_HDRLEN || rxdlen > MAX_PAYLOAD_LENGTH) {
+						// Non BeeIoT Package -> store for future use
+						readBuf(RegFifo, (byte *) rxframe, rxdlen);				
+						BHLOG(LOGLORAR) printf("  IRQ%d: New RXPkg size out of range: %iBy -> ignored\n", (unsigned char)dio, (int) rxdlen);
+	//					hexdump((byte *) & rxframe, (byte) rxdlen);
+						rxdlen = 0;	// got all data
+						// ToDO: further processing of this proprietary message ?
+						// by now ignored...
+	//					opmode(OPMODE_STANDBY); // the radio should have received Standby Mode
 
-	  		    // Package size in range of BeeIoT WAN definitions ?
-				if (rxdlen < BIoT_HDRLEN || rxdlen > MAX_PAYLOAD_LENGTH) {
-					// Non BeeIoT Package -> store for future use
-					readBuf(RegFifo, (byte *) rxframe, rxdlen);				
-					BHLOG(LOGLORAR) printf("  IRQ%d: New RXPkg size out of range: %iBy -> ignored\n", (unsigned char)dio, (int) rxdlen);
-//					hexdump((byte *) & rxframe, (byte) rxdlen);
-					rxdlen = 0;	// got all data
-					// ToDO: further processing of this proprietary message ?
-					// by now ignored...
-//					opmode(OPMODE_STANDBY); // the radio should have received Standby Mode
+					}else{ // seems to be a valid BeeIoT package, put it to RXQueue
+						BHLOG(LOGLORAR) printf("  IRQ%d: Get BeeIoT RXDataPkg[%i] - len=%iBy\n",(unsigned char)dio, (int)RXPkgIsrIdx, (int)rxdlen);
+						readBuf(RegFifo, (byte *) & MyRXData[RXPkgIsrIdx], (byte) rxdlen);
+	//					BHLOG(LOGLORAR) hexdump((byte *) & MyRXData[RXPkgIsrIdx], (byte) rxdlen);
 
-				}else{ // seems to be a valid BeeIoT package, put it to RXQueue
-					BHLOG(LOGLORAR) printf("  IRQ%d: Get BeeIoT RXDataPkg[%i] - len=%iBy\n",(unsigned char)dio, (int)RXPkgIsrIdx, (int)rxdlen);
-					readBuf(RegFifo, (byte *) & MyRXData[RXPkgIsrIdx], (byte) rxdlen);
-//					BHLOG(LOGLORAR) hexdump((byte *) & MyRXData[RXPkgIsrIdx], (byte) rxdlen);
+						 // Correct RXQueue ISR-Write pointer to next free queue buffer  
+						if(++RXPkgIsrIdx >= MAXRXPKG){  // no next free RX buffer left in sequential queue round robin
+							BHLOG(LOGLORAR) printf("  IRQ%d: RX Queue end reached > back to IsrIdx:0\n",(unsigned char)dio);
+							RXPkgIsrIdx=0;  // wrap around
+						}
+	//					opmode(OPMODE_STANDBY); // Force Idle Mode
 
-					 // Correct RXQueue ISR-Write pointer to next free queue buffer  
-					if(++RXPkgIsrIdx >= MAXRXPKG){  // no next free RX buffer left in sequential queue round robin
-						BHLOG(LOGLORAR) printf("  IRQ%d: RX Queue end reached > back to IsrIdx:0\n",(unsigned char)dio);
-						RXPkgIsrIdx=0;  // wrap around
-					}
-//					opmode(OPMODE_STANDBY); // Force Idle Mode
+						// Signal to Userland: New Entry in RX Queue
+						BeeIotRXFlag++;		// polled by Main() loop
+						cp_nb_rx_rcv++;		// statistics for BIoTApp(): # received pkgs.
 
-					// Signal to Userland: New Entry in RX Queue
-					BeeIotRXFlag++;		// polled by Main() loop
-					cp_nb_rx_rcv++;		// statistics for BIoTApp(): # received pkgs.
-
-				} // RD BeeIoT Pkg
+					} // RD BeeIoT Pkg
+				} // PSNR threshold check
 			}// CRC check
 		// RXTOUT
         } else if((flags & IRQ_LORA_RXTOUT_MASK) == IRQ_LORA_RXTOUT_MASK){

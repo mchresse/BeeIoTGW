@@ -71,7 +71,7 @@ nodewltable_t WLTab[MAXNODES+1]={ // +1 for dummy JOIN line ID=0
 // 1: BeeIoT Prototype 1:	DC8AD5286F24
 	NODEID1, GWID1,	BIoT_EUID,						// AppEUI: BIoT
 	0xDC, 0x8A, 0xD5, 0xFF, 0xFE, 0x28, 0x6F, 0x24, // DevEUI 
-	1, 0,											// reportfrq, joinflag
+	10, 0,											// reportfrq, joinflag
 //---------------------------------------------------
 // 2: WROVER ESP32
 	NODEID2, GWID1,	BIoT_EUID,						// AppEUI: BIoT

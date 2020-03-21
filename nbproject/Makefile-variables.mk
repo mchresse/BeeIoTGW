@@ -15,13 +15,13 @@ CND_PACKAGE_DIR_Debug=dist/Debug/GNU-Linux/package
 CND_PACKAGE_NAME_Debug=beeiotgw.tar
 CND_PACKAGE_PATH_Debug=dist/Debug/GNU-Linux/package/beeiotgw.tar
 # Release configuration
-CND_PLATFORM_Release=None-Windows
-CND_ARTIFACT_DIR_Release=dist/Release/None-Windows
+CND_PLATFORM_Release=GNU-Linux
+CND_ARTIFACT_DIR_Release=dist/Release/GNU-Linux
 CND_ARTIFACT_NAME_Release=beeiotgw
-CND_ARTIFACT_PATH_Release=dist/Release/None-Windows/beeiotgw
-CND_PACKAGE_DIR_Release=dist/Release/None-Windows/package
+CND_ARTIFACT_PATH_Release=dist/Release/GNU-Linux/beeiotgw
+CND_PACKAGE_DIR_Release=dist/Release/GNU-Linux/package
 CND_PACKAGE_NAME_Release=beeiotgw.tar
-CND_PACKAGE_PATH_Release=dist/Release/None-Windows/package/beeiotgw.tar
+CND_PACKAGE_PATH_Release=dist/Release/GNU-Linux/package/beeiotgw.tar
 #
 # include compiler specific variables
 #
