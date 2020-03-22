@@ -318,7 +318,7 @@ char *ptr;					// ptr to next sensor parameter field
 			BHLOG(LOGLORAW) printf("  BeeIoTParse: Node registered but not joined yet (NodeID:0x%02X) -> Request a RE-JOIN\n", 
 				(unsigned char)mystatus->hd.sendID);
 			needaction = CMD_REJOIN;	// Request JOIN command from Node
-			BeeIoTFlow(needaction, mystatus, mystatus->hd.sendID, 0);
+			BeeIoTFlow(needaction, mystatus, mystatus->hd.sendID-NODEIDBASE, 0);
 			// but we return a positive status
 			rc=-3;
 			return(rc);
@@ -330,15 +330,16 @@ char *ptr;					// ptr to next sensor parameter field
 			// wrong Framelen detected -> request RETRY
 			BHLOG(LOGLORAW) printf("  BeeIoTParse: Wrong Framelen 0x%02X -> requesting a RETRY\n", 
 				(unsigned char)mystatus->hd.frmlen);					
-			BeeIoTFlow(CMD_RETRY, mystatus, mystatus->hd.index-NODEIDBASE, 0);
+			BeeIoTFlow(CMD_RETRY, mystatus, mystatus->hd.sendID-NODEIDBASE, 0);
 			return(rc);
 		}
 	}
 	ndid = rc;	// we received Node-ID of curr. Pkg from JS
-	// For (RE-)JOIN Request ndid ==0 !
+	// For (RE-)JOIN Request ndid is set to 0 by JS !
 	cp_nb_rx_ok++;			// incr. # of correct received packages	
+	
 	// Validate NwServer process flow:
-	// - Do we already know this BeeIoT Package: check the msgid
+	// - If we already know this BeeIoT Package: check the msgid
 	if(ndid != 0){ // to be skipped during (RE-)JOIN request
 		if(mystatus->hd.index == NDB[ndid].msg.idx){	// do we have already received this pkgid from this node ?
 			BHLOG(LOGLORAW) printf("  BeeIoTParse: package (%d) duplicated -> package dropped ->send ACK\n\n", (unsigned char) mystatus->hd.index); // yes	

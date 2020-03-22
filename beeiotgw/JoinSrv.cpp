@@ -255,8 +255,7 @@ int JS_ValidatePkg(beeiotpkg_t* mystatus){
 	}
 	// 2. Compare Pkg Header with corresponding WLTab[] and NDB[] entries
 	ndid = mystatus->hd.sendID - NODEIDBASE;	// extract NDB index
-	if(!WLTab[ndid].joined){
-		// This Node is known/registered but not joined yet ?
+	if(!WLTab[ndid].joined){ // This Node is known/registered but not joined yet ?
 		if(mystatus->hd.sendID == NODEIDBASE && mystatus->hd.cmd == CMD_JOIN){
 			// o.k. this is already a JOIN request -> lets do it...
 			return(0);
@@ -273,14 +272,11 @@ int JS_ValidatePkg(beeiotpkg_t* mystatus){
 			BHLOG(LOGLORAW) printf("  JS_ValidateNode: Warning: Wrong GWID used for REJOIN: 0x%02X\n", (unsigned char) mystatus->hd.destID);
 		}
 			// o.k. Node is already joined and requests reactivation -> lets do it...
-			return(0);	// forget ndid by now to followup the JOIN process -> RegisterNode() will find it again
+			return(0);	// forget ndid by now to bypass to the JOIN process by BIOTPARSE -> RegisterNode() will find it again
 	}
 	if(NDB[ndid].nodecfg.gwid != mystatus->hd.destID){
 		// this joined node is (still) using the wrong GWID -> should rejoin
 		BHLOG(LOGLORAW) printf("  JS_ValidateNode: joined node is (still) using the wrong GWID (0x%02X) -> should rejoin", (unsigned char) mystatus->hd.destID);
-		// Do it here or layer above ?
-//		needaction = CMD_REJOIN;		// request rejoin -> not implemented yet
-//		BeeIoTFlow(needaction, mystatus, 0);
 		rc=-4;
 		return(rc);
 	}
