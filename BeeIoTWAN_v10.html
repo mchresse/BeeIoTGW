@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  <title>BeeIoTWAN_v10.html</title>
+  <meta name="generator" content="Haroopad 0.13.1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <style>div.oembedall-githubrepos{border:1px solid #DDD;border-radius:4px;list-style-type:none;margin:0 0 10px;padding:8px 10px 0;font:13.34px/1.4 helvetica,arial,freesans,clean,sans-serif;width:452px;background-color:#fff}div.oembedall-githubrepos .oembedall-body{background:-moz-linear-gradient(center top,#FAFAFA,#EFEFEF);background:-webkit-gradient(linear,left top,left bottom,from(#FAFAFA),to(#EFEFEF));border-bottom-left-radius:4px;border-bottom-right-radius:4px;border-top:1px solid #EEE;margin-left:-10px;margin-top:8px;padding:5px 10px;width:100%}div.oembedall-githubrepos h3{font-size:14px;margin:0;padding-left:18px;white-space:nowrap}div.oembedall-githubrepos p.oembedall-description{color:#444;font-size:12px;margin:0 0 3px}div.oembedall-githubrepos p.oembedall-updated-at{color:#888;font-size:11px;margin:0}div.oembedall-githubrepos ul.oembedall-repo-stats{border:none;float:right;font-size:11px;font-weight:700;padding-left:15px;position:relative;z-index:5;margin:0}div.oembedall-githubrepos ul.oembedall-repo-stats li{border:none;color:#666;display:inline-block;list-style-type:none;margin:0!important}div.oembedall-githubrepos ul.oembedall-repo-stats li a{background-color:transparent;border:none;color:#666!important;background-position:5px -2px;background-repeat:no-repeat;border-left:1px solid #DDD;display:inline-block;height:21px;line-height:21px;padding:0 5px 0 23px}div.oembedall-githubrepos ul.oembedall-repo-stats li:first-child a{border-left:medium none;margin-right:-3px}div.oembedall-githubrepos ul.oembedall-repo-stats li a:hover{background:5px -27px no-repeat #4183C4;color:#FFF!important;text-decoration:none}div.oembedall-githubrepos ul.oembedall-repo-stats li:first-child a:hover{border-bottom-left-radius:3px;border-top-left-radius:3px}ul.oembedall-repo-stats li:last-child a:hover{border-bottom-right-radius:3px;border-top-right-radius:3px}span.oembedall-closehide{background-color:#aaa;border-radius:2px;cursor:pointer;margin-right:3px}div.oembedall-container{margin-top:5px;text-align:left}.oembedall-ljuser{font-weight:700}.oembedall-ljuser img{vertical-align:bottom;border:0;padding-right:1px}.oembedall-stoqembed{border-bottom:1px dotted #999;float:left;overflow:hidden;width:730px;line-height:1;background:#FFF;color:#000;font-family:Arial,Liberation Sans,DejaVu Sans,sans-serif;font-size:80%;text-align:left;margin:0;padding:0}.oembedall-stoqembed a{color:#07C;text-decoration:none;margin:0;padding:0}.oembedall-stoqembed a:hover{text-decoration:underline}.oembedall-stoqembed a:visited{color:#4A6B82}.oembedall-stoqembed h3{font-family:Trebuchet MS,Liberation Sans,DejaVu Sans,sans-serif;font-size:130%;font-weight:700;margin:0;padding:0}.oembedall-stoqembed .oembedall-reputation-score{color:#444;font-size:120%;font-weight:700;margin-right:2px}.oembedall-stoqembed .oembedall-user-info{height:35px;width:185px}.oembedall-stoqembed .oembedall-user-info .oembedall-user-gravatar32{float:left;height:32px;width:32px}.oembedall-stoqembed .oembedall-user-info .oembedall-user-details{float:left;margin-left:5px;overflow:hidden;white-space:nowrap;width:145px}.oembedall-stoqembed .oembedall-question-hyperlink{font-weight:700}.oembedall-stoqembed .oembedall-stats{background:#EEE;margin:0 0 0 7px;padding:4px 7px 6px;width:58px}.oembedall-stoqembed .oembedall-statscontainer{float:left;margin-right:8px;width:86px}.oembedall-stoqembed .oembedall-votes{color:#555;padding:0 0 7px;text-align:center}.oembedall-stoqembed .oembedall-vote-count-post{font-size:240%;color:#808185;display:block;font-weight:700}.oembedall-stoqembed .oembedall-views{color:#999;padding-top:4px;text-align:center}.oembedall-stoqembed .oembedall-status{margin-top:-3px;padding:4px 0;text-align:center;background:#75845C;color:#FFF}.oembedall-stoqembed .oembedall-status strong{color:#FFF;display:block;font-size:140%}.oembedall-stoqembed .oembedall-summary{float:left;width:635px}.oembedall-stoqembed .oembedall-excerpt{line-height:1.2;margin:0;padding:0 0 5px}.oembedall-stoqembed .oembedall-tags{float:left;line-height:18px}.oembedall-stoqembed .oembedall-tags a:hover{text-decoration:none}.oembedall-stoqembed .oembedall-post-tag{background-color:#E0EAF1;border-bottom:1px solid #3E6D8E;border-right:1px solid #7F9FB6;color:#3E6D8E;font-size:90%;line-height:2.4;margin:2px 2px 2px 0;padding:3px 4px;text-decoration:none;white-space:nowrap}.oembedall-stoqembed .oembedall-post-tag:hover{background-color:#3E6D8E;border-bottom:1px solid #37607D;border-right:1px solid #37607D;color:#E0EAF1}.oembedall-stoqembed .oembedall-fr{float:right}.oembedall-stoqembed .oembedall-statsarrow{background-image:url(http://cdn.sstatic.net/stackoverflow/img/sprites.png?v=3);background-repeat:no-repeat;overflow:hidden;background-position:0 -435px;float:right;height:13px;margin-top:12px;width:7px}.oembedall-facebook1{border:1px solid #1A3C6C;padding:0;font:13.34px/1.4 verdana;width:500px}.oembedall-facebook2{background-color:#627add}.oembedall-facebook2 a{color:#e8e8e8;text-decoration:none}.oembedall-facebookBody{background-color:#fff;vertical-align:top;padding:5px}.oembedall-facebookBody .contents{display:inline-block;width:100%}.oembedall-facebookBody div img{float:left;margin-right:5px}div.oembedall-lanyard{-webkit-box-shadow:none;-webkit-transition-delay:0s;-webkit-transition-duration:.4000000059604645s;-webkit-transition-property:width;-webkit-transition-timing-function:cubic-bezier(0.42,0,.58,1);background-attachment:scroll;background-clip:border-box;background-color:transparent;background-image:none;background-origin:padding-box;border-width:0;box-shadow:none;color:#112644;display:block;float:left;font-family:'Trebuchet MS',Trebuchet,sans-serif;font-size:16px;height:253px;line-height:19px;margin:0;max-width:none;min-height:0;outline:#112644 0;overflow-x:visible;overflow-y:visible;padding:0;position:relative;text-align:left;vertical-align:baseline;width:804px}div.oembedall-lanyard .tagline{font-size:1.5em}div.oembedall-lanyard .wrapper{overflow:hidden;clear:both}div.oembedall-lanyard .split{float:left;display:inline}div.oembedall-lanyard .prominent-place .flag:active,div.oembedall-lanyard .prominent-place .flag:focus,div.oembedall-lanyard .prominent-place .flag:hover,div.oembedall-lanyard .prominent-place .flag:link,div.oembedall-lanyard .prominent-place .flag:visited{float:left;display:block;width:48px;height:48px;position:relative;top:-5px;margin-right:10px}div.oembedall-lanyard .place-context{font-size:.889em}div.oembedall-lanyard .prominent-place .sub-place{display:block}div.oembedall-lanyard .prominent-place{font-size:1.125em;line-height:1.1em;font-weight:400}div.oembedall-lanyard .main-date{color:#8CB4E0;font-weight:700;line-height:1.1}div.oembedall-lanyard .first{width:48.57%;margin:0 0 0 2.857%}.mermaid .label{color:#333}.node circle,.node polygon,.node rect{fill:#cde498;stroke:#13540c;stroke-width:1px}.edgePath .path{stroke:green;stroke-width:1.5px}.cluster rect{fill:#cdffb2;rx:40;stroke:#6eaa49;stroke-width:1px}.cluster text{fill:#333}.actor{stroke:#13540c;fill:#cde498}text.actor{fill:#000;stroke:none}.actor-line{stroke:grey}.messageLine0{stroke-width:1.5;stroke-dasharray:"2 2";marker-end:"url(#arrowhead)";stroke:#333}.messageLine1{stroke-width:1.5;stroke-dasharray:"2 2";stroke:#333}#arrowhead{fill:#333}#crosshead path{fill:#333!important;stroke:#333!important}.messageText{fill:#333;stroke:none}.labelBox{stroke:#326932;fill:#cde498}.labelText,.loopText{fill:#000;stroke:none}.loopLine{stroke-width:2;stroke-dasharray:"2 2";marker-end:"url(#arrowhead)";stroke:#326932}.note{stroke:#6eaa49;fill:#fff5ad}.noteText{fill:#000;stroke:none;font-family:'trebuchet ms',verdana,arial;font-size:14px}.section{stroke:none;opacity:.2}.section0,.section2{fill:#6eaa49}.section1,.section3{fill:#fff;opacity:.2}.sectionTitle0,.sectionTitle1,.sectionTitle2,.sectionTitle3{fill:#333}.sectionTitle{text-anchor:start;font-size:11px;text-height:14px}.grid .tick{stroke:lightgrey;opacity:.3;shape-rendering:crispEdges}.grid path{stroke-width:0}.today{fill:none;stroke:red;stroke-width:2px}.task{stroke-width:2}.taskText{text-anchor:middle;font-size:11px}.taskTextOutsideRight{fill:#000;text-anchor:start;font-size:11px}.taskTextOutsideLeft{fill:#000;text-anchor:end;font-size:11px}.taskText0,.taskText1,.taskText2,.taskText3{fill:#fff}.task0,.task1,.task2,.task3{fill:#487e3a;stroke:#13540c}.taskTextOutside0,.taskTextOutside1,.taskTextOutside2,.taskTextOutside3{fill:#000}.active0,.active1,.active2,.active3{fill:#cde498;stroke:#13540c}.activeText0,.activeText1,.activeText2,.activeText3{fill:#000!important}.done0,.done1,.done2,.done3{stroke:grey;fill:lightgrey;stroke-width:2}.doneText0,.doneText1,.doneText2,.doneText3{fill:#000!important}.crit0,.crit1,.crit2,.crit3{stroke:#f88;fill:red;stroke-width:2}.activeCrit0,.activeCrit1,.activeCrit2,.activeCrit3{stroke:#f88;fill:#cde498;stroke-width:2}.doneCrit0,.doneCrit1,.doneCrit2,.doneCrit3{stroke:#f88;fill:lightgrey;stroke-width:2;cursor:pointer;shape-rendering:crispEdges}.activeCritText0,.activeCritText1,.activeCritText2,.activeCritText3,.doneCritText0,.doneCritText1,.doneCritText2,.doneCritText3{fill:#000!important}.titleText{text-anchor:middle;font-size:18px;fill:#000}text{font-family:'trebuchet ms',verdana,arial;font-size:14px}html{height:100%}body{margin:0!important;padding:5px 20px 26px!important;background-color:#fff;font-family:"Lucida Grande","Segoe UI","Apple SD Gothic Neo","Malgun Gothic","Lucida Sans Unicode",Helvetica,Arial,sans-serif;font-size:.9em;overflow-x:hidden;overflow-y:auto}br,h1,h2,h3,h4,h5,h6{clear:both}hr.page{background:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAYAAAAECAYAAACtBE5DAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAyJpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDUuMC1jMDYwIDYxLjEzNDc3NywgMjAxMC8wMi8xMi0xNzozMjowMCAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvIiB4bWxuczp4bXBNTT0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL21tLyIgeG1sbnM6c3RSZWY9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZVJlZiMiIHhtcDpDcmVhdG9yVG9vbD0iQWRvYmUgUGhvdG9zaG9wIENTNSBNYWNpbnRvc2giIHhtcE1NOkluc3RhbmNlSUQ9InhtcC5paWQ6OENDRjNBN0E2NTZBMTFFMEI3QjRBODM4NzJDMjlGNDgiIHhtcE1NOkRvY3VtZW50SUQ9InhtcC5kaWQ6OENDRjNBN0I2NTZBMTFFMEI3QjRBODM4NzJDMjlGNDgiPiA8eG1wTU06RGVyaXZlZEZyb20gc3RSZWY6aW5zdGFuY2VJRD0ieG1wLmlpZDo4Q0NGM0E3ODY1NkExMUUwQjdCNEE4Mzg3MkMyOUY0OCIgc3RSZWY6ZG9jdW1lbnRJRD0ieG1wLmRpZDo4Q0NGM0E3OTY1NkExMUUwQjdCNEE4Mzg3MkMyOUY0OCIvPiA8L3JkZjpEZXNjcmlwdGlvbj4gPC9yZGY6UkRGPiA8L3g6eG1wbWV0YT4gPD94cGFja2V0IGVuZD0iciI/PqqezsUAAAAfSURBVHjaYmRABcYwBiM2QSA4y4hNEKYDQxAEAAIMAHNGAzhkPOlYAAAAAElFTkSuQmCC) repeat-x;border:0;height:3px;padding:0}hr.underscore{border-top-style:dashed!important}body >:first-child{margin-top:0!important}img.plugin{box-shadow:0 1px 3px rgba(0,0,0,.1);border-radius:3px}iframe{border:0}figure{-webkit-margin-before:0;-webkit-margin-after:0;-webkit-margin-start:0;-webkit-margin-end:0}kbd{border:1px solid #aaa;-moz-border-radius:2px;-webkit-border-radius:2px;border-radius:2px;-moz-box-shadow:1px 2px 2px #ddd;-webkit-box-shadow:1px 2px 2px #ddd;box-shadow:1px 2px 2px #ddd;background-color:#f9f9f9;background-image:-moz-linear-gradient(top,#eee,#f9f9f9,#eee);background-image:-o-linear-gradient(top,#eee,#f9f9f9,#eee);background-image:-webkit-linear-gradient(top,#eee,#f9f9f9,#eee);background-image:linear-gradient(top,#eee,#f9f9f9,#eee);padding:1px 3px;font-family:inherit;font-size:.85em}.oembeded .oembed_photo{display:inline-block}img[data-echo]{margin:25px 0;width:100px;height:100px;background:url(../img/ajax.gif) center center no-repeat #fff}.spinner{display:inline-block;width:10px;height:10px;margin-bottom:-.1em;border:2px solid rgba(0,0,0,.5);border-top-color:transparent;border-radius:100%;-webkit-animation:spin 1s infinite linear;animation:spin 1s infinite linear}.spinner:after{content:'';display:block;width:0;height:0;position:absolute;top:-6px;left:0;border:4px solid transparent;border-bottom-color:rgba(0,0,0,.5);-webkit-transform:rotate(45deg);transform:rotate(45deg)}@-webkit-keyframes spin{to{-webkit-transform:rotate(360deg)}}@keyframes spin{to{transform:rotate(360deg)}}p.toc{margin:0!important}p.toc ul{padding-left:10px}p.toc>ul{padding:10px;margin:0 10px;display:inline-block;border:1px solid #ededed;border-radius:5px}p.toc li,p.toc ul{list-style-type:none}p.toc li{width:100%;padding:0;overflow:hidden}p.toc li a::after{content:"."}p.toc li a:before{content:"• "}p.toc h5{text-transform:uppercase}p.toc .title{float:left;padding-right:3px}p.toc .number{margin:0;float:right;padding-left:3px;background:#fff;display:none}input.task-list-item{margin-left:-1.62em}.markdown{font-family:"Hiragino Sans GB","Microsoft YaHei",STHeiti,SimSun,"Lucida Grande","Lucida Sans Unicode","Lucida Sans",'Segoe UI',AppleSDGothicNeo-Medium,'Malgun Gothic',Verdana,Tahoma,sans-serif;padding:20px}.markdown a{text-decoration:none;vertical-align:baseline}.markdown a:hover{text-decoration:underline}.markdown h1{font-size:2.2em;font-weight:700;margin:1.5em 0 1em}.markdown h2{font-size:1.8em;font-weight:700;margin:1.275em 0 .85em}.markdown h3{font-size:1.6em;font-weight:700;margin:1.125em 0 .75em}.markdown h4{font-size:1.4em;font-weight:700;margin:.99em 0 .66em}.markdown h5{font-size:1.2em;font-weight:700;margin:.855em 0 .57em}.markdown h6{font-size:1em;font-weight:700;margin:.75em 0 .5em}.markdown h1+p,.markdown h1:first-child,.markdown h2+p,.markdown h2:first-child,.markdown h3+p,.markdown h3:first-child,.markdown h4+p,.markdown h4:first-child,.markdown h5+p,.markdown h5:first-child,.markdown h6+p,.markdown h6:first-child{margin-top:0}.markdown hr{border:1px solid #ccc}.markdown p{margin:1em 0;word-wrap:break-word}.markdown ol{list-style-type:decimal}.markdown li{display:list-item;line-height:1.4em}.markdown blockquote{margin:1em 20px}.markdown blockquote>:first-child{margin-top:0}.markdown blockquote>:last-child{margin-bottom:0}.markdown blockquote cite:before{content:'\2014 \00A0'}.markdown .code{border-radius:3px;word-wrap:break-word}.markdown pre{border-radius:3px;word-wrap:break-word;border:1px solid #ccc;overflow:auto;padding:.5em}.markdown pre code{border:0;display:block}.markdown pre>code{font-family:Consolas,Inconsolata,Courier,monospace;font-weight:700;white-space:pre;margin:0}.markdown code{border-radius:3px;word-wrap:break-word;border:1px solid #ccc;padding:0 5px;margin:0 2px}.markdown img{max-width:100%}.markdown mark{color:#000;background-color:#fcf8e3}.markdown table{padding:0;border-collapse:collapse;border-spacing:0;margin-bottom:16px}.markdown table tr td,.markdown table tr th{border:1px solid #ccc;margin:0;padding:6px 13px}.markdown table tr th{font-weight:700}.markdown table tr th>:first-child{margin-top:0}.markdown table tr th>:last-child{margin-bottom:0}.markdown table tr td>:first-child{margin-top:0}.markdown table tr td>:last-child{margin-bottom:0}@import url(http://fonts.googleapis.com/css?family=Roboto+Condensed:300italic,400italic,700italic,400,300,700);.haroopad{padding:20px;color:#222;font-size:15px;font-family:"Roboto Condensed",Tauri,"Hiragino Sans GB","Microsoft YaHei",STHeiti,SimSun,"Lucida Grande","Lucida Sans Unicode","Lucida Sans",'Segoe UI',AppleSDGothicNeo-Medium,'Malgun Gothic',Verdana,Tahoma,sans-serif;background:#fff;line-height:1.6;-webkit-font-smoothing:antialiased}.haroopad a{color:#3269a0}.haroopad a:hover{color:#4183c4}.haroopad h2{border-bottom:1px solid #e6e6e6}.haroopad h6{color:#777}.haroopad hr{border:1px solid #e6e6e6}.haroopad blockquote>code,.haroopad h1>code,.haroopad h2>code,.haroopad h3>code,.haroopad h4>code,.haroopad h5>code,.haroopad h6>code,.haroopad li>code,.haroopad p>code,.haroopad td>code{font-family:Consolas,"Liberation Mono",Menlo,Courier,monospace;font-size:85%;background-color:rgba(0,0,0,.02);padding:.2em .5em;border:1px solid #efefef}.haroopad pre>code{font-size:1em;letter-spacing:-1px;font-weight:700}.haroopad blockquote{border-left:4px solid #e6e6e6;padding:0 15px;color:#777}.haroopad table{background-color:#fafafa}.haroopad table tr td,.haroopad table tr th{border:1px solid #e6e6e6}.haroopad table tr:nth-child(2n){background-color:#f2f2f2}.hljs{display:block;overflow-x:auto;padding:.5em;background:#fdf6e3;color:#657b83;-webkit-text-size-adjust:none}.diff .hljs-header,.hljs-comment,.hljs-doctype,.hljs-javadoc,.hljs-pi,.lisp .hljs-string{color:#93a1a1}.css .hljs-tag,.hljs-addition,.hljs-keyword,.hljs-request,.hljs-status,.hljs-winutils,.method,.nginx .hljs-title{color:#859900}.hljs-command,.hljs-dartdoc,.hljs-hexcolor,.hljs-link_url,.hljs-number,.hljs-phpdoc,.hljs-regexp,.hljs-rules .hljs-value,.hljs-string,.hljs-tag .hljs-value,.tex .hljs-formula{color:#2aa198}.css .hljs-function,.hljs-built_in,.hljs-chunk,.hljs-decorator,.hljs-id,.hljs-identifier,.hljs-localvars,.hljs-title,.vhdl .hljs-literal{color:#268bd2}.hljs-attribute,.hljs-class .hljs-title,.hljs-constant,.hljs-link_reference,.hljs-parent,.hljs-type,.hljs-variable,.lisp .hljs-body,.smalltalk .hljs-number{color:#b58900}.css .hljs-pseudo,.diff .hljs-change,.hljs-attr_selector,.hljs-cdata,.hljs-header,.hljs-pragma,.hljs-preprocessor,.hljs-preprocessor .hljs-keyword,.hljs-shebang,.hljs-special,.hljs-subst,.hljs-symbol,.hljs-symbol .hljs-string{color:#cb4b16}.hljs-deletion,.hljs-important{color:#dc322f}.hljs-link_label{color:#6c71c4}.tex .hljs-formula{background:#eee8d5}.MathJax_Hover_Frame{border-radius:.25em;-webkit-border-radius:.25em;-moz-border-radius:.25em;-khtml-border-radius:.25em;box-shadow:0 0 15px #83A;-webkit-box-shadow:0 0 15px #83A;-moz-box-shadow:0 0 15px #83A;-khtml-box-shadow:0 0 15px #83A;border:1px solid #A6D!important;display:inline-block;position:absolute}.MathJax_Hover_Arrow{position:absolute;width:15px;height:11px;cursor:pointer}#MathJax_About{position:fixed;left:50%;width:auto;text-align:center;border:3px outset;padding:1em 2em;background-color:#DDD;color:#000;cursor:default;font-family:message-box;font-size:120%;font-style:normal;text-indent:0;text-transform:none;line-height:normal;letter-spacing:normal;word-spacing:normal;word-wrap:normal;white-space:nowrap;float:none;z-index:201;border-radius:15px;-webkit-border-radius:15px;-moz-border-radius:15px;-khtml-border-radius:15px;box-shadow:0 10px 20px gray;-webkit-box-shadow:0 10px 20px gray;-moz-box-shadow:0 10px 20px gray;-khtml-box-shadow:0 10px 20px gray;filter:progid:DXImageTransform.Microsoft.dropshadow(OffX=2, OffY=2, Color='gray', Positive='true')}.MathJax_Menu{position:absolute;background-color:#fff;color:#000;width:auto;padding:2px;border:1px solid #CCC;margin:0;cursor:default;font:menu;text-align:left;text-indent:0;text-transform:none;line-height:normal;letter-spacing:normal;word-spacing:normal;word-wrap:normal;white-space:nowrap;float:none;z-index:201;box-shadow:0 10px 20px gray;-webkit-box-shadow:0 10px 20px gray;-moz-box-shadow:0 10px 20px gray;-khtml-box-shadow:0 10px 20px gray;filter:progid:DXImageTransform.Microsoft.dropshadow(OffX=2, OffY=2, Color='gray', Positive='true')}.MathJax_MenuItem{padding:2px 2em;background:0 0}.MathJax_MenuArrow{position:absolute;right:.5em;color:#666}.MathJax_MenuActive .MathJax_MenuArrow{color:#fff}.MathJax_MenuArrow.RTL{left:.5em;right:auto}.MathJax_MenuCheck{position:absolute;left:.7em}.MathJax_MenuCheck.RTL{right:.7em;left:auto}.MathJax_MenuRadioCheck{position:absolute;left:1em}.MathJax_MenuRadioCheck.RTL{right:1em;left:auto}.MathJax_MenuLabel{padding:2px 2em 4px 1.33em;font-style:italic}.MathJax_MenuRule{border-top:1px solid #CCC;margin:4px 1px 0}.MathJax_MenuDisabled{color:GrayText}.MathJax_MenuActive{background-color:Highlight;color:HighlightText}.MathJax_Menu_Close{position:absolute;width:31px;height:31px;top:-15px;left:-15px}#MathJax_Zoom{position:absolute;background-color:#F0F0F0;overflow:auto;display:block;z-index:301;padding:.5em;border:1px solid #000;margin:0;font-weight:400;font-style:normal;text-align:left;text-indent:0;text-transform:none;line-height:normal;letter-spacing:normal;word-spacing:normal;word-wrap:normal;white-space:nowrap;float:none;box-shadow:5px 5px 15px #AAA;-webkit-box-shadow:5px 5px 15px #AAA;-moz-box-shadow:5px 5px 15px #AAA;-khtml-box-shadow:5px 5px 15px #AAA;filter:progid:DXImageTransform.Microsoft.dropshadow(OffX=2, OffY=2, Color='gray', Positive='true')}#MathJax_ZoomOverlay{position:absolute;left:0;top:0;z-index:300;display:inline-block;width:100%;height:100%;border:0;padding:0;margin:0;background-color:#fff;opacity:0;filter:alpha(opacity=0)}#MathJax_ZoomFrame{position:relative;display:inline-block;height:0;width:0}#MathJax_ZoomEventTrap{position:absolute;left:0;top:0;z-index:302;display:inline-block;border:0;padding:0;margin:0;background-color:#fff;opacity:0;filter:alpha(opacity=0)}.MathJax_Preview{color:#888}#MathJax_Message{position:fixed;left:1px;bottom:2px;background-color:#E6E6E6;border:1px solid #959595;margin:0;padding:2px 8px;z-index:102;color:#000;font-size:80%;width:auto;white-space:nowrap}#MathJax_MSIE_Frame{position:absolute;top:0;left:0;width:0;z-index:101;border:0;margin:0;padding:0}.MathJax_Error{color:#C00;font-style:italic}footer{position:fixed;font-size:.8em;text-align:right;bottom:0;margin-left:-25px;height:20px;width:100%}</style>
+</head>
+<body class="markdown haroopad">
+<h1 id="beeiot-wan-gateway-v1.0"><a name="beeiot-wan-gateway-v1.0" href="#beeiot-wan-gateway-v1.0"></a>BeeIoT-WAN Gateway v1.0</h1><h3 id="der-gateway-zur-[beeiot-bienenstockwaage](https://github.com/mchresse/beeiot/blob/master/beeiot_v20.md)"><a name="der-gateway-zur-[beeiot-bienenstockwaage](https://github.com/mchresse/beeiot/blob/master/beeiot_v20.md)" href="#der-gateway-zur-[beeiot-bienenstockwaage](https://github.com/mchresse/beeiot/blob/master/beeiot_v20.md)"></a>Der Gateway zur <a href="https://github.com/mchresse/BeeIoT/blob/master/BeeIoT_v20.md">BeeIoT Bienenstockwaage</a></h3><h5 id="(based-on-raspberry-pi)"><a name="(based-on-raspberry-pi)" href="#(based-on-raspberry-pi)"></a>(based on Raspberry Pi)</h5><p><img src="images_v2/BIoTGW_LoraHat.jpg" width="250"></p><p><strong>01.01.2020 by Randolph Esser</strong></p><hr class="section"><h4 id="inhaltsverzeichnis:"><a name="inhaltsverzeichnis:" href="#inhaltsverzeichnis:"></a>Inhaltsverzeichnis:</h4><ul>
+<li><a href="#einführung">Einführung</a></li><li><a href="rpi-gateway-aufbau">RPi-Gateway Aufbau</a><ul>
+<li><a href="rpi-gateway-radiolayer">RPi-Gateway RadioLayer</a></li></ul>
+</li><li><a href="beeiot-client-aufbau">BeeIoT-Client Aufbau</a><ul>
+<li><a href="client-function-flow">Client Function Flow</a></li><li><a href="client-data-security">Client Data Security</a></li></ul>
+</li><li><a href="beeiot-lora-wan">BeeIoT LoRa WAN</a><ul>
+<li><a href="beeiot-channel-switch">BeeIoTWAN Channel Switch</a></li><li><a href="beeiotwan-communication-packets">BeeIoTWAN Communication packets</a><ul>
+<li><a href="beeiotwan-base-packet">BeeIoTWAN Base Packet</a></li></ul>
+</li><li><a href="beeiotwan-join">BeeIoTWAN-JOIN</a></li></ul>
+</li></ul><pre><code data-origin="<pre><code>* [Die Programm Struktur](#die-programm-struktur)
+    + [Setup Phase](setup-phase)
+    + [Loop Phase](loop-phase)
+* [Optional: WebUI Daten Service](#optional:-webui-daten-service)
+</code></pre>">* [Die Programm Struktur](#die-programm-struktur)
+    + [Setup Phase](setup-phase)
+    + [Loop Phase](loop-phase)
+* [Optional: WebUI Daten Service](#optional:-webui-daten-service)
+</code></pre><ul>
+<li><a href="#webui-todo---liste">WebUI ToDo - Liste</a></li><li><a href="#ideen-liste">Ideen Liste</a><!-- toc -->
+</li></ul><hr class="section"><h2 id="einführung"><a name="einführung" href="#einführung"></a>Einführung</h2><p>Nach der Beschreibung der <a href="https://github.com/mchresse/BeeIoT/blob/master/BeeIoT_v20.md">BeeIot Sensor Knoten</a> auf Basis des ESP32 chipset (siehe <a href="https://Github.com/mchresse/BeeIoT">https://Github.com/mchresse/BeeIoT</a>), nun die passende Gegenstelle auf Raspberry Pi Basis.</p><p>Diese erfüllt (ähnlich wie bei LoRa-Wan) folgende Rollen/Services:</p><ul>
+<li>Gateway Server (inkl. RADIO Service)<ul>
+<li>Konfiguration der Transmit channels abhängig von der Knoten session</li><li>Entgegennahme der BIoT LoRa Pakete (Uplink) auf der vereinbarten Modem Channel configuration</li><li>Versenden von BIoT Antwort Paketen.</li></ul>
+</li><li>NetworkServer<ul>
+<li>Koordination der RX/TX Paket</li><li>Evaluation des Paket headers und Weiterleitung an den Application server</li><li>Bedienung des RX1 Commando Fensters im Anschluss an jedes Node Paket (optional)</li></ul>
+</li><li>JOIN Server<ul>
+<li>Evaluierung von JOIN requests auf Basis einer statischen DevUID Referenztabelle</li><li>Verwaltung einer dynamischen Node Tabelle incl RX/Queue.</li><li>Verwaltung der Verschlüsselung und zug. keys</li></ul>
+</li><li>Application Server<ul>
+<li>Auswertung des Frame-Payloads Applikations-spezifisch nach zugewiesener AppEUI.</li><li>Default App: BIoT zur Auswertung der BeeIoT Node Sensordaten</li><li>Weiterleitung der validierten Datenpakete für eine Webdarstellung in Form einer CSV Datei</li></ul>
+</li></ul><h3 id="rpi-gateway-aufbau"><a name="rpi-gateway-aufbau" href="#rpi-gateway-aufbau"></a>RPi-Gateway Aufbau</h3><p>Bevor wir tief in die LoRa SW Stack details eintauchen, zunächst der HW AUfbau des RaspberryPi Gateway.<br>Im Single Channel Betrieb müsste leistungsmäßig ein RPi-ZeroW reichen (Der Prototyp wurde mit einem RPi 3+ gestartet).<br>Im folgende Diagramm sieht man das Gesamtkonzept von Sensor-Client über Gateway zum WebServer User Interface (HMI):<br><img src="images_v2/BeeIoT_Concept.jpg"><br>Alle Clients kommunizieren per default via Lora-Funk mit dem Gateway, dessen Pakete über einen JOIN Server (dazu später mehr) an die dahinter liegenden Applikation-Services zur Erst-Verarbeitung weitergereicht werden. Diese Evaluieren die LoRa Paket Frame-Payloads und extrahieren die Sensordaten zur Ablage in einer zentralen Client Datenbank. Via REST oder MQTT oder auch FTP werden die Daten an Darstellungs-Services wie der eigenen Webseite weitergeleitet.</p><p>Da in der Regel nur alle 10-15 Minuten Datenpakete der Clients (mit einer Laufzeit von 150-200ms) übertragen werden, bleibt genügend Rechenzeit die Pakete zu dekodieren, und in passende Übertragungsformate zu wandeln.<br>Die LAN/WiFi Anbindung ist dank Raspberry HW+OS bereits abgedeckt (Details siehe ggfs. auch in der Doku zum <strong><a href="https://github.com/mchresse/BeeLog/blob/master/BeeLogDoc_v1.3.md">“BeeLog-Projekt: BeeLogDoc_v1.3.md”</a></strong> auf GitHub). Daher ist “nur noch” ein LoRa Modul nötig.<br>Der Semtech Chip SX1276 ist der kostengünstige Standard für Lora Übertragung und in vielen HAT-Varianten verbaut. Ich habe hier den Dragino_Lora_Hat v1.4 für 868MHz mit optionalem GPS Empfänger verwendet:<br><img src="images_v2/Dragino_Lora_Hat.jpg"><br>Eine einfache passive Antenne ist per SMA Stecker schnell angebracht.<br>Einfach auf den RPi aufstecken, die RPi-SD Karte mit Debian OS installieren und los gehts:</p><p>Für die Ansteuerung des Dragino Hat’s muss über das raspi-config tool noch der SPI Channel aktiviert werden und die universelle wiringPi Library downloaded und installiert werden (siehe auch dazu in der o.a. Doku des BeeLog Projektes).</p><p>Die vom HAT verwendeten SPI- und weitere Steuerleitungen sind in der Header-Datei <em>beelora.h</em> festgehalten:</p><pre class="cpp hljs"><code class="cpp" data-origin="<pre><code class=&quot;cpp&quot;>// Dragino RPi Hat with SX127x at Raspberry 40p connection: -&amp;gt; wPi Mode !
+#define CFG_sx1276_radio        // type of Dragino Hat LoRa chip
+//                WirePi-Pin:
+#define LORAcs      6   // GPIO 25  Pin 22
+#define LORAdio0    7   // GPIO 4    Pin 7
+#define LORAdio1    4   // GPIO 23    Pin 16
+#define LORAdio2    5   // GPIO 24    Pin 18
+#define LORArst     0   // GPIO 0    Pin 11
+#define LORAmosi    12  // GPIO 10 MOSI Pin 19
+#define LORAmiso    13  // GPIO 9  MISO Pin 21
+#define LORAsck     14  // GPIO 11 SCLK Pin 23
+#define RXled       LORAdio0
+#define GPStxd      15  // GPIO 15 TxD -&amp;gt; GPS
+#define GPSrxd      16  // GPIO 16 RxD -&amp;gt; GPS
+</code></pre>"><span class="hljs-comment">// Dragino RPi Hat with SX127x at Raspberry 40p connection: -&gt; wPi Mode !</span>
+<span class="hljs-preprocessor">#<span class="hljs-keyword">define</span> CFG_sx1276_radio        <span class="hljs-comment">// type of Dragino Hat LoRa chip</span></span>
+<span class="hljs-comment">//                WirePi-Pin:</span>
+<span class="hljs-preprocessor">#<span class="hljs-keyword">define</span> LORAcs      6   <span class="hljs-comment">// GPIO 25  Pin 22</span></span>
+<span class="hljs-preprocessor">#<span class="hljs-keyword">define</span> LORAdio0    7   <span class="hljs-comment">// GPIO 4    Pin 7</span></span>
+<span class="hljs-preprocessor">#<span class="hljs-keyword">define</span> LORAdio1    4   <span class="hljs-comment">// GPIO 23    Pin 16</span></span>
+<span class="hljs-preprocessor">#<span class="hljs-keyword">define</span> LORAdio2    5   <span class="hljs-comment">// GPIO 24    Pin 18</span></span>
+<span class="hljs-preprocessor">#<span class="hljs-keyword">define</span> LORArst     0   <span class="hljs-comment">// GPIO 0    Pin 11</span></span>
+<span class="hljs-preprocessor">#<span class="hljs-keyword">define</span> LORAmosi    12  <span class="hljs-comment">// GPIO 10 MOSI Pin 19</span></span>
+<span class="hljs-preprocessor">#<span class="hljs-keyword">define</span> LORAmiso    13  <span class="hljs-comment">// GPIO 9  MISO Pin 21</span></span>
+<span class="hljs-preprocessor">#<span class="hljs-keyword">define</span> LORAsck     14  <span class="hljs-comment">// GPIO 11 SCLK Pin 23</span></span>
+<span class="hljs-preprocessor">#<span class="hljs-keyword">define</span> RXled       LORAdio0</span>
+<span class="hljs-preprocessor">#<span class="hljs-keyword">define</span> GPStxd      15  <span class="hljs-comment">// GPIO 15 TxD -&gt; GPS</span></span>
+<span class="hljs-preprocessor">#<span class="hljs-keyword">define</span> GPSrxd      16  <span class="hljs-comment">// GPIO 16 RxD -&gt; GPS</span></span>
+</code></pre><p><strong>Geplante Erweiterung:</strong><br>Will man die aktuelle Single Channel HAT Variante um weitere Lora-Channel erweitern,<br>bestellt man sich einfach weitere Semtech Module a la RFM95 (wie auf dem HAT und bei allen Clients verbaut) und lötet sie parallel Piggy Back oben auf.<br><img src="images_v2/SX1276.jpg"><br>Als Auflötpunkte können die Vcc und Gnd Leitungen sowie die shared SPI Leitungen (SCK, MISO, MOSI) verwendet werden. Alle anderen DIO3-5 bleiben ungenutzt.<br>Folgende Anschlüsse müssen exra an einen RPi GPIO Port frei verdrahtet werden:<br>LoRacs(NSS), LORAdio0-2, LORArst.<br>So kann man den 2. SX1276 separat über eine eigene SPI Adresse ansprechen, indem man in der SW eine neue Lora-Instanz mit den o.g. NSS und RST GPIO-Ports erzeugt.</p><p>Der aktuelle Aufbau besteht aber noch aus der SingleChannel Version.<br>Das dadurch entstandene “RPi/HAT Paket” wird noch in eine IP67 Dichte Box verpackt (die Antenne kann bei einer Plastikbox auch intern bleiben), die LAN Leitung  wasserdicht umhüllt von einem Wetterschutzrohr herausgeführt, an den Antennenmast geschraubt. Die LAN Leitung habe ich innerhalb des Rohrs ins Haus geleitet.<br>Das ist der optimale Punkt um im Radius von 3-4km alle Bienenstandorte zu erreichen.</p><p>Ggfs. kann die Reichweite noch durch eine rundstrahlende LoRa Aktiv-Antenne (ca. 120€) mit +6dBm verbessert werden, macht aber für die BeeIoT-SW keine Unterschied.</p><h4 id="rpi-gateway-radiolayer"><a name="rpi-gateway-radiolayer" href="#rpi-gateway-radiolayer"></a>RPi-Gateway RadioLayer</h4><p>Die SX1276 Konfiguration, die Steuerung der Paketübertragung sowie das IRQ handling via eigener IRQ callback Funktion habe ich abgeleitet vom LMIC radio Layer native nachimplementiert, dabei aber weitgehend die API des LMIC radio layers beibehalten.<br>Der NwServer verwendet folgende Schnittstellen Funktionen:</p><pre class="cpp hljs"><code class="cpp" data-origin="<pre><code class=&quot;cpp&quot;>- SetupLora()            // Detect and Initialize SX1276 chip
+    * configChannel()    // preset configchannel seetings by ChannelIndex
+    * configLoraModem()  // preset LoRa Modem settings for BIoT channels
+    * radio_init()       // preset random matrix
+    * myisr_init();      // Assign ISRs to IRQ Port DIO0-2
+- starttx()              // final Packet TX routine
+- startrx()              // enable RX Mode (single + contig.) -&amp;gt; in combination with ISR()
+</code></pre>">- SetupLora()            <span class="hljs-comment">// Detect and Initialize SX1276 chip</span>
+    * configChannel()    <span class="hljs-comment">// preset configchannel seetings by ChannelIndex</span>
+    * configLoraModem()  <span class="hljs-comment">// preset LoRa Modem settings for BIoT channels</span>
+    * radio_init()       <span class="hljs-comment">// preset random matrix</span>
+    * myisr_init();      <span class="hljs-comment">// Assign ISRs to IRQ Port DIO0-2</span>
+- starttx()              <span class="hljs-comment">// final Packet TX routine</span>
+- startrx()              <span class="hljs-comment">// enable RX Mode (single + contig.) -&gt; in combination with ISR()</span>
+</code></pre><p>Die vom Radio-Layer implizite bei jedem IRQ aufgerufene ISR-Callback Funktion:</p><pre><code data-origin="<pre><code>- myradio_irq_handler()  // ISR-callback for RXDone and TXDone IRQs
+</code></pre>">- myradio_irq_handler()  // ISR-callback for RXDone and TXDone IRQs
+</code></pre><p>setzt im TX Mode zur Best#tigung der Sendung das <em>BeeIotTXFlag</em> und füllt im RX-Mode die RXQueue mit den Empfangs-Paketdaten und setzt schliesslich das <em>BeeIotRXFlag</em>-Semaphor.</p><h3 id="beeiot-client-aufbau"><a name="beeiot-client-aufbau" href="#beeiot-client-aufbau"></a>BeeIoT-Client Aufbau</h3><p>Der Grundsätzliche HW Aufbau des <a href="https://github.com/mchresse/BeeIoT/blob/master/BeeIoT_v20.md">“BeeIot Sensor Knoten”</a> wurde ja schon im BeeIoT Projekt beschrieben.<br>Zum Verständnis für die SW Stack Beschreibung zusammenfassend:</p><ul>
+<li>Der Client verwendet ebenfalls die SX1276 Module diskret angeschlossen via SPI GPIO Ports z.B. eines ESP32</li><li>Als Radio layer wird die Library von <strong>“SanDeepMistry”</strong> verwendet: <a href="https://github.com/sandeepmistry/arduino-LoRa">https://github.com/sandeepmistry/arduino-LoRa</a> aktuell in der version<ul>
+<li>Diese unterstützt: HopeRF RFM95W, RFM96W, and RFM98W Module sowie das dragino Bee Lora shield. (allesamt Semtech Module)</li></ul>
+</li></ul><p>Die Inbetriebnahme des LoRa Moduls wird dadurch sehr einfach.<br>Hier zunächst die wichtigsten Funktionen:</p><ul>
+<li>Wird einanderer SPI Port als der default (SPI0) verwendet (optional):<pre class="cpp hljs"><code class="cpp" data-origin="<pre><code class=&quot;cpp&quot;>LoRa.setSPI(myspi);                  // new SPI Instanz of spi_t
+LoRa.setSPIFrequency(spi-frequency); // default: 8MHz
+</code></pre>">LoRa.setSPI(myspi);                  <span class="hljs-comment">// new SPI Instanz of spi_t</span>
+LoRa.setSPIFrequency(spi-frequency); <span class="hljs-comment">// default: 8MHz</span>
+</code></pre>
+</li><li>Instanziierung des LoRa Ports<pre class="cpp hljs"><code class="cpp" data-origin="<pre><code class=&quot;cpp&quot;>LoRa.begin(LoRaCfg.freq);           // default: EU868.1
+</code></pre>">LoRa.begin(LoRaCfg.freq);           <span class="hljs-comment">// default: EU868.1</span>
+</code></pre>
+</li><li>Zuweisung der GPIO Leitungen dem SPI Protokoll Port (siehe beeiot.h)<pre class="cpp hljs"><code class="cpp" data-origin="<pre><code class=&quot;cpp&quot;>LoRa.setPins(BEE_CS, BEE_RST, BEE_DIO0);// set CS, reset, IRQ pin
+</code></pre>">LoRa.setPins(BEE_CS, BEE_RST, BEE_DIO0);<span class="hljs-comment">// set CS, reset, IRQ pin</span>
+</code></pre>
+</li><li>Das Senden eines Paketes startet mit der Reservierung eines TX Buffers:<pre class="cpp hljs"><code class="cpp" data-origin="<pre><code class=&quot;cpp&quot;>LoRa.beginPacket(implHdr);   // for BIoT: implHdr=0 -&amp;gt; explicite Header only
+LoRa.write(byte);            // write single Byte to TX Buffer
+LoRa.write(&amp;amp;date, len);      // write byte stream with &quot;len&quot; Byte to TX buffer
+LoRa.endPacket(async);       // send buffer; async=0 - &amp;gt; wait for TXDone IRQ
+</code></pre>">LoRa.beginPacket(implHdr);   <span class="hljs-comment">// for BIoT: implHdr=0 -&gt; explicite Header only</span>
+LoRa.write(byte);            <span class="hljs-comment">// write single Byte to TX Buffer</span>
+LoRa.write(&amp;date, len);      <span class="hljs-comment">// write byte stream with "len" Byte to TX buffer</span>
+LoRa.endPacket(async);       <span class="hljs-comment">// send buffer; async=0 - &gt; wait for TXDone IRQ</span>
+</code></pre>
+Man kann auch eine TXDone Service Routine anmelden, ist BIoT client aber nicht nötig, da keine Parallelität verlangt wird, und der sync mode hinreichend prüft.<blockquote>
+<p>Problem: Bleibt der TXDone aus -&gt; Exception: muss in SW angefangen werden.</p>
+</blockquote>
+</li><li>Vorbereitung zum Empfang von Paketen: Zuweisung einer IRQ CallBack Routine:<pre class="cpp hljs"><code class="cpp" data-origin="<pre><code class=&quot;cpp&quot;>LoRa.onReceive(onReceive);   // Type: void onReceive(int pkglen);
+</code></pre>">LoRa.onReceive(onReceive);   <span class="hljs-comment">// Type: void onReceive(int pkglen);</span>
+</code></pre>
+Die ISR: onReceive(len) Funktion wird aufgerufen, wenn ein Paket vollständig in der FiFo des SX1276 eingetroffen ist (inkl. CRC check).</li><li>Aktivierung des RX-Contiguous Mode (dauerhaftes Warten auf Pakete)<pre class="cpp hljs"><code class="cpp" data-origin="<pre><code class=&quot;cpp&quot;>LoRa.receive();   // No Parameter -&amp;gt; explicite header Mode
+</code></pre>">LoRa.receive();   <span class="hljs-comment">// No Parameter -&gt; explicite header Mode</span>
+</code></pre>
+</li></ul><h3 id="client-function-flow"><a name="client-function-flow" href="#client-function-flow"></a>Client Function FLow</h3><p>Ein standard Arduino Sketch besteht aus der Setup() und der Loop() Phase:<br>Bei PowerOn startet der Boot Loader erst einmalig die Setup Phase. Anschliessend wird die Loop Funktion in einer Endlosschleife aufgerufen. Es sei denn, man geht am Ende in den Sleep() Mode. Beim darauffolgenden WakeUp (z.B. RTC getriggert) startet der bootLoader wiederum die Setup Phase.<br>Aus diesem Grund wird in der Setup-Funktion als erstes ein “reentrant Check” über ein resident gespeichertes Exit-Mode Flag durchgeführt.<br>Wird ein Sleep/Wakup Cycle erkannt, werden die residential gespeicherten Runtime Daten, welche beim Sleep Einstieg gespeichert wurden, zur Initialisierung der Betriebsstrukturen zurückgeladen. Ggfs. werden alle Sub-Setup Routinen der Sensorkomponenten nochmal durchlaufen, diesml aber im Reentrant Mode, falls eine Fallunterscheidung nötig ist.</p><p>Nach der Setupphase, in der alle Sensor- und Kommunikationsmodule sowie das ePaper Display discovered wurden, und ggfs. die letzten Runtime parameter rückgeladen wurde, folgt die eigentlich Sensor monitoring Loop:</p><ol>
+<li>Erfassung der “überlebenswichtigen” Runtime parameter</li><li>Sammeln aller Sensordaten</li><li>Evaluierung von Treshold bedingten Events für Sofortmassnahmen</li><li>Report der Datensätze lokal (ePaper + SDCard) wie remote (LoRa, Wifi, BT)</li><li>Einleitung der Sleep Phase</li></ol><p>Der BIoTWAN Radio Layer versteckt sich im Gesamt-FunctionFlow des Clients in der Sensor-Report Funktion über remote-Kanäle:</p><p><img src="images_v2/Node_Fkt_Flow.jpg"></p><h3 id="client-data-security"><a name="client-data-security" href="#client-data-security"></a>Client Data Security</h3><p>Für das Lora Protokoll ist der Erhalt des Runtime Parameter Status essentiell wichtg um ev. Paketübertragungszähler oder Encoding Keys weiter zu verwenden.</p><p>Dies ist nötig um ein Minimum der BIoT Protokoll Sicherheitsfunktionen aufrecht zu erhalten:<br>Denn der GW würde weitere Anfragen zurückweisen, wenn nicht der richtige Paketzähler im Payload (welcher mit dem richtigen Schlüssel enkodiert wurde) der Sendung enthalten ist. Das verhindert eine Man-In-the-Middle Attack des BIoT Protokolls und damit der gesamten LoRa Kommunikation.<br>Würde man bei jedem WakeUp einen JOIN Request mit rückgesetzten Zählern starten, könnte das jeder tun, der sich der DevEUI+JoinEUI-Keys bemächtigt hat (dazu später mehr).<br>So muss der JOIN Prozess einmalig in “geschütztem” Umfeld erfolgen, aber alle weiteren Konnektierungsversuche können mit einem REJOIN Kommando erfolgen, welches akt. Zaehler und Keys voraussetzt.</p><p>Da der Private key zur Entschlüsselung ausschliesslich auf GW Seite im JOIN Service vorgehalten wird sind auch die Clientseitig gespeicherten SDCard Daten soweit sicher vor einem Intruder-Attack.<br>Das LoRaWAN[^TM] Protokoll legt speziell in dre Version v1.1 weitere Vorgaben (Stichwort: Rekeyeing) zur Absicherung u.a. auch folgender REJOIN Requests fest, würde aber bei der Bedeutung der BeeIoT Daten den Aufwand zur Verwaltung sprengen. Am Ende geht es um Bienenstockdaten, nicht um Fertigungsstrecken.</p><p>In einer professionellen Anwendung würde man auf beiden Seiten die sicherungswürdigen Schlüssel z.B. in einem Security chip a la TPM/Xsensiv ablegen.</p><p>Die auf der Client Seite getroffen Massnahmen zur Zählerverwaltung und Verschlüsselung müssen natürlich auf Gateway- sowie NwServer Seite entsprechend auch unterstützt werden.</p><h2 id="beeiot-lora-wan"><a name="beeiot-lora-wan" href="#beeiot-lora-wan"></a>BeeIoT LoRa WAN</h2><p>Nun aber zum Prinzip des eigentlichen BeeIoT-WAN Protokolls: </p><p>Für die remote Connection zu den BeeIoT Clients/Knoten ohne “stromfressenden” WiFi Betrieb oder nicht-erreichbarem Hotspot, ist ein LoRa Funktmodul vorgesehen.<br>Auf 868MHz voreingestellt kann es abhängig von der räumlichen Topologie Reichweiten bis zu 8km ermöglichen.</p><p>Die LoRa modullierte Funkübertragung ermöglicht geringe Band-Belastung und geringem Stromverbrauch durch möglichst kurze on-air Phasen bei max. Reichweite. Und das in einem freien Band von 868MHz.<br>Das dafür entwickelte LoRaWAn(TM) Protokoll ist sehr ausgereift, erscheint aber für private Netzwerke in kleinem Umfang von der Komplexität her überdimensioniert.<br>Zwar werden auch Private Netzwerke unterstützt, eine Zertifizierung bei der Alliance wäre aber dennoch sinnvoll nötig, wenn man in einem LoRaWAn Netzwerk auch kompatible Gateways und NetzwerkServer unterhalten will.</p><p>Da ein GW ggfs. mit mehreren Clients quasi-gleichzeitig zu tun hat, die ihrerseits aber unterschiedliche Abnehmer (Apps) in Verbindung stehen, ist eine OSI Stack ähnliche Struktur nötig, um das Paketmanagement, die Kontrolle des Übertragungsmediums, und das Switching zu Applikations-Diensten zu koordinieren:<br><img src="images_v2/BeeIoT_OSIStack.jpg"></p><p>Die Netzwerkverwaltung oberhalb des Radiolayers z.B. in Form des <strong><a href="https://lora-alliance.org/about-lorawan">LoRaWAN(TM) Protokolls</a></strong> leisten z.B. folgende Bibliotheken (z.B. die OSS Lib: LMIC von IBM -&gt; search in GitHub) oder Radiohead.<br>Ein weiterer interessanter Client sample Code findet sich über eine Beispielprojekt des Opennet teams: <a href="https://wiki.opennet-initiative.de/wiki/LoRaSensor">https://wiki.opennet-initiative.de/wiki/LoRaSensor</a> .</p><p>Bei LMIC nimmt der sogenannte “OS” Layer einem das Queueing hereinkommender Pakete sowie die protokollgerechte Quittierung sowie das Bandmanagement vollständig ab.<br>Darin sind eine Peer2Peer Verbindung über unique Sender/Empfänger IDs und AES128-Verschlüsselungs ähnlich wie bei TCP/IP kombiniert mit SSH enthalten.<br>Es zeigten sich aber bei der Migration der LMIC Lib v1.6 Instablitäten des LoRa Modes<br> -&gt; es wurden immer wieder FSK Mode IRQs empfangen, was die LoRa Statusführung stoppte.<br>Auch ist das von IBM gewählte OS layer Model nicht so handsam wie erwartet.<br>In Summe stellte die LMIC-Lib für den ESP32 in Kombination mit den übrigen Aktionen zur Sensorbehandlung zumindest auf Node/Cient Seite einen ziemlichen overhead dar, der aber leider nötig ist um das vollständige LoRa-WAN Protokoll nach Spezifikation zu erfüllen (e.g. Band-Hopping, LoRaWAN v1.1 Encryption key handling, channel calibration usw.).</p><p>Angelehnt an den RADIO Layer (radio.c) von LMIC v1.6 ist für dieses Projekt ein eigenes Single-Channel WAN Protokoll entstanden (BeeIoT-WAN) welches die Paket Kommunikation auf den grundsätzlichen Austausch von Sensordaten mit einfacher Quittierung (zunächst ohne Multi-Bandmanagement) “optimiert”.</p><p>Aus diesem Grund habe ich eine abgestrippte Veriante entworfen, die den BeeIoT Anforderungen gerecht wird und sich leichter in den äußeren Ablaufrahmen (speziell beim ESP32) migrieren lässt:</p><ol>
+<li>Lora Modem Mode only (kein FSK) -&gt; einfacherer Code bei ISR, RX/TX Routinen</li><li>Einfache OTAA Aktivierung -&gt; Erleichtert die Fernwartung mehrer Knoten im Störfall</li><li>Dynamische Configuration channel Vorgabe server side -&gt; zur Störfall Anpassung</li><li>Paketgrößen bis zu 250Byte (exkl. header) mind. 10x / Stunde möglich</li><li>Erkennung durch Sender/Empfänger-IDs im “BeeIoT-WAN”-eigenen Header</li><li>CRC basierte Datenprüfung</li><li>automatische Quittierung und resend/retry Kommunikation als Flow Control</li><li>Knoten =&gt; Single Channel, Gateway =&gt; Multichannel (optional)</li><li>FW Update (optional)</li><li>SD Karten Lesen/Schreiben (optional)</li><li>Reichweite 3-4 km -&gt; Radius der Standorte</li><li>Master jeder Session ist der Knoten; der Server darf aber eine Anfordeurng am Ende jeder Session (RX1-Fenster) anmelden.</li><li>Bei Connection-Loss erfolgen knotenseitig REJOIN Versuche mit ansteigender Wartezeit (zur Stromeinsparung) -&gt; Sensordaten werden weiter lokal gespeichert (e.g. SDCard)</li></ol><p>Die Störfälle sind bekanntermaßen:</p><ul>
+<li>Atmosphärische Strahlung (Sonne)</li><li>Reflexionen von Gebäuden (Echo Effekte)</li><li>Sender auf gleichem Configuration channel (Frequenz, Bandbreite, Spreading factor,…)</li><li>temporäre Ausfälle von Knoten und Gateway</li></ul><p>Natürlich wurden diese Designvorgaben für beide SW Stacks auf Client und Server-Seite angewandt.</p><p>Zur Übersicht der beidseitigen Kommunikations Layer inAnlehnung an das OSI Mdell und als referenz für die folgenden Artikel, hier der vollständige Function-Flow Plan wie er aktuell in BIoTWAN v1.0 implementiert wurde:</p><p><img src="images_v2/BeeIoT_ProtocolOvw.jpg"></p><p>Auf der linken Client-Seite sind die Setup() und die Loop Funktion zu erkennen.<br>Von ihnen ausgehend erfolgen alle Aktionen, da zu allen Phasen der Kommunikation der Client der Master ist (mal vom RX1 Fenster abgesehen).</p><p>Am Ende der LoRa Setup Phae erfolgt bereits der erste JOIN Versuch mit dem BIoT Netzwerk. Ist dieser erfolgreich wehcslet der Runtime Staus in BIoT_IDLE was bedeutet: RX/TX ready.<br>Schlägt der JOIN request fehl, gibt es eine Anzahl Retries mit abnehmender Wiederholfrequenz als Teil der eigenltichen Loop Sequenz.<br>Dazu wird einfach bei jedem reportversuch über LoRa der Status geprüft:</p><ul>
+<li>BIoT_JOIN -&gt; weitere JOIN Versuche nötig; solange kein TX Mode möglich</li><li>BIoT_SLEEP-&gt; WakeUp des LoRa Modems nötig + Channel configuration gefolgt von einem ReJOIN request</li><li>BIoT_IDLE -&gt; Alles O.k.: die Sensor-Report Daten können im TX Mode gesendet und im RX Mode ein ACK/RX1-Paket empfangen werden.<ul>
+<li>Im Fehlerfall erfolgen auch hier Retries clientseitig bzw. der Server kann im RX1 Fenster einen Retry Antrag stellen (z.B. wenn der Paketheader in Ordnung war (d.h. konnte einer App zugeordnet werden), die Frame-Payloaddaten waren aber korrupt.</li></ul>
+</li><li>BIOT_RX/TX -&gt; dient der ISR Funktion zur Validierung der eingetroffenen IRQ Requests via DIOx Leitung</li></ul><h3 id="beeiotwan-channel-switch"><a name="beeiotwan-channel-switch" href="#beeiotwan-channel-switch"></a>BeeIoTWAN Channel Switch</h3><p>Um gehäuften Konflikten auf einem ConfigChannel ausweichen zu können, werden sowohl im Gateway als auch in jedem Knoten folgende ConfigChannel Datensätze geführt, zwischen denen der Netzwerk Service bei einer OTAA Join Session auswählen kann:</p><table>
+<thead>
+<tr>
+<th>Index</th>
+<th>Frequence</th>
+<th>Band</th>
+<th>Spreading Start</th>
+<th>Spreading End</th>
+<th>CodingRate</th>
+<th>TxPower</th>
+<th>DutyTime</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>EU868.1</td>
+<td>125kHz</td>
+<td>SF7</td>
+<td>SF12</td>
+<td>CR4_5</td>
+<td>14</td>
+<td>10x</td>
+</tr>
+<tr>
+<td>1</td>
+<td>EU868.3</td>
+<td>125kHz</td>
+<td>SF7</td>
+<td>SF12</td>
+<td>CR4_5</td>
+<td>14</td>
+<td>10x</td>
+</tr>
+<tr>
+<td>2</td>
+<td>EU868.3</td>
+<td>250kHz</td>
+<td>SF7</td>
+<td>SF7</td>
+<td>CR4_5</td>
+<td>14</td>
+<td>10x</td>
+</tr>
+<tr>
+<td>3</td>
+<td>EU868.5</td>
+<td>125kHz</td>
+<td>SF7</td>
+<td>SF12</td>
+<td>CR4_5</td>
+<td>14</td>
+<td>10x</td>
+</tr>
+<tr>
+<td>4</td>
+<td>EU867.1</td>
+<td>125kHz</td>
+<td>SF7</td>
+<td>SF12</td>
+<td>CR4_5</td>
+<td>14</td>
+<td>1x</td>
+</tr>
+<tr>
+<td>5</td>
+<td>EU867.3</td>
+<td>125kHz</td>
+<td>SF7</td>
+<td>SF12</td>
+<td>CR4_5</td>
+<td>14</td>
+<td>1x</td>
+</tr>
+<tr>
+<td>6</td>
+<td>EU867.5</td>
+<td>125kHz</td>
+<td>SF7</td>
+<td>SF12</td>
+<td>CR4_5</td>
+<td>14</td>
+<td>1x</td>
+</tr>
+<tr>
+<td>7</td>
+<td>EU867.7</td>
+<td>125kHz</td>
+<td>SF7</td>
+<td>SF12</td>
+<td>CR4_5</td>
+<td>14</td>
+<td>1x</td>
+</tr>
+<tr>
+<td>8</td>
+<td>EU867.9</td>
+<td>125kHz</td>
+<td>SF7</td>
+<td>SF12</td>
+<td>CR4_5</td>
+<td>14</td>
+<td>1x</td>
+</tr>
+<tr>
+<td>9-14</td>
+<td>reserved</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>15</td>
+<td>EU869.525</td>
+<td>125kHz</td>
+<td>SF7</td>
+<td>SF12</td>
+<td>CR4_5</td>
+<td>14</td>
+<td>1x</td>
+</tr>
+</tbody>
+</table><p>CC0 ist der default Config Channel und CC15 wird für datenintensive Downlink Aktionen verwendet.<br>Dank dieser verteilten Tabelle muss nur der ConfigChannel-Index bei einem CONFIG Kommando zw. Client und Server übertragen werden und beide Seiten stellen sich auf den neuen Kanal bei der nächsten Session ein. Läuft etwas schief -&gt; Rückfall auf den default Channel mit einem Rejoin Versuch durch den Client (Zaehler und Keys bleiben dann aber unverändert).</p><h3 id="beeiotwan-communication-packets"><a name="beeiotwan-communication-packets" href="#beeiotwan-communication-packets"></a>BeeIoTWAN Communication Packets</h3><p>Zum Austausch zwischen 2 Instanzen bedarf es einer gemeinsamen Sprache und gemeinsamen Syntax.<br>Diese gemeinsamen Festlegungen (typedefs) wurden in der Header Datei BIoTWAN.h zusammengefasst.</p><p>Die ausgetauschten Pakete zwischen Knoten und Gateway/NwServer haben folgendes Format:<br><img src="images_v2/BeeIoT_PkgFormat.jpg"></p><p>Der SX1276 chip befasst sich mit der reinen Rohdatenübertragug und Kanalsynchronisierung (oranger Bereich).<br>Der Radio Layer transportiert davon den grünen Bereich, die Intepretiert des darin enthaltenen Headers wird vom NwServer übernommen. Durch die MIC validierung stellt er auch die Konsistenz des Daten-Paketes sicher.<br>Der verschlüsselte gelbe bereich ist dem AppServer vorbehalten, der anhand seiner private keys die Entschlüsselung des frame-payload durchführt.<br>Erst dann stehen die eigentlichen Sensordaten zur Weiterverarbeitung zur Verfügung.</p><h4 id="beeiotwan-base-packet"><a name="beeiotwan-base-packet" href="#beeiotwan-base-packet"></a>BeeIoTWAN Base Packet</h4><p>Das Basis-Datenpaket hat folgendes Format (beeiotpkg_t):</p><ul>
+<li>Header (beeiot_header_t)<ul>
+<li>Destination ID -&gt; Das ist die ID des Paket-Empfängers</li><li>Sender ID -&gt; ID des Absenders</li><li>Pkg-index -&gt; Fortlaufender Paket Index (0..255) zur Validierung der Paketsequenz durch den NwServer</li><li>NwsCMD -&gt; Das Protokoll Kommanando -&gt; U.a. Zur Differenzierung ob NwServer Paket oder AppService Paket</li><li>Length Payload -&gt; Die Länge des folgenden Payload Streams in Byte incl. MIC(4):<br>(BIoT_DLEN = 0 … MAX_PAYLOAD_LENGTH8128) - BIoT_HDRLEN(5))</li></ul>
+</li><li>Payload (data)<ul>
+<li>Falls NwServer CMD: weitere Parameter zum NwServer Kommaando</li><li>Falls AppServer CMD: encoded Payload Data für den AppServer</li></ul>
+</li><li>MIC: 4Byte AES128 Schlüssel über das esamte Paket (excl. MIC)</li></ul><p>Der Client erhält die Destination- und Sender-ID beim JOIN Protokoll vom NwServer mitgeteilt.<br>Für das JOIN Protokoll selbst werden Defaultwerte verwendet (CChn0, GWIDx, NODEIDBASE).<br>Auch die Start Packet ID wird erst beim JOIN seitens NwServer mitgeteilt. Als Master des Protokolls verwaltet aber der Client das nachfolgende Hochzählen. Es gibt nur eine Packet-ID unabhängig der Sendungsrichtung, und der akt. Wert ist der Einfachheits-halber über die akt. Session hinweg gültig.<br>(ToDo: getrennte Zaehler für beide Richtungen würde die Sicherheit erhöhen).</p><p>Die Bedeutung des eigentlichen Packet-Kommandos ist neben dem Wert auch vom Session Context abhängig:<br>Die folgende Tabelle führt die Bedeutung für den <strong>Empfänger</strong> (!) auf:</p><table>
+<thead>
+<tr>
+<th>Command</th>
+<th>received by Client</th>
+<th>received by NwServer</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CMD_JOIN</td>
+<td>no action</td>
+<td>GW sends CONFIG: new CfgCHN ID + Pkt ID + Node/GW ID + AppKey</td>
+</tr>
+<tr>
+<td>CMD_REJOIN</td>
+<td>Send new JOIN Request to GW</td>
+<td>GW sends CONFIG: current(!) assigned CfgCHN ID + Pkt ID + Node/GW ID</td>
+</tr>
+<tr>
+<td>CMD_LOGSTATUS</td>
+<td>no action</td>
+<td>Forward Frame to AppServer: Process Sensor log data</td>
+</tr>
+<tr>
+<td>CMD_GETSDLOG</td>
+<td>Send SDcard data</td>
+<td>Forward Frame to AppServer: Process SDCard data</td>
+</tr>
+<tr>
+<td>CMD_RETRY</td>
+<td>Send same Pkg again (last pkg was corrupt)</td>
+<td>no action</td>
+</tr>
+<tr>
+<td>CMD_ACK</td>
+<td>NOP: Ack. for last sent Pkg by GW (except JOIN -&gt; Accept by CONFIG)</td>
+<td>NOP: Ack. for last sent Pkg by Node</td>
+</tr>
+<tr>
+<td>CMD_CONFIG</td>
+<td>set new CfgChn + Node/GW-ID for next sessions</td>
+<td>no action</td>
+</tr>
+<tr>
+<td>CMD_RES6</td>
+<td>reserved</td>
+<td>reserved</td>
+</tr>
+<tr>
+<td>CMD_RES7</td>
+<td>reserved</td>
+<td>reserved</td>
+</tr>
+<tr>
+<td>CMD_RES8</td>
+<td>reserved</td>
+<td>reserved</td>
+</tr>
+<tr>
+<td>CMD_TIME</td>
+<td>no action</td>
+<td>Send curr. Time Stamp to Node</td>
+</tr>
+<tr>
+<td>CMD_NOP</td>
+<td>no Action</td>
+<td>send ACK to Node</td>
+</tr>
+</tbody>
+</table><p>Die Kommando-spezifischen Paketinterpretationen werden durch ein Cast der jew. CMD-Typedef Strukur auf beeiotpkg_t erreicht.</p><h3 id="beeiot-join"><a name="beeiot-join" href="#beeiot-join"></a>BeeIoT-JOIN</h3><p>Ein JOIN request muss im Idealfall nur einmal zur Lebenszeit eines CLients abgesetzt werden, und zwar im Anschluss oder während der Setupphase eines Knoten. Ein erfolgreicher JOIN-request des Knotens wird durch ein JOIN Accept Paket: CONFIG des NwServer quittiert.</p><p>JOIN Voraussetzungen als Massnahme auch im Störfall:</p><ul>
+<li>Der GW wurde neu gestartet oder der NwServer fordert den Wechsel zu einem neuen Gateway<ul>
+<li>Wurde der GW ohne Recovery seiner Runtime Daten neu gestartet<br>  -&gt; Derselbe Status wie der Wechsel zu einem neuen Gateway: new JOIN</li><li>Der neue Gateway weisst alle Pakete vom Knoten zurück mit der Aufforderung: REJOIN<br>Der Client hat daraufhin einen JOIN request zu stellen (keinen REJOIN !) damit der Gateway eine neue KnotenInstanz intern zur Verwaltung der Paketdaten und Weiterleitung an “wartende” AppServices aufbaut.</li></ul>
+</li><li>Der Client wurde neu gestartet<ul>
+<li>ohne Recovery (kein Sleep/WakeUp cycle): Der Client stellt einen neuen JOIN request<ul>
+<li>Der Gateway erkennt den Knoten an der DevEUI und den gespeicherten JOIN Status<br>Die JOIN Accept Antwort: CONFIG enthält die bisherigen Session daten: GWID/NodeID/CfgChn-ID + AppKey.</li></ul>
+</li></ul>
+</li></ul><p>Für einen JOIN request hat der Client immer den default ConfigChannel: CC0 sowie die default GW-/Node-IDs: GWIDx und  NODEIDBASE zu verwenden.<br>Ein REJOIN Request muss ebenfalls über dieses Band CC0 und verwendung der GWIDx erfolgen, die NodeID darf die aktuelle sein; ansonst wird er abgewiesen.</p><p>Alle der JOIN Session folgenden RX/TX Transfer Sessions haben über den zugewiesenen Channel unter verwendung der neuen GW/Node-IDs zu erfolgen, welche im Join-Accept CONFIG Paket seitens des Netzwerkservers mitgeteilt wurden.</p><p>Das JOIN Paket hat das format: beeiot_join_t<br>Der enthaltene JOIN Payload (joinpar_t) enthält folgende Angaben:</p><ul>
+<li>devEUI -&gt; Eindeutige HW ID des Nodes (i.d.R. von der MAC abgeleitet)</li><li>joinEUI -&gt; eindeutige ID des AppServers mit dem der Client kommunizieren möchte.</li><li>frmid -&gt; App-Daten Payload counter zur Sequentialisierung der gesendeten App-Datenpakete</li><li>vmajor+vminor -&gt; die seitens Client unterstützte BIoTWAN Version (Der NwServer entscheidet ob er die Version unterstützt)</li></ul><h2 id="beeiot-todo-liste"><a name="beeiot-todo-liste" href="#beeiot-todo-liste"></a>BeeIoT ToDo Liste</h2><p>Was im aktuellen BIoT Design noch fehlt:</p><ul>
+<li>Collison detection (ist aber ggfs. durch die CRC Prüfung und Resend(RETRY)-Anforderung abgedeckt)</li><li>Payload Encryption auf AES128 Basis (ist bereits in Arbeit)</li><li>Gateway Multi Band management (heute wird nur 1 band gewählt, das aber nur alle 10-15 Minuten benutzt)</li><li>Duty Time recognition</li></ul><p>Viel Spass damit und einen Imkerlichen Gruss<br>wünscht Euch </p><p>Randolph Esser<br>(mail(a)RandolphEsser.de)</p><p><a href="http://www.RandolphEsser.de/Imkerei"><strong>www.RandolphEsser.de</strong></a><br>==&gt; Imkerei</p>
+
+<footer style="position:fixed; font-size:.8em; text-align:right; bottom:0px; margin-left:-25px; height:20px; width:100%;">generated by <a href="http://pad.haroopress.com" target="_blank">haroopad</a></footer>
+</body>
+</html>
