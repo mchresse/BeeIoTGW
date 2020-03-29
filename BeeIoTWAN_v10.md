@@ -196,16 +196,16 @@ Die auf der Client Seite getroffen Massnahmen zur Zählerverwaltung und Verschl�
 
 
 ## BeeIoT LoRa WAN
-Nun aber zum Prinzip des eigentlichen BeeIoT-WAN Protokolls: 
+Nun aber zum Prinzip des eigentlichen BeeIoT-WAN Protokolls:
 
 Für die remote Connection zu den BeeIoT Clients/Knoten ohne "stromfressenden" WiFi Betrieb oder nicht-erreichbarem Hotspot, ist ein LoRa Funktmodul vorgesehen.
-Auf 868MHz voreingestellt kann es abhängig von der räumlichen Topologie Reichweiten bis zu 8km ermöglichen.
+Auf 868.1MHz voreingestellt kann es abhängig von der räumlichen Topologie Reichweiten bis zu 8km ermöglichen.
 
-Die LoRa modullierte Funkübertragung ermöglicht geringe Band-Belastung und geringem Stromverbrauch durch möglichst kurze on-air Phasen bei max. Reichweite. Und das in einem freien Band von 868MHz.
-Das dafür entwickelte LoRaWAn(TM) Protokoll ist sehr ausgereift, erscheint aber für private Netzwerke in kleinem Umfang von der Komplexität her überdimensioniert. 
+Die LoRa modulierte Funkübertragung ermöglicht geringe Band-Belastung und geringem Stromverbrauch durch möglichst kurze on-air Phasen bei max. Reichweite. Und das in einem freien Band von 868MHz.
+Das dafür entwickelte LoRaWAn(TM) Protokoll ist sehr ausgereift, erscheint aber für private Netzwerke in kleinem Umfang von der Komplexität her überdimensioniert.
 Zwar werden auch Private Netzwerke unterstützt, eine Zertifizierung bei der Alliance wäre aber dennoch sinnvoll nötig, wenn man in einem LoRaWAn Netzwerk auch kompatible Gateways und NetzwerkServer unterhalten will.
 
-Da ein GW ggfs. mit mehreren Clients quasi-gleichzeitig zu tun hat, die ihrerseits aber unterschiedliche Abnehmer (Apps) in Verbindung stehen, ist eine OSI Stack ähnliche Struktur nötig, um das Paketmanagement, die Kontrolle des Übertragungsmediums, und das Switching zu Applikations-Diensten zu koordinieren:
+Da ein GW ggfs. mit mehreren Clients quasi-gleichzeitig zu tun hat, die ihrerseits aber unterschiedliche Abnehmer (Apps) in Verbindung stehen, habe ich eine OSI Stack ähnliche Struktur definiert, um das Paketmanagement, die Kontrolle des Übertragungsmediums, und das Switching zu Applikations-Diensten zu koordinieren:
 <img src="./images_v2/BeeIoT_OSIStack.jpg">
 
 Die Netzwerkverwaltung oberhalb des Radiolayers z.B. in Form des **[LoRaWAN(TM) Protokolls](https://lora-alliance.org/about-lorawan)** leisten z.B. folgende Bibliotheken (z.B. die OSS Lib: LMIC von IBM -> search in GitHub) oder Radiohead.
@@ -220,7 +220,7 @@ In Summe stellte die LMIC-Lib für den ESP32 in Kombination mit den übrigen Akt
 
 Angelehnt an den RADIO Layer (radio.c) von LMIC v1.6 ist für dieses Projekt ein eigenes Single-Channel WAN Protokoll entstanden (BeeIoT-WAN) welches die Paket Kommunikation auf den grundsätzlichen Austausch von Sensordaten mit einfacher Quittierung (zunächst ohne Multi-Bandmanagement) "optimiert".
 
-Aus diesem Grund habe ich eine abgestrippte Veriante entworfen, die den BeeIoT Anforderungen gerecht wird und sich leichter in den äußeren Ablaufrahmen (speziell beim ESP32) migrieren lässt:
+Aus diesem Grund habe ich eine abgestrippte Variante entworfen, die den BeeIoT Anforderungen gerecht wird und sich leichter in den äußeren Ablaufrahmen (speziell beim ESP32: DeepSleep) migrieren lässt:
 1. Lora Modem Mode only (kein FSK) -> einfacherer Code bei ISR, RX/TX Routinen
 2. Einfache OTAA Aktivierung -> Erleichtert die Fernwartung mehrer Knoten im Störfall
 2. Dynamische Configuration channel Vorgabe server side -> zur Störfall Anpassung
@@ -250,14 +250,15 @@ Zur Übersicht der beidseitigen Kommunikations Layer inAnlehnung an das OSI Mdel
 Auf der linken Client-Seite sind die Setup() und die Loop Funktion zu erkennen.
 Von ihnen ausgehend erfolgen alle Aktionen, da zu allen Phasen der Kommunikation der Client der Master ist (mal vom RX1 Fenster abgesehen).
 
-Am Ende der LoRa Setup Phae erfolgt bereits der erste JOIN Versuch mit dem BIoT Netzwerk. Ist dieser erfolgreich wehcslet der Runtime Staus in BIoT_IDLE was bedeutet: RX/TX ready.
-Schlägt der JOIN request fehl, gibt es eine Anzahl Retries mit abnehmender Wiederholfrequenz als Teil der eigenltichen Loop Sequenz.
-Dazu wird einfach bei jedem reportversuch über LoRa der Status geprüft:
-- BIoT_JOIN -> weitere JOIN Versuche nötig; solange kein TX Mode möglich
-- BIoT_SLEEP-> WakeUp des LoRa Modems nötig + Channel configuration gefolgt von einem ReJOIN request
+Am Ende der LoRa Setup Phase erfolgt bereits der erste JOIN Versuch mit dem BIoT Netzwerk. Ist dieser erfolgreich wechselt der Runtime Status in BIoT_IDLE was bedeutet: RX/TX ready.
+Schlägt der JOIN Request fehl, gibt es eine Anzahl Retries mit abnehmender Wiederholfrequenz als Teil der eigentlichen Loop Sequenz.
+Dazu wird am Anfang eines jeden Reportversuchs über LoRaLog() der Modem Status geprüft:
+- BIOT_NONE -> Erneute SPI-Suche nach einem LoRa Modem via Setup_Lora()
+- BIoT_JOIN -> weitere JOIN Versuche nötig; solange ist kein TX Mode möglich
+- BIoT_SLEEP-> WakeUp des LoRa Modems nötig + Modem configuration
 - BIoT_IDLE -> Alles O.k.: die Sensor-Report Daten können im TX Mode gesendet und im RX Mode ein ACK/RX1-Paket empfangen werden.
-	+ Im Fehlerfall erfolgen auch hier Retries clientseitig bzw. der Server kann im RX1 Fenster einen Retry Antrag stellen (z.B. wenn der Paketheader in Ordnung war (d.h. konnte einer App zugeordnet werden), die Frame-Payloaddaten waren aber korrupt.
-- BIOT_RX/TX -> dient der ISR Funktion zur Validierung der eingetroffenen IRQ Requests via DIOx Leitung
+	+ Im Fehlerfall erfolgen auch hier Retries clientseitig bzw. der Server kann im RX1 Fenster einen Retry- oder REJOIN Antrag stellen (z.B. wenn der Paketheader in Ordnung war (d.h. konnte einer App zugeordnet werden), die Frame-Payloaddaten waren aber korrupt.
+- BIOT_RX/TX -> gibt der ISR Funktion zur Validierung den erwarteten IRQ Typs des eingetroffenen IRQ Requests via DIOx Leitung an.
 
 ###BeeIoTWAN Channel Switch
 Um gehäuften Konflikten auf einem ConfigChannel ausweichen zu können, werden sowohl im Gateway als auch in jedem Knoten folgende ConfigChannel Datensätze geführt, zwischen denen der Netzwerk Service bei einer OTAA Join Session auswählen kann:
@@ -287,7 +288,7 @@ Die ausgetauschten Pakete zwischen Knoten und Gateway/NwServer haben folgendes F
 
 Der SX1276 chip befasst sich mit der reinen Rohdatenübertragug und Kanalsynchronisierung (oranger Bereich).
 Der Radio Layer transportiert davon den grünen Bereich, die Intepretiert des darin enthaltenen Headers wird vom NwServer übernommen. Durch die MIC validierung stellt er auch die Konsistenz des Daten-Paketes sicher.
-Der verschlüsselte gelbe bereich ist dem AppServer vorbehalten, der anhand seiner private keys die Entschlüsselung des frame-payload durchführt.
+Der verschlüsselte gelbe Bereich ist dem AppServer vorbehalten, der anhand seiner private Keys die Entschlüsselung des frame-payload durchführt.
 Erst dann stehen die eigentlichen Sensordaten zur Weiterverarbeitung zur Verfügung.
 
 #### BeeIoTWAN Base Packet
@@ -305,8 +306,8 @@ Das Basis-Datenpaket hat folgendes Format (beeiotpkg_t):
 - MIC: 4Byte AES128 Schlüssel über das esamte Paket (excl. MIC)
 
 Der Client erhält die Destination- und Sender-ID beim JOIN Protokoll vom NwServer mitgeteilt.
-Für das JOIN Protokoll selbst werden Defaultwerte verwendet (CChn0, GWIDx, NODEIDBASE).
-Auch die Start Packet ID wird erst beim JOIN seitens NwServer mitgeteilt. Als Master des Protokolls verwaltet aber der Client das nachfolgende Hochzählen. Es gibt nur eine Packet-ID unabhängig der Sendungsrichtung, und der akt. Wert ist der Einfachheits-halber über die akt. Session hinweg gültig.
+Für das JOIN Protokoll selbst werden Defaultwerte verwendet (CfgChn0, GWIDx, NODEIDBASE).
+Die Start Packet ID wird erst bei einem Client JOIN-Request seitens NwServer via CONFIG-Ack mitgeteilt. Als Master des Protokolls verwaltet der Client das nachfolgende Hochzählen dieser ID. Es gibt nur eine Packet-ID unabhängig der Sendungsrichtung, und der akt. Wert ist der Einfachheit-halber über die akt. Session hinweg gültig.
 (ToDo: getrennte Zaehler für beide Richtungen würde die Sicherheit erhöhen).
 
 Die Bedeutung des eigentlichen Packet-Kommandos ist neben dem Wert auch vom Session Context abhängig:
@@ -330,9 +331,9 @@ Die folgende Tabelle führt die Bedeutung für den **Empfänger** (!) auf:
 Die Kommando-spezifischen Paketinterpretationen werden durch ein Cast der jew. CMD-Typedef Strukur auf beeiotpkg_t erreicht.
 
 ###BeeIoT-JOIN
-Ein JOIN request muss im Idealfall nur einmal zur Lebenszeit eines CLients abgesetzt werden, und zwar im Anschluss oder während der Setupphase eines Knoten. Ein erfolgreicher JOIN-request des Knotens wird durch ein JOIN Accept Paket: CONFIG des NwServer quittiert.
+Ein JOIN request muss im Idealfall nur einmal zur Lebenszeit eines Clients abgesetzt werden, und zwar im Anschluss oder während der Setupphase eines Knoten. Ein erfolgreicher JOIN-request des Knotens wird durch ein JOIN Accept Paket: CONFIG durch den NwServer quittiert.
 
-JOIN Voraussetzungen als Massnahme auch im Störfall:
+Voraussetzungen des JOIN requests zur Massnahme folgender Störfalle:
 - Der GW wurde neu gestartet oder der NwServer fordert den Wechsel zu einem neuen Gateway
 	- Wurde der GW ohne Recovery seiner Runtime Daten neu gestartet
 		-> Derselbe Status wie der Wechsel zu einem neuen Gateway: new JOIN
@@ -343,20 +344,138 @@ JOIN Voraussetzungen als Massnahme auch im Störfall:
 		+ Der Gateway erkennt den Knoten an der DevEUI und den gespeicherten JOIN Status
 		  Die JOIN Accept Antwort: CONFIG enthält die bisherigen Session daten: GWID/NodeID/CfgChn-ID + AppKey.
 
-Für einen JOIN request hat der Client immer den default ConfigChannel: CC0 sowie die default GW-/Node-IDs: GWIDx und  NODEIDBASE zu verwenden. 
-Ein REJOIN Request muss ebenfalls über dieses Band CC0 und verwendung der GWIDx erfolgen, die NodeID darf die aktuelle sein; ansonst wird er abgewiesen.
+Für einen JOIN request hat der Client immer den default ConfigChannel: CC0 sowie die default GW-/Node-IDs: GWIDx und  NODEIDBASE zu verwenden.
+Ein REJOIN Request muss ebenfalls über dieses Band CC0 und Verwendung der GWIDx erfolgen, die NodeID darf die Aktuelle sein; ansonst wird er abgewiesen.
 
-Alle der JOIN Session folgenden RX/TX Transfer Sessions haben über den zugewiesenen Channel unter verwendung der neuen GW/Node-IDs zu erfolgen, welche im Join-Accept CONFIG Paket seitens des Netzwerkservers mitgeteilt wurden.
+Alle der JOIN Session folgenden RX/TX Transfer-Sessions haben über den zugewiesenen Channel unter Verwendung der neuen GW/Node-IDs zu erfolgen, welche im Join-Accept CONFIG Paket seitens des Netzwerkservers mitgeteilt wurden.
 
-Das JOIN Paket hat das format: beeiot_join_t
-Der enthaltene JOIN Payload (joinpar_t) enthält folgende Angaben:
+Das (Re-)JOIN Paket hat das Format: beeiot_join_t
+Der enthaltene (RE-)JOIN Payload (joinpar_t) enthält folgende Angaben:
 - devEUI -> Eindeutige HW ID des Nodes (i.d.R. von der MAC abgeleitet)
 - joinEUI -> eindeutige ID des AppServers mit dem der Client kommunizieren möchte.
 - frmid -> App-Daten Payload counter zur Sequentialisierung der gesendeten App-Datenpakete
-- vmajor+vminor -> die seitens Client unterstützte BIoTWAN Version (Der NwServer entscheidet ob er die Version unterstützt)
+- vmajor+vminor -> die seitens Client unterstützte BIoTWAN Version (Der NwServer entscheidet dann, ob er die Version unterstützt)
 
+Das JOIN Protokoll hat folgenden Verlauf:
+1. Erzeuge das JOIN Paket
+	a) CMD_JOIN: BIOT_JOIN + default GWID & NODEIDBASE + JOINEUI + DEVEUI
+    b) CMD_REJOIN: BIOT_JOIN + current NODEID + GWID + JOINEUI + DEVEUI
+2. Create new MIC of Frame-Header + payload
+3. Send Paket in ACK Wait Mode
+4. Switch to RX Mode: Wait for BeeIotRXFlag (from ISR) set in case of a received CONFIG package
+	a) If Max numbers of overall JOIN Requests reached -> double Wait/sleep time
+	b) If CONFIG Wait TimeOut reached -> initiate JOIN Send retry
+	  -> If max # of retries reached goto to sleep mode and give up
+    c) if CONFIG package received -> start Parsing of CONFIG Data BIoTParseCfg()
+5. If CONFIG package is valid -> Set new Channel-onfig and Modem Status = BIoT_IDLE
 
+Jetzt ist das LoRa Modem bereit reguläre Datenpakete an den Server zu senden.
+Die Datenpakete werden gatewayseitig an den im Join Request angegebenen JOINEUI APP-Prozess weitergeleitet und prozessiert.
 
+### Client TX/RX Sessions
+Zu einer Standard TX session gehört folgendes Kommando: CMD_LOGSTATUS
+Das Flussprotokoll besteht aus 3 Hauptphasen:
+1. Senden des LoraLog Status an den Gateway
+2. Empfang des Antwortpaketes
+3. Ggfs. Empfang eines RX1 Paketes vom GW mit einem Opt. Zusatzkommando
+	-> z.B. GetSDLog, FWUpdate
+
+<img src="./images_v2/BeeIoT_PkgFlowCtrl.jpg">
+
+Die Client Funktion LoraLog() erzeugt das Kommandopaket demnach:
+
+1. Converts UserLog-String into LoRa Message format
+2. Controls BIoTWAN flow control: Send -> Wait for Ack ... and in case send retries:
+	1. Check of valid LoRa Modem Send Status: BIOT_IDLE (if not try to recover status)
+	2. Prepare TX package with LogStatus data
+	3. Store TX Session data for ISR and retry loops
+	4. Initiate TX session
+	5. Bypass FlowControl in NoAck Mode
+	6. Start of ACK wait loop
+		a. Activate flow control: start RX Contiguous Mode
+		b. Check for ACK Wait Timeout
+		c. No ACK received -> initiate a retry loop
+	10. Max. # of Retries reached -> give up (-99)
+         -> Goto Sleep Mode and set REJOIN status
+	11. Start RX1 Window: TX session Done (ACK received) Give GW the option for another Job
+	12. Check for ACK Wait Timeout -> yes, but no RX1 job expected => Done(=0)
+	13. Either RX1 job received or RETRY / REJOIN as Ack from previous TX session
+	14. BIoTParse() RX-Queue pkg: ISR has checked Header and copied pkg into MyRXData[RXPkgSrvIdx]
+        -> CMD_RETRY:  TX pkg will be sent again -> RX1 loop will wait for ACK
+        -> CMD_REJOIN: BIoTStatus = JOIN  -> RX1 loop ends
+        -> new RX1 CMD: will be processed as usual (ACK wait loop)
+	15. Process (RE-)JOIN Request from GW
+
+Entgegen dem LoRaWAN Protokoll kann im BIoTWAN Protokoll sowohl Client wie Gateway-seitig auf ein Fehlerhaftes TX protokoll reagiert werden:
+Client-seitig: im Falle eines ACH-Timeouts => Retry Send des TX Paketes
+GW-seitig: im Falle eines korrupten Payloads (Inhalte oder Länge) -> Request RETRY
+
+Im Falle eines korrupten Paketheaders reagiert der Gateway nicht (er hat keine validen Senderangaben -> Client läuft auf ACK Timeout und initiiert seinerseits den Send-Retry.
+
+Da der Client als protokoll-Masetr auftriit bekommt der Gateway durch das nachfolgende RX1-Empfangsfenster die Gelegenheit seinerseits eine Aktion beim Client auszulösen. Spricht clientseitig etwas dagegen (z.B. der Batteriestatus)
+so kann er auch "verweigern" -> GW läuft auf Timeout.
+
+##Der Gateway/Server Empfangsstack
+Der Gateway/Server Stack ist dafür vorbereitet von verschiedenen Clients Pakete zu empfangen und diese, wie im JOIN Request definiert, an den gewünschten Application-Prozess zu übergeben.
+
+<img src="./images_v2/BeeIoT_SrvModules.jpg">
+
+###Radio Service
+Der *Radio Service* empfängt die rohen LoRa-Pakete. Dabei werden in der ISR Routine myradio_irq_handler() verschiedene Checks des Paketheaders durchgeführt:
+1. Check LoRa Mode	-> BIOT use only LoRa Modem type
+    1. Check TXDone		-> set BeeIotTXFlag flag only
+    2. Check RX Queue full -> no RX-Queue buffer left => shortcut ISR, no action
+    3. Check RXDone
+    4. CRC Check	-> shortcut ISR, no action
+    5.	a)Get RSSI & SNR Status and 
+    	b) evaluate SNR threshold
+		-> if < SNR Threshold => shortcut ISR
+	6. Check Package size: must be in range of BeeIoT WAN protocol specification
+	7. RD Radio Queue -> fill RX Queue buffer + incr. BeeIotTXFlag Semaphore
+	8. RXTOUT-Check	  -> shortcut ISR, no action (BIoT uses RXCont Mode only)
+	9. Acknowledge all IRQ flags at once
+2. FSK Mode IRQ => should never happen ! -> shortcut ISR, no action
+3. Set OPMode to Sleep Mode -> OM polled by BIoT Log Service
+
+Das Semaphor: BeeIotRXFlag hat den Zustand =0 wenn sich kein gefülltes Datenpaket in der MyRXData[] Queue befindet. Der Wert >0 gibt die Anzahl der eingetragenen Pakete an. Der Schreib-Index: RXPkgIsrIdx zeigt auf das nächste freie Queue Element.
+
+###Network Service
+Der *NetworkServer* koordiniert den BIoTWAN Protokollfluss.
+Dazu wird in NwNodeScan() dauerhaft eine Loop im RX-Contiguous Mode durchlaufen, während dieser der RX Queue MyRXData[] Status gepolled wird. Der Lese-Index: RXPkgSrvIdx zeigt auf das "älteste" nicht bearbeitete Queue Element.
+Hat BeeIotRXFlag den Wert =0 muss RXPkgSrvIdx == RXPkgISRIdx sein.
+Da die Queue als Ringpuffer organisiert ist, muss der RXPkgSrvIdx "hinter" dem RXPkgIsrIdx liegen.
+
+Wurde ein Paket empfangen (BeeIotRXFlag > 0) wird das Queue Paket MyRXData[RXPkgSRVIdx] der Parsingroutine BeeIoTParse() übergeben.
+
+Dort wird als erstes der Paket-Sender durch eine  Anfrage an den JOIN Service validiert: JS_ValidatePkg().
+
+Bei Akzeptanz wird die aktuell zum Paket sendenden Clients gespeicherte MSG-ID mit der des Paketes verglichen. Ist er identisch wird das empfangene Paket als Duplikat verworfen (z.B. im Falle eines erfolgreich empfangenen Paketes mit anschliessend versendetem ACK Paketes, welches den Client aber nicht erreicht hat). Ist die empfangene MSG-ID kleiner als die gespeicherte, kann es sich um eine Man-In-the-middle Attack handeln. Ist die MSG-ID größer wird das Paket akzeptiert.
+Anschliessend wird der CMD-Code geprüft. Network-Service Commandos werden sofort in der NWS-Service BeeIoTFlow-Routine bearbeitet: NOP, (RE-)JOIN, ACK, CONFIG.
+Application Commands werden an den zugewiesenen Application-Service übergeben: z.B. LOGSTATUS, GETSDLOG, FWUPD.
+
+###JOIN Service
+Der *JOIN-Service* evaluiert die Client JOIN Request Angaben und im Erfolgsfall anschliessend alle weiteren session Oakete dieses CLients.
+
+Aus Security-Gründen kann nur ein serverseitig bekannter registrierter DevEUI Clientcode im JOIN Prozess akzeptiert werden. Dazu führt der JOIN Service eine interne Node-Referenztabelle: WLTab[] in der die zu vergleichende Referenz-DevEUI geführt wird. Diese WLTab[] wird in der Init-Phase aus der config.ini Datei mit User-Setup-Angaben gespeisst.
+
+Im Falle eines JOIN-Hits wird der entsprechende WLTab[]-Index auch gleichzeitig als Index für die, allen Services zugänglichen, Nodelist-Table: NDB[] hergenommen. AUs diesem NDB-index + der NODEIDBASE wird der neue Node-Index gebildet: NODEIDBASE+ndid, der im CONFIG-Answer-Paket an den Client zurückübermittelt wird.
+Fortwährend hat der Client diese NodeID zu verwenden, bis zu einem erneuten JOIN Request, der auch im Falle eines Roamingversuchs anfallen könnte.
+
+Der JOIN Service füllt den NDB[ndid]-Eintrag des jeweilgen angemeldeten Clients mit allen bekannten Initialisierungsdaten zur weiteren Session-Bearbeitung durch den Network- und Application Service.
+
+Erkennt der Network Service ein Application Service Kommando so wird letzteres über den JS_AppProxy() übergeben:
+Diese Funktion verwaltet eine JOIN-EUI Referenztabelle: TJoinEUI[].
+Im Falle eines Hit der JOINEUI aus dem JOIN Request -> wird derselbe Index in einer weiteren Application Service Sprungtabelle fapp[] zur Weiterleitung des Paket-Frame-Payloads and die Application-Routine verwendet.
+
+###Application Services
+Über die Application-Service Sprungtabelle können verschiedenste Clienttypen zu ihren Applikationsdiensten angebunden werden (ähnlich einer TCP-Bind Funktion).
+
+Für den BeeIoT Client einer Bienen-Stockwaage steht die Funktion: AppBIoT() bereit. Dort wird der Frame-Payload entschlüsselt und die Sensorlogdaten erneute geparsed. STimmen die daten udn deren Format, kann das LOGSTATUS Paket per ACK bestätigt werden. Ansonsten kann der Application Service einen ACK: RETRY anfordern.
+
+Erfolgreich validierte Daten werden über beecsv() in das Format einer CSV Datei gewandelt und der CSV-LogDatei übergeben. Diese kann zeitgleich von einem Webservice interpretiert und zur Graphendarstellung genutzt werden.
+Alternativ kann diese CSV dazei auch per curl()-FTP an einen externen (Web-) Service zur weiterverarbeitung übermittelt werden.
+
+Am Ende der Bearbeitung kann der Applikations-Service auch einen Vorschlag für ein RX1 Paket stellen, welches als 2. Antwort im RX1 Window an den Client zurückgesendet wird.
 
 
 ##BeeIoT ToDo Liste

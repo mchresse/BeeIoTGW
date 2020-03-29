@@ -916,8 +916,9 @@ unsigned long tstamp;
 struct timeval now;
 byte flags;
 byte mode;
-
-	gettimeofday(&now, NULL);	// remember start time of ISR
+	
+	// save current timestamp
+	gettimeofday(&now, NULL);	
 	mode = readReg(RegOpMode);	// get current Radio OpMode
 	
 	// Workaround: Spurious missing LoRa OPMode flag ... just wait some ms and read it again
@@ -1151,7 +1152,7 @@ void myisr_init() {
     // configure timer and interrupt handler
 	
 	// Mask all IRQs but RxDone for RXCONT Mode
-	// We us RXCont Mode: Do we need RX_Headr as well ? RXDone should be enough
+	// We us RXCont Mode: Do we need RX_Header as well ? RXDone should be enough
 	// in RXonly mode we would have to add: IRQ_LORA_HEADER_MASK
 	writeReg(LORARegIrqFlagsMask, ~(IRQ_LORA_RXDONE_MASK|IRQ_LORA_CRCERR_MASK)); // for RXDone
 

@@ -229,7 +229,6 @@ LoRa Modem Register Status:     Version: 0x12  LoRa Modem OpMode : 0x80
 				// ToDo: Exit/Recover Code here ???
 				BHLOG(LOGLORAR) PrintLoraStatus(LOGALL);		
 			}
-//			opmode(OM_LORA_STANDBY); // should be done by ISR already; just to be sure
 
 			// switch to next Queue element
 			if(++RXPkgSrvIdx >= MAXRXPKG){  // RX Queue end reached ?
