@@ -19,14 +19,14 @@
 	* [BeeIoTWAN Communication packets](beeiotwan-communication-packets)
 		+ [BeeIoTWAN Base Packet](beeiotwan-base-packet)
 	* [BeeIoTWAN-JOIN](beeiotwan-join)
-
-
-	* [Die Programm Struktur](#die-programm-struktur)
-		+ [Setup Phase](setup-phase)
-		+ [Loop Phase](loop-phase)
-	* [Optional: WebUI Daten Service](#optional:-webui-daten-service)
-- [WebUI ToDo - Liste](#webui-todo---liste)
-- [Ideen Liste](#ideen-liste)
+	* [Client TX/RX Sessions](client-tx/rx-sessions)
+	* [Der Gateway/Server Empfangsstack](der-gateway-server-empfangsstack)
+		+ [Radio Service](radio-service)
+		+ [Network Service](network-service)
+		+ [JOIN Service](join-service)
+		+ [Application Services](application-services)
+- [Logging](logging)
+- [BeeIoT ToDo Liste](beeiot-todo-liste)
 <!-- toc -->
 ---
 
@@ -415,12 +415,12 @@ Im Falle eines korrupten Paketheaders reagiert der Gateway nicht (er hat keine v
 Da der Client als protokoll-Masetr auftriit bekommt der Gateway durch das nachfolgende RX1-Empfangsfenster die Gelegenheit seinerseits eine Aktion beim Client auszulösen. Spricht clientseitig etwas dagegen (z.B. der Batteriestatus)
 so kann er auch "verweigern" -> GW läuft auf Timeout.
 
-##Der Gateway/Server Empfangsstack
+###Der Gateway/Server Empfangsstack
 Der Gateway/Server Stack ist dafür vorbereitet von verschiedenen Clients Pakete zu empfangen und diese, wie im JOIN Request definiert, an den gewünschten Application-Prozess zu übergeben.
 
 <img src="./images_v2/BeeIoT_SrvModules.jpg">
 
-###Radio Service
+####Radio Service
 Der *Radio Service* empfängt die rohen LoRa-Pakete. Dabei werden in der ISR Routine myradio_irq_handler() verschiedene Checks des Paketheaders durchgeführt:
 1. Check LoRa Mode	-> BIOT use only LoRa Modem type
     1. Check TXDone		-> set BeeIotTXFlag flag only
@@ -439,7 +439,7 @@ Der *Radio Service* empfängt die rohen LoRa-Pakete. Dabei werden in der ISR Rou
 
 Das Semaphor: BeeIotRXFlag hat den Zustand =0 wenn sich kein gefülltes Datenpaket in der MyRXData[] Queue befindet. Der Wert >0 gibt die Anzahl der eingetragenen Pakete an. Der Schreib-Index: RXPkgIsrIdx zeigt auf das nächste freie Queue Element.
 
-###Network Service
+####Network Service
 Der *NetworkServer* koordiniert den BIoTWAN Protokollfluss.
 Dazu wird in NwNodeScan() dauerhaft eine Loop im RX-Contiguous Mode durchlaufen, während dieser der RX Queue MyRXData[] Status gepolled wird. Der Lese-Index: RXPkgSrvIdx zeigt auf das "älteste" nicht bearbeitete Queue Element.
 Hat BeeIotRXFlag den Wert =0 muss RXPkgSrvIdx == RXPkgISRIdx sein.
@@ -453,7 +453,7 @@ Bei Akzeptanz wird die aktuell zum Paket sendenden Clients gespeicherte MSG-ID m
 Anschliessend wird der CMD-Code geprüft. Network-Service Commandos werden sofort in der NWS-Service BeeIoTFlow-Routine bearbeitet: NOP, (RE-)JOIN, ACK, CONFIG.
 Application Commands werden an den zugewiesenen Application-Service übergeben: z.B. LOGSTATUS, GETSDLOG, FWUPD.
 
-###JOIN Service
+####JOIN Service
 Der *JOIN-Service* evaluiert die Client JOIN Request Angaben und im Erfolgsfall anschliessend alle weiteren session Oakete dieses CLients.
 
 Aus Security-Gründen kann nur ein serverseitig bekannter registrierter DevEUI Clientcode im JOIN Prozess akzeptiert werden. Dazu führt der JOIN Service eine interne Node-Referenztabelle: WLTab[] in der die zu vergleichende Referenz-DevEUI geführt wird. Diese WLTab[] wird in der Init-Phase aus der config.ini Datei mit User-Setup-Angaben gespeisst.
@@ -467,7 +467,7 @@ Erkennt der Network Service ein Application Service Kommando so wird letzteres �
 Diese Funktion verwaltet eine JOIN-EUI Referenztabelle: TJoinEUI[].
 Im Falle eines Hit der JOINEUI aus dem JOIN Request -> wird derselbe Index in einer weiteren Application Service Sprungtabelle fapp[] zur Weiterleitung des Paket-Frame-Payloads and die Application-Routine verwendet.
 
-###Application Services
+####Application Services
 Über die Application-Service Sprungtabelle können verschiedenste Clienttypen zu ihren Applikationsdiensten angebunden werden (ähnlich einer TCP-Bind Funktion).
 
 Für den BeeIoT Client einer Bienen-Stockwaage steht die Funktion: AppBIoT() bereit. Dort wird der Frame-Payload entschlüsselt und die Sensorlogdaten erneute geparsed. STimmen die daten udn deren Format, kann das LOGSTATUS Paket per ACK bestätigt werden. Ansonsten kann der Application Service einen ACK: RETRY anfordern.
@@ -477,6 +477,137 @@ Alternativ kann diese CSV dazei auch per curl()-FTP an einen externen (Web-) Ser
 
 Am Ende der Bearbeitung kann der Applikations-Service auch einen Vorschlag für ein RX1 Paket stellen, welches als 2. Antwort im RX1 Window an den Client zurückgesendet wird.
 
+## Logging
+Sowohl im CLient wie auf Server Seite ist derselbe Logging mechanismus über ein 16 Bit Flagfeld eingerichtet: **lflags**.
+Diese globale variable ist für alle Codebereiche gleichermaßen erreichbar und wird über ein inline Macro LOGBH evaluiert.
+
+Zum Setup-Zeitpung wird das lflags-feld getrennt initialisiert.
+In der Init-Phase auf Server-Seite wird nach dem config.ini Parsing ein Custom-Value für das Flagfeld nachgeladen und überschreibt zunächst serverseitig den 'VerboseMode'.
+Erst im Antwort-Paket eines JOIN Requests wird dieses 16-Bit Flagfeld als Verbosemode auch zum CLient übertragen und dann dort aktiviert.
+In Kombination mit einem SDLOG-Data Kommando, welches das auslesen von SDCard bereichen ermöglichen soll, könnte man temporär bei Störungen Log-Phasen auf bestimmte Funktionsbereiche aktivieren und remote auch wieder auslesen.
+
+Setzt man lflags auf 65535 (=0xFFF) werden alle Logmeldungen ausgegeben:
+
+Ein LogDump könnte wie folgt aussehen (MIC und NWKeys sind nicht hier aktiviert):
+```cpp
+st:0x5 (DEEPSLEEP_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+configsip: 0, SPIWP:0xee
+clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+mode:DIO, clock div:2
+load:0x3fff0018,len:4
+load:0x3fff001c,len:1044
+load:0x40078000,len:8896
+load:0x40080400,len:5828
+entry 0x400806ac
+Evaluate Wakeup reason - BootCnt: 0 - Intervall 60
+Wakeup caused by timer
+  Setup: Init runtime config settings
+  Setup: Init RTC Module DS3231   RTC: Temperature: 23.50 °C, SqarePin switched off
+  RTC: STart RTC Test Output ...
+2020/3/29 (Sunday) 14:9:32
+ since midnight 1/1/1970 = 1585490972s = 18350d
+ now + 7d + 30s: 2020/4/6 2:39:38
+
+  RTC: Get RTC Time: 2020-03-29T14:09:32 - 2020-03-29 - 14:09:32
+  Setup: SPI Devices ...
+  MSPI: VSPI port for 3 devices
+  MSPI: SPI-Init of SD card...  MSPI: SD Card mounted
+  MSPI: SPI-Init: ePaper EPD part1 ...
+  Setup: HX711 Weight Cell
+  HX711: init Weight cell ADC port
+  HX711: Offset(raw): 297570 - Unit(raw): 44000 per kg
+  Setup: ADS11x5
+  ADS: Init I2C-port incl. Alert line
+  Setup: Wifi in Station Mode
+  Setup: Wifi setup failed
+  Setup: No WIFI no NTP-Time.
+  RTC: Get RTC Time: 2020-03-29T14:09:32 - 2020-03-29 - 14:09:32
+  NTP: BHDB updated by RTC time
+  Setup: SD Card
+  SD: SD Card Type: SDSC - Size: 1938MB
+  SD: File /logdata.txt found
+  Setup: LoRa SPI device & Base layer
+  LoRa: WakeUpMode:1 in Status: JOIN
+  LoRaCfg: Set Modem/Channel-Cfg[0]: 868100000Mhz, SF=7, TXPwr:14, BW:125000, CR:5, LPreamble:12     
+    SW:0x12, CRC, noInvIQ  LoraCfg: StdBy Mode
+  LoRa: assign ISR to DIO0  - default: GWID:0x98, NodeID:0x80
+  Setup: OneWire Bus setup
+  OWBus: Init OneWire Bus
+  OWBus: Locating devices...Found 0 devices.
+    Device 0: Int-Address: 28201F8E1F130185  DS18B20
+    Device 1: BH. Address: 28AAE46D1813022F  DS18B20
+    Device 2: Ext.Address: 28AACA6A181302F3  DS18B20
+  OWBus: Current Sensor Resolution: 12
+  OWBUS: set sensor resolution: 12
+  OWBus: Requesting temperatures...
+  OWBus: Int.Temp.Sensor (°C): 20.81
+  OWBus: Bee.Temp.Sensor (°C): 19.44
+  OWBus: Ext.Temp.Sensor (°C): 20.31
+  Setup: ePaper + show start frame 
+  SetinKey: EPD-Key1 reserved by Boot Funktion of DevKitC Board
+  SetinKey: EPD-Key1 reserved by Reset Funktion of DevKitC Board
+  SetinKey: EPD-Key3 reserved by Bee-DIO2 Funktion of SX1276
+  SetinKey: EPD-Key4 ISR assigned
+  Setup: ePaper Test failed
+Setup Phase done
+
+  RTC: Get RTC Time: 2020-03-29T14:09:33 - 2020-03-29 - 14:09:33
+  NTP: BHDB updated by RTC time
+>*******************************************<
+> Start next BeeIoT Weight Scale loop
+> Loop# 14  (Laps: 3, BHDB[2]) 2020-03-29 14:09:33
+>*******************************************<
+  Loop: Weight(raw) : -300027 - Weight(unit): -6.819 kg
+  OWBus: Init OneWire Bus
+  OWBus: Locating devices...Found 3 devices.
+    Device 0: Int-Address: 28201F8E1F130185  DS18B20
+    Device 1: BH. Address: 28AAE46D1813022F  DS18B20
+    Device 2: Ext.Address: 28AACA6A181302F3  DS18B20
+  OWBus: Current Sensor Resolution: 12
+  OWBUS: set sensor resolution: 12
+  OWBus: Requesting temperatures...
+  OWBus: Int.Temp.Sensor (°C): 20.81
+  OWBus: Bee.Temp.Sensor (°C): 19.56
+  OWBus: Ext.Temp.Sensor (°C): 20.50
+  Loop: ADSPort(0-3): 
+  ADS: Single-ended read from AIN0: 3.28V - 
+  ADS: Single-ended read from AIN1: 4.67V - 
+  ADS: Single-ended read from AIN2: 4.06V (91%) - 
+  ADS: Single-ended read from AIN3: 2.54V
+  Loop[14]: 2020-03-29 14:09:33,-6.82,20.50,20.81,19.56,23.50,3.28,5.08,4.67,4.06,91#14 o.k.
+  Log: No SDCard, no local Logfile...
+  LoRaLog: BeeIoTStatus = JOIN
+  BeeIoTJoin: Start searching for a GW
+  BIoT_getmic: Add MIC[4] = 11 22 33 44 for Msg[255]
+  LoRaCfg: Set Modem/Channel-Cfg[0]: 868100000Mhz, SF=7, TXPwr:14, BW:125000, CR:5, LPreamble:12     
+    SW:0x12, CRC, noInvIQ  LoraCfg: StdBy Mode
+  LoRaSend: TXData <PkgLen= 29By>
+  sendMessage: Start TX
+  LoRaSend(0x80>0x99)[255](cmd=0) <FrmLen: 20By>
+MSGfield at 0x3FFC03F0:
+Address:  0 1  2 3  4 5  6 7   8 9  A B  C D  E F  length= 29 Byte
+  +   0: 9980 FF00 14DC 8AD5  FFFE 286F 24BB EEEE  <..........(o$...>
+  +  10: BBEE EECC EE00 0B01  0011 2233 44         <.........."3D>
+  BeeIoTJoin: waiting for RX-CONFIG Pkg. in RXCont mode:oo
+onReceive: got Pkg: len 0x19
+MSGfield at 0x3FFC0470:
+Address:  0 1  2 3  4 5  6 7   8 9  A B  C D  E F  length= 5 Byte
+  +   0: 8099 FF06 10                              <.....>
+onReceive: RX(0x99>0x80)[255]:(cmd=6: CONFIG) DataLen=16 Bytes
+  BeeIotJoin: RX pkg received: CONFIG
+  BeeIotJoin: RX Queue Status: SrvIdx:0, IsrIdx:1, new PkgID:255, RXFlag:1
+  BeeIoTParse[255]: cmd= CONFIG -> switch to new channel cfg.
+  BeeIoTParseCfg: New Configuration: BIoT-Interval: 600sec., Verbose:513, ChIndex:0, NDID:0x81, GwID:0x98, MsgCnt:0
+  Lora: Joined! New: GWID:0x98, NodeID:0x81, msgcount:0
+    DEVEUI: 0x-DC-8A-D5-FF-FE-28-6F-24
+   JOINEUI: 0x-BB-EE-EE-BB-EE-EE-CC-EE
+  LoRaLog: wait for incoming ACK in RXCont mode (Retry: #0)..
+onReceive: RX(0x98>0x81)[1]:(cmd=5: ACK) DataLen=0 Bytes
+
+  LoRaLog: wait for add. RX1 Pkg. (RXCont):oooooo None.
+
+  Main: Going to Deep Sleep - Trigger: Timer only(600 sec.)
+```
 
 ##BeeIoT ToDo Liste
 

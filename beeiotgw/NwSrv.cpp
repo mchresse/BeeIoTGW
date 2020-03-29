@@ -129,7 +129,6 @@ extern int	JS_AppProxy	(int ndid, char * framedata, byte framelen);
  * NwNodeScan()
  ******************************************************************************/
 int NwNodeScan () {
-    struct timeval nowtime;
     uint32_t lasttime;
 	int rc;
 
@@ -472,6 +471,7 @@ beeiot_cfg_t	*pcfg;	// CONFIG has HD + CData	-> reuse of pkg message field
 nodedb_t		*pndb;
 byte pkglen;
 int count;
+struct tm		*tval;	// values of current timestamp
 
 	BHLOG(LOGLORAR) printf("  BeeIoTFlow: New Action(async=%i): Send %s to Node:0x%02X\n", 
 					async, beeiot_ActString[action], NODEIDBASE+(byte)ndid);
@@ -526,7 +526,16 @@ int count;
 		pcfg->cfg.vmajor	= pndb->nodecfg.vmajor;		// get Version of BIoT protocol of node
 		pcfg->cfg.vminor	= pndb->nodecfg.vminor;		// gives room for backward support stepping		
 		pcfg->cfg.nonce		= pndb->nodecfg.nonce;
-
+		// get current local time for the client RTC update
+		gettimeofday(&now, 0);
+		tval = localtime(&now.tv_sec);
+		pcfg->cfg.yearoff	= tval->tm_year-100;		// year offset since 2000
+		pcfg->cfg.month		= tval->tm_mon+1;
+		pcfg->cfg.day		= tval->tm_mday;
+		pcfg->cfg.hour		= tval->tm_hour;
+		pcfg->cfg.min		= tval->tm_min;
+		pcfg->cfg.sec		= tval->tm_sec+3;			// sec. + CONFIG xfer correction
+		
 		pkglen = BIoT_HDRLEN + sizeof(devcfg_t) + BIoT_MICLEN;	// Cfg-Payload + BIOT Header
 		BHLOG(LOGLORAR) hexdump((byte*) &actionpkg, pkglen);
 	break;
@@ -535,7 +544,7 @@ int count;
 		return;	
 	}
 	
-	// Do TX
+	// Do final TX for all cases:
 	BeeIotTXFlag = 0;						// spawn IRQ-> Userland TX flag
 	starttx((byte *)&actionpkg, pkglen );	// send LoRa pkg
 	if (async) {							// wait till bytes are out ?

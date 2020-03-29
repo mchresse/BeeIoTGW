@@ -182,17 +182,16 @@ int  rc =0;
 	pndb->nodeinfo.frmid[1] = 0;			// LSB:  -> First Session to be started with 0x01
 	pndb->nodeinfo.vmajor	= pjoin->info.vmajor;	// get Version of BIoT protocol of node
 	pndb->nodeinfo.vminor	= pjoin->info.vminor;
+
+	pndb->nodecfg.verbose	= (u2_t)lflags;			// get same GW verbose mode for client too
 	pndb->nodecfg.channelidx= 0;					// we start with default Channel IDX = 0
 	pndb->nodecfg.gwid		= pwltab->gwid;			// store predefined GW
 	pndb->nodecfg.nodeid	= pwltab->nodeid;
-
-	//	pndb->nodecfg.freqsensor= pwltab->reportfrq;	// [min] loop time of sensor status reports in Seconds
 	pndb->nodecfg.freqsensor= cfgini->biot_loopwait;// [min] loop time of sensor status reports in Seconds (from config.ini)
-
-	pndb->nodecfg.verbose	= 0;					// reserved
 	pndb->nodecfg.vmajor	= pjoin->info.vmajor;	// get Version of BIoT protocol of node
 	pndb->nodecfg.vminor	= pjoin->info.vminor;	// gives room for backward support stepping
 	pndb->nodecfg.nonce		= pndb->nodeinfo.frmid[1];	// init packet index by LSB of FrmID
+	// date and tiem will be defined dynamic at each JOIN ACK creation by BIoTFlow()
 	pndb->msg.ack			= 0;
 	pndb->msg.retries		= 0;
 	pndb->msg.idx			= 0;	// last msg idx => no msg received yet

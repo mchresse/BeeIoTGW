@@ -168,7 +168,6 @@ int		idx;
 		logline[4] = '/';
 		logline[7] = '/';		
 	}
-//	BHLOG(LOGBH) printf("    BeeCSV: %s\n", logline);
 
 	// now write logdata to log file
 	// first, get timestamp of curr. log data -> year only	
@@ -204,7 +203,7 @@ int		idx;
 
 	fflush(bhlog);			// write and flash file
 	fclose(bhlog);
-	BHLOG(LOGBH) printf("    BeeCSV: Sensor Data forwarded to %s\n",logpath);
+	printf("    BeeCSV: %s> %s", logpath, logline);
 
 	return(0);	
 }
