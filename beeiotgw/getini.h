@@ -65,10 +65,11 @@ typedef struct{
 	int	loradefchn;		// Default channel number for JOIN requests
 
 	// LoRA Port 0 GPIO connection 	
-	int	lora0cs;		// SPI0 CS
-	int	lora0miso;		// SPI0 MISO
-	int	lora0mosi;		// SPI0 MOSI
-	int	lora0clk;		// SPI0 SCLK
+	int	loraxmiso;		// SPI0 MISO
+	int	loraxmosi;		// SPI0 MOSI
+	int	loraxclk;		// SPI0 SCLK
+
+	int	lora_cs0;		// Lora CS0
 	int	lora0rst;		// Lora RST
 	int	lora0dio0;		// Lora DIO0
 	int	lora0dio1;		// Lora DIO1
@@ -76,15 +77,26 @@ typedef struct{
 	int	lora0dio3;		// Lora DIO3
 	int	lora0dio4;		// Lora DIO4
 	int	lora0dio5;		// Lora DIO5
+	int	lora0channel;	// Lora channel cfg
+
+	int	lora_cs1;		// Lora CS1
+	int	lora1rst;		// Lora RST
+	int	lora1dio0;		// Lora DIO0
+	int	lora1dio1;		// Lora DIO1
+	int	lora1dio2;		// Lora DIO2
+	int	lora1dio3;		// Lora DIO3
+	int	lora1dio4;		// Lora DIO4
+	int	lora1dio5;		// Lora DIO5
+	int	lora1channel;	// Lora channel cfg
 	int	gps0RX;			// GPS  RX
 	int	gps0TX;			// GPS  TX
 
 	// component enabler flags
 	int	hc_lora;
 	int	hc_lorawan;     // =0 BIoTWAN; =1 LoRaWAN
-        int     hc_wifi;        // =1 WIFI enabled on client side
+	int	hc_wifi;        // =1 WIFI enabled on client side
 	int	hc_gps;
-	int 	hc_locweb;		// report to local webpage at BEEIOTWEB
+	int	hc_locweb;		// report to local webpage at BEEIOTWEB
 	int	hc_remweb;
 
 	// section BeeIoT

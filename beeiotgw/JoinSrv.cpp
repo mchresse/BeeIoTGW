@@ -66,22 +66,22 @@ extern configuration * cfgini;			// ptr. to struct with initial parameters
 nodewltable_t WLTab[MAXNODES+1]={ // +1 for dummy JOIN line ID=0
 // => The index position in this table results in corresponding NodeID: NODEIDBASE+idx !
 // 0: Dummy start marker of table (NODEID == 0x00 -> used for JOIN requests => don't change)
-	0x00, 0x00, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0,  0,0,
+	0x00, 0x00, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0,  0,0,0,
 //---------------------------------------------------
-// 1: BeeIoT Prototype 1:	DC8AD5286F24
+// 1: BeeIoT ESP32-WROOM32:	DC8AD5286F24
 	NODEID1, GWID1,	BIoT_EUID,						// AppEUI: BIoT
 	0xDC, 0x8A, 0xD5, 0xFF, 0xFE, 0x28, 0x6F, 0x24, // DevEUI 
-	10, 0,											// reportfrq, joinflag
+	10, 0, 0,										// reportfrq, joinflag, chncfg
 //---------------------------------------------------
-// 2: WROVER ESP32
+// 2: ESP32-WROVERB: AC0DF0286F24
 	NODEID2, GWID1,	BIoT_EUID,						// AppEUI: BIoT
 	0xAC, 0x0D, 0xF0, 0xFF, 0xFE, 0x28, 0x6F, 0x24, // DevEUI
-	1, 0,											// reportfrq, joinflag
+	1, 0, 0,										// reportfrq, joinflag, chncfg
 //---------------------------------------------------
 // 3: fill in more nodes here ...
 //---------------------------------------------------
 // N: Dummy end marker of table (NODEID == 0x00)
-	0x00, 0x00, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0,  0,0,
+	0x00, 0x00, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0,  0,0,0,
 };//-------------------------------------------------
 
 
@@ -98,7 +98,7 @@ int JS_AppProxy(int ndid, char * framedata, byte framelen);
 
 // in BIoTApp.cpp
 extern int AppBIoT		(int ndid, char* data, byte len);	// Bee Weight Scale App
-extern int AppTurtle            (int ndid, char* data, byte len);	// Turtle House Control App
+extern int AppTurtle	(int ndid, char* data, byte len);	// Turtle House Control App
 extern int AppGH		(int ndid, char* data, byte len);	// GreenHouse Control App
 
 
@@ -124,10 +124,11 @@ int  rc =0;
 
 	pjoin = (beeiot_join_t*) pkg; // map generic packet to CMD_JOIN/CMD_REJOIN type 
 	BHLOG(LOGLORAW) printf("  RegisterNode: search WLTable[]\n");
+
 	for(ndid=1; ndid < MAXNODES; ndid++){
 		pwltab = & WLTab[ndid];	//0..MAXNODES-1
 		if(pwltab->nodeid ==0){ // reached end of "initialized" table ?
-			BHLOG(LOGLORAW) printf("  RegisterNode: Node not registerd in WLTable\n");
+			BHLOG(LOGLORAW) printf("  RegisterNode: Node not registered in WLTable\n");
 			rc=-1;
 			return(rc);	// nothing more to do => DevEUI unknown -> have to reject this join request
 		}
@@ -136,7 +137,7 @@ int  rc =0;
 		BHLOG(LOGLORAW) Printhex((byte*)& pwltab->DevEUI,  8, "  WL-DEVEUI: 0x-"); 
 		BHLOG(LOGLORAW) printf("\n");
 		if(ByteStreamCmp((byte*)& pjoin->info.devEUI, (byte*)& pwltab->DevEUI,8) == 0){
-			rc=ndid;
+			rc = ndid;
 			break; // we have a hit -> known DevEUI found
 		}
 		rc=-1;	// for this entry we have no hit, try next one
@@ -191,7 +192,7 @@ int  rc =0;
 	pndb->nodecfg.vmajor	= pjoin->info.vmajor;	// get Version of BIoT protocol of node
 	pndb->nodecfg.vminor	= pjoin->info.vminor;	// gives room for backward support stepping
 	pndb->nodecfg.nonce		= pndb->nodeinfo.frmid[1];	// init packet index by LSB of FrmID
-	// date and tiem will be defined dynamic at each JOIN ACK creation by BIoTFlow()
+	// date and time will be defined dynamic at each JOIN ACK creation by BIoTFlow()
 	pndb->msg.ack			= 0;
 	pndb->msg.retries		= 0;
 	pndb->msg.idx			= 0;	// last msg idx => no msg received yet
@@ -226,7 +227,7 @@ int  rc =0;
 // 1. Check MIC based integrity
 // 2. Search NDB for mutual NodeID
 // 3. Check corresponding GW ID
-// 4. Check WLTab for registerd but not joined Nodes
+// 4. Check WLTab for registered but not joined Nodes
 // Return:
 // >=0	NDBidx of found entry
 // -1	wrong GW ID
@@ -299,7 +300,7 @@ int JS_ValidatePkg(beeiotpkg_t* mystatus){
 		BHLOG(LOGLORAR) printf("[%2i]:(cmd:%02d) ", (unsigned char) mystatus->hd.index, (unsigned char) mystatus->hd.cmd);
 		BHLOG(LOGLORAR) Printhex((unsigned char*)mystatus->data, mystatus->hd.frmlen);
 
-	return(ndid);	// everyting fine with this PKG -> forward to AppServer
+	return(ndid);	// everything fine with this PKG -> forward to AppServer
 }
 
 

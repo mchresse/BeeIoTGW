@@ -46,18 +46,8 @@ typedef              s4_t  ostime_t;		// tome stamp for LoRa messages
 // Dragino RPi Hat with SX127x at Raspberry 40p connection: 
 // -> wPi Mode !
 #define CFG_sx1276_radio		// type of Dragino Hat LoRa chip
-//				WirePi-Pin:
-#define LORAcs		 6	// GPIO 25  Pin 22
-#define LORAdio0	 7	// GPIO 4	Pin 7
-#define LORAdio1	 4	// GPIO 23	Pin 16
-#define LORAdio2	 5	// GPIO 24	Pin 18
-#define LORArst		 0	// GPIO 0	Pin 11
-#define LORAmosi	 12	// GPIO 10 MOSI Pin 19
-#define	LORAmiso	 13	// GPIO 9  MISO Pin 21
-#define LORAsck		 14	// GPIO 11 SCLK Pin 23 
+
 #define RXled		 LORAdio0
-#define	GPStxd		 15	// GPIO 15 TxD
-#define GPSrxd		 16	// GPIO 16 RxD
 
 // purpose of receive window - like lmic_t.rxState
 enum { RADIO_RST=0, RADIO_TX, RADIO_RX, RADIO_RXON };
@@ -69,7 +59,7 @@ enum {	NODEID1=NODEIDBASE+1, NODEID2, NODEID3, NODEID4, NODEID5};	// Transfer ID
 
 
 #define MAXGW		2			// max. # of serving gateways in this network
-// GWID1 defined in BeeIoTWAN.h
+// GWIDx defined in BeeIoTWAN.h
 #define GWID1		0x98		// Transfer ID of this gateway (backup srv., SDLog, FW upd.)
 
 // Max. time a TX request is waiting for TXDone
@@ -153,6 +143,7 @@ typedef struct{
 	byte	DevEUI[8];	// Node unique DevEUI
 	byte	reportfrq;	// [min] Frequency of Status data reports
 	bool	joined;		// == 0 Node has not been joined; ==1 joined
+	byte	chncfg;		// channel config idx to txchntab[]
 } nodewltable_t;
 
 // NodeDB[] typeset
@@ -177,18 +168,6 @@ void hexdump(unsigned char * msg, int len);
 void Printhex(unsigned char * pbin, int bytelen, const char * s = "0x", int format=1, int dir=0);
 void Printbit(unsigned char * pbin, int bitlen,  const char * s = "0b", int format=1, int dir=0);
 int ByteStreamCmp(byte * bina, byte * binb, int binlen);
-
-// in radio.c
-void startrx (u1_t rxmode, int rxtime);
-void starttx (byte* frame, byte dataLen);
-void os_radio (u1_t mode);
-void hal_disableIRQs ();
-void hal_enableIRQs ();
-void opmode (u1_t mode);
-void opmodeLora();
-void SetupLoRa(void);
-void PrintLoraStatus(int logtype);
-void myisr_init(void);
 
 
 

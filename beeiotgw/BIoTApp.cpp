@@ -67,7 +67,7 @@
 #include "BeeIoTWan.h"
 #include "beelora.h"
 #include "beeiot.h"
-
+#include "radio.h"
 
 extern unsigned int	lflags; // BeeIoT log flag field
 extern nodedb_t NDB[];		// if 'NDB[x].nodeinfo.version == 0' => empty entry
@@ -112,10 +112,8 @@ extern struct ifreq ifr;
 
 
 // current LoRa MAC layer settings -> radio.cpp
-extern long freq; // in Mhz! (868.1)
-extern bw_t bw;
-extern sf_t	sf;
-extern cr_t cr;
+extern Radio* lora0;	// in NwSrv.cpp
+extern Radio* lora1;	// in NwSrv.cpp
 
 // ToDO: to be initialize/updated by radio.spp layer during rx/tx package handling
 uint32_t cp_nb_rx_rcv	= 0; // # received packages
@@ -124,8 +122,8 @@ uint32_t cp_up_pkt_fwd	= 0; // # of sent status packages to TTN
 uint32_t cp_nb_rx_bad;
 uint32_t cp_nb_rx_nocrc;
 
-extern struct timeval now;          // current tstamp used each time a time check is done
-extern char	TimeString[128];        // contains formatted Timestamp string of each loop(in main())
+extern struct	timeval now; // current tstamp used each time a time check is done
+extern char	TimeString[128]; // contains formatted Timestamp string of each loop(in main())
 
 //******************************************************************************
 // local Function prototypes
@@ -325,14 +323,14 @@ void UploadPkg( char * msg, int pkglen, long int SNR, byte rssi ) {
             j = snprintf((char *)(buff_up + buff_index), TX_BUFF_SIZE-buff_index, "\"tmst\":%u", tmst);
             buff_index += j;
             j = snprintf((char *)(buff_up + buff_index), TX_BUFF_SIZE-buff_index, 
-					",\"chan\":%1u,\"rfch\":%1u,\"freq\":%.6lf", 0, 0, (double)freq/1000000);
+					",\"chan\":%1u,\"rfch\":%1u,\"freq\":%.6lf", 0, 0, (double)lora0->getchannelfrq() / 1000000);
             buff_index += j;
             memcpy((void *)(buff_up + buff_index), (void *)",\"stat\":1", 9);
             buff_index += 9;
             memcpy((void *)(buff_up + buff_index), (void *)",\"modu\":\"LORA\"", 14);
             buff_index += 14;
             /* Lora datarate & bandwidth, 16-19 useful chars */
-            switch (sf) {
+            switch (lora0->getspreading()) {
             case SF7:
                 memcpy((void *)(buff_up + buff_index), (void *)",\"datr\":\"SF7", 12);
                 buff_index += 12;
@@ -361,7 +359,7 @@ void UploadPkg( char * msg, int pkglen, long int SNR, byte rssi ) {
                 memcpy((void *)(buff_up + buff_index), (void *)",\"datr\":\"SF?", 12);
                 buff_index += 12;
             }
-			switch (bw){
+			switch (lora0->getband()){
 			case BW125:
 				memcpy((void *)(buff_up + buff_index), (void *)"BW125\"", 6);
 				break;
@@ -376,7 +374,7 @@ void UploadPkg( char * msg, int pkglen, long int SNR, byte rssi ) {
 			}
             buff_index += 6;
 
-			switch (cr){
+			switch (lora0->getcoding()){
 			case CR_4_5:
 				memcpy((void *)(buff_up + buff_index), (void *)",\"codr\":\"4/5\"", 13);
 				break;

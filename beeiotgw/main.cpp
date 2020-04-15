@@ -124,8 +124,7 @@ int main () {
 //  lflags = LOGBH + LOGOW + LOGHX + LOGLAN + LOGEPD + LOGSD + LOGADS + LOGSPI + LOGLORAR + LOGLORAW;
 
 	 // read of config.ini runtime parameters
-	initall();	// expecting one HX711 Module; only Port A is connected
-
+	initall();	// setup BHDB 
 
 
 	sprintf(msg, "<%s> BIoT started", TimeString);
@@ -204,7 +203,7 @@ char	sbuf[MAXMSGLEN];
 	lflags		= (unsigned int) cfgini->biot_verbose;	// now we have the custom verbose mode
 
 	printf("============== BIoTWAN v%i.%i =========================\n\n", cfgini->vmajor, cfgini->vminor);
-	sprintf(sbuf, "##### BeeIoT Server v%i.%i - started #####", cfgini->vmajor, cfgini->vminor);  
+	sprintf(sbuf, "##### BeeIoT Server v%i.%i - started (Cfg. v%s) #####", cfgini->vmajor, cfgini->vminor, cfgini->version);  
 	beelog(sbuf);	// log init of program log file
 
 
@@ -231,7 +230,7 @@ char	sbuf[MAXMSGLEN];
 	bhdb.packid		= -1;
 	
 
-// Inhouse stuff init
+// init housekeeping stuff
 	sprintf(csv_notice, "started");	// prepare "Start" notice of new value series	
 	
 	return(0);

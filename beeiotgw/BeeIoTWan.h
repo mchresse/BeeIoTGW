@@ -20,7 +20,7 @@
 
 // Format: v.maj.min	>	starting with V1.0
 #define BIoT_VMAJOR		1		// Major version
-#define BIoT_VMINOR		0		// Minor version
+#define BIoT_VMINOR		1		// Minor version 1.1 31.3.2020
 
 //***********************************************
 // LoRa MAC Presets
@@ -282,7 +282,7 @@ enum { EU868_FREQ_MIN = 863000000, EU868_FREQ_MAX = 870000000 };
 // Derived from Semtech techn.Note TN1300.01 "How to qualify a LoRaWAN Device in Europe":
 // Initialization of BIoT Channelconfig table:
 
-#ifndef CHANNELTAB_EXPORT		// define this switch where txchntab should be instaciated
+#ifndef CHANNELTAB_EXPORT		// define this switch where txchntab should be instanciated
 extern channeltable_t	txchntab[];	// ChannelIdx:
 #else
 channeltable_t	txchntab[MAX_CHANNELS] ={		// ChannelIdx:

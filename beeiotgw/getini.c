@@ -58,7 +58,6 @@ configuration config;	// global default runtime data configuration buffer
 						// used by all modules
 
 
-
 static int handler(void* inibuf, const char* section, const char* name, const char* value){
 configuration* pconfig = (configuration*) inibuf;
 #define MATCH(s, n) strcmp(section, s) == 0 && strcmp(name, n) == 0
@@ -70,18 +69,33 @@ configuration* pconfig = (configuration*) inibuf;
     } else if (strcmp(name, "VMINOR") == 0) {
         pconfig->vminor  = atoi(value);
         
-                } else if (MATCH("HWCONFIG", "LORANUMCHN")) {
+		} else if (MATCH("HWCONFIG", "HCLORA")) {
+			pconfig->hc_lora = atoi(value);
+		} else if (MATCH("HWCONFIG", "HCLORAWAN")) {
+			pconfig->hc_lorawan = atoi(value);
+		} else if (MATCH("HWCONFIG", "HCWIFICLIENT")) {
+			pconfig->hc_wifi = atoi(value);
+		} else if (MATCH("HWCONFIG", "HCGPS")) {
+			pconfig->hc_gps = atoi(value);
+		} else if (MATCH("HWCONFIG", "HCLOCWEB")) {
+			pconfig->hc_locweb = atoi(value);
+		} else if (MATCH("HWCONFIG", "HCREMWEB")) {
+			pconfig->hc_remweb = atoi(value);
+
+		} else if (MATCH("HWCONFIG", "LORANUMCHN")) {
 			pconfig->loranumchn = atoi(value);
-                } else if (MATCH("HWCONFIG", "LORADEFCHN")) {
+		} else if (MATCH("HWCONFIG", "LORADEFCHN")) {
 			pconfig->loradefchn = atoi(value);
-                } else if (MATCH("HWCONFIG", "LORA0CS")) {
-			pconfig->lora0cs = atoi(value);
-		} else if (MATCH("HWCONFIG", "LORA0MOSI")) {
-			pconfig->lora0miso = atoi(value);
-		} else if (MATCH("HWCONFIG", "LORA0MISO")) {
-			pconfig->lora0mosi = atoi(value);
-		} else if (MATCH("HWCONFIG", "LORA0SCK")) {
-			pconfig->lora0clk = atoi(value);
+
+		} else if (MATCH("HWCONFIG", "LORAxMISO")) {
+			pconfig->loraxmosi = atoi(value);
+		} else if (MATCH("HWCONFIG", "LORAxMOSI")) {
+			pconfig->loraxmiso = atoi(value);
+		} else if (MATCH("HWCONFIG", "LORAxSCK")) {
+			pconfig->loraxclk = atoi(value);
+
+		} else if (MATCH("HWCONFIG", "LORA0CS")) {
+			pconfig->lora_cs0 = atoi(value);
 		} else if (MATCH("HWCONFIG", "LORA0RST")) {
 			pconfig->lora0rst = atoi(value);
 		} else if (MATCH("HWCONFIG", "LORA0DIO0")) {
@@ -96,23 +110,33 @@ configuration* pconfig = (configuration*) inibuf;
 			pconfig->lora0dio4 = atoi(value);
 		} else if (MATCH("HWCONFIG", "LORA0DIO5")) {
 			pconfig->lora0dio5 = atoi(value);
+		} else if (MATCH("HWCONFIG", "LORA0CHANNEL")) {
+			pconfig->lora0channel = atoi(value);
+
+		} else if (MATCH("HWCONFIG", "LORA1CS")) {
+			pconfig->lora_cs1 = atoi(value);
+		} else if (MATCH("HWCONFIG", "LORA1RST")) {
+			pconfig->lora1rst = atoi(value);
+		} else if (MATCH("HWCONFIG", "LORA1DIO0")) {
+			pconfig->lora1dio0 = atoi(value);
+		} else if (MATCH("HWCONFIG", "LORA1DIO1")) {
+			pconfig->lora1dio1 = atoi(value);
+		} else if (MATCH("HWCONFIG", "LORA1DIO2")) {
+			pconfig->lora1dio2 = atoi(value);
+		} else if (MATCH("HWCONFIG", "LORA1DIO3")) {
+			pconfig->lora1dio3 = atoi(value);
+		} else if (MATCH("HWCONFIG", "LORA1DIO4")) {
+			pconfig->lora1dio4 = atoi(value);
+		} else if (MATCH("HWCONFIG", "LORA1DIO5")) {
+			pconfig->lora1dio5 = atoi(value);
+		} else if (MATCH("HWCONFIG", "LORA1CHANNEL")) {
+			pconfig->lora1channel = atoi(value);
+
 		} else if (MATCH("HWCONFIG", "GPS0TXD")) {
 			pconfig->gps0TX = atoi(value);
 		} else if (MATCH("HWCONFIG", "GPS0RXD")) {
 			pconfig->gps0RX = atoi(value);
 
-		} else if (MATCH("HWCONFIG", "HCLORA")) {
-			pconfig->hc_lora = atoi(value);
-		} else if (MATCH("HWCONFIG", "HCLORAWAN")) {
-			pconfig->hc_lorawan = atoi(value);
-		} else if (MATCH("HWCONFIG", "HCWIFICLIENT")) {
-			pconfig->hc_wifi = atoi(value);
-		} else if (MATCH("HWCONFIG", "HCGPS")) {
-			pconfig->hc_gps = atoi(value);
-		} else if (MATCH("HWCONFIG", "HCLOCWEB")) {
-			pconfig->hc_locweb = atoi(value);
-		} else if (MATCH("HWCONFIG", "HCREMWEB")) {
-			pconfig->hc_remweb = atoi(value);
     } else 
 		if (       MATCH("BEEIOT", "BHLOOPWAIT")) {
 			pconfig->biot_loopwait = atoi(value);
@@ -152,9 +176,9 @@ configuration* pconfig = (configuration*) inibuf;
 		} else if (MATCH("WIFI", "WIFIKEY")) {
 			strcpy(pconfig->wifi_key,value);
     } else 
-                if (       MATCH("WEBUI", "AUTOUPDATE")) {
+		if (       MATCH("WEBUI", "AUTOUPDATE")) {
 			pconfig->web_autoupdate = atoi(value);
-                } else if (MATCH("WEBUI", "BEEIOTWEB")) {
+		} else if (MATCH("WEBUI", "BEEIOTWEB")) {
 			strcpy(pconfig->web_root,value);
 		} else if (MATCH("WEBUI", "BEEKEEPER")) {
 			strcpy(pconfig->web_beekeeper,value);

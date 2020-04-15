@@ -10,6 +10,7 @@
       <itemPath>beeiotgw/beelora.h</itemPath>
       <itemPath>beeiotgw/getini.h</itemPath>
       <itemPath>beeiotgw/ini.h</itemPath>
+      <itemPath>beeiotgw/radio.h</itemPath>
       <itemPath>beeiotgw/regslora.h</itemPath>
     </logicalFolder>
     <logicalFolder name="ResourceFiles"
@@ -57,7 +58,7 @@
       </toolsSet>
       <compileType>
         <ccTool>
-          <standard>4</standard>
+          <standard>11</standard>
         </ccTool>
         <linkerTool>
           <linkerLibItems>
@@ -96,6 +97,8 @@
       <item path="beeiotgw/main.cpp" ex="false" tool="1" flavor2="0">
       </item>
       <item path="beeiotgw/radio.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="beeiotgw/radio.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="beeiotgw/regslora.h" ex="false" tool="3" flavor2="0">
       </item>
@@ -156,6 +159,8 @@
       <item path="beeiotgw/main.cpp" ex="false" tool="1" flavor2="0">
       </item>
       <item path="beeiotgw/radio.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="beeiotgw/radio.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="beeiotgw/regslora.h" ex="false" tool="3" flavor2="0">
       </item>

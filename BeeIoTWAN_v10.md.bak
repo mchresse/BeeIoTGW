@@ -73,12 +73,12 @@ Die vom HAT verwendeten SPI- und weitere Steuerleitungen sind in der Header-Date
 // Dragino RPi Hat with SX127x at Raspberry 40p connection: -> wPi Mode !
 #define CFG_sx1276_radio		// type of Dragino Hat LoRa chip
 //				WirePi-Pin:
-#define LORAcs      6   // GPIO 25  		Pin 22
-#define LORAdio0		7   // GPIO 4				Pin 7
-#define LORAdio1		4   // GPIO 23			Pin 16
-#define LORAdio2		5   // GPIO 24			Pin 18
-#define LORArst     0   // GPIO 0				Pin 11
-#define LORAmosi		12  // GPIO 10 MOSI Pin 19
+#define LORAcs      6   // GPIO 25  Pin 22
+#define LORAdio0	7   // GPIO 4	Pin 7
+#define LORAdio1	4   // GPIO 23	Pin 16
+#define LORAdio2	5   // GPIO 24	Pin 18
+#define LORArst     0   // GPIO 0	Pin 11
+#define LORAmosi	12  // GPIO 10 MOSI Pin 19
 #define LORAmiso    13  // GPIO 9  MISO Pin 21
 #define LORAsck     14  // GPIO 11 SCLK Pin 23
 #define RXled       LORAdio0
