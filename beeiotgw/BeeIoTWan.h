@@ -154,7 +154,7 @@ typedef struct { // generic BeeIoT Package format
 typedef struct {
 	byte	devEUI[8];	// could be e.g. 0xFFFE + node board ID (extended from 6 -> 8Byte)
 	byte	joinEUI[8];	// ==AppEUI to address the right App service behind GW+NWserver
-	byte	frmid[2];	// Frame idx of next app session (typ.= 1); 1. join was done with frmid=0 !
+	byte	frmid[2];	// Msg=Frame idx of next app session (typ.= 1); 1. join was done with frmid=0 !
 	byte	vmajor;		// supported version of BeeIoTWAN protocol MSB: Major
 	byte 	vminor;		// LSB: Minor
 }joinpar_t;

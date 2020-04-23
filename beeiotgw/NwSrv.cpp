@@ -28,7 +28,7 @@
 *
 * --- end of LICENSE ---
 *
-* BIoTApp.cpp is released under the New BSD license. Go to the project
+* NwSrv.cpp is released under the New BSD license. Go to the project
 * home page for more info: https://github.com/beeiot
 ********************************************************************************
 */
@@ -56,7 +56,7 @@
 
 #include "beelora.h"
 #include "beeiot.h"
-
+#include "gwqueue.h"
 #include "radio.h"
 
 
@@ -69,6 +69,13 @@ extern unsigned int	lflags;               // BeeIoT log flag field
  *
  *******************************************************************************/
 
+beeiotpkg_t MyRXData[MAXRXPKG];     // RX-Pkg Queue: received messages for userland processing (decoded)
+// RX Queue buffer & control
+byte    BeeIotRXFlag;            // Semaphore for received message(s) 0 ... MAXRXPKG-1
+byte    BeeIotTXFlag;            // Semaphore for a single sent message
+byte    RXPkgIsrIdx ;            // WR index on next RX Queue Package for ISR callback Write
+byte    RXPkgSrvIdx ;            // RD index on next RX Queue Package for BIoTParse() Service
+
 
 
 //******************************************************************************
@@ -78,50 +85,32 @@ extern unsigned int	lflags;               // BeeIoT log flag field
 // Central Database of all measured values and runtime parameters
 extern dataset			bhdb;       // central beeIoT data DB
 extern configuration * cfgini;			// ptr. to struct with initial parameters
+extern modemcfg_t	*	gwset;		// GateWay related config sets for Radio Instantiation
 
 extern nodedb_t NDB[];			// if 'NDB[x].nodeinfo.version == 0' => empty entry
 // -> typeset see beelora.h; instance in JoinSrv.cpp
 
-// current LoRa MAC layer settings -> radio.cpp
-extern long freq; // in Mhz! (868.1)
-extern bw_t bw;
-extern sf_t sf;
-extern cr_t cr;
-extern int  irqlevel;
 
 static const int SPI0	= 0;        // use RPi SPI channel 0
 static const int SPIFRQ = 500000;   // use SPI channel Frequency 0,5MHz
 
-// Ptr. to new Lora Modem Instances
-Radio * lora0;						// Ptr. on first LoRa Instance -> for Joining
-Radio * lora1;						// Ptr. on second LoRa Instance: for data xfer
-
-extern byte currentMode;            // see radio.c
 struct timeval now;          // current tstamp used each time a time check is done
 extern unsigned long txstart;       // tstamp when TX Mode was entered
 extern unsigned long txend;         // Delta: now - txstart
 extern unsigned long rxtime;        // tstamp when last rx package arrived
 char	TimeString[128];            // contains formatted Timestamp string of each loop(in main())
-// extern const char * rxloraOMstring[];  // string field for current OpMode Status (radio.cpp)
 
-// Initialize BIoT WAN default adresses for joining nodes
+// Initialize BIoT WAN default addresses for joining nodes
 byte	gwid0	= GWIDx;            // set default ID JOIN GW Instance
 byte	gwid1	= GWID1;            // set ID of transmission GW Instance
 byte	nodeid	= NODEIDBASE;       // get curr. ID of nodeID we are talking with
-
-// RX/TX Queues
-byte    BeeIotRXFlag =0;            // Semaphor for received message(s) 0 ... MAXRXPKG-1
-byte    BeeIotTXFlag =0;            // Semaphor for a single sent message
-byte    RXPkgIsrIdx  =0;            // index on next RX Queue Package for ISR callback Write
-byte    RXPkgSrvIdx  =0;            // index on next RX Queue Package for Service Routine Read/serve
-beeiotpkg_t MyRXData[MAXRXPKG];     // RX Pkg Queue: received messages for userland processing (undecoded)
 
 extern uint32_t cp_nb_rx_ok;        // # of correct received packages (correct header) -> Statistics for BIoTApp() calls
 extern uint32_t cp_nb_rx_rcv;       // # of raw received LoRa packages
 	
 //******************************************************************************
 // local Function prototypes
-int  NwNodeScan		(void);
+int  NwNodeScan		(modemcfg_t *gwhwset, int nmodem, int defchannel);
 int  BeeIoTParse	(beeiotpkg_t * mystatus);
 void BeeIoTFlow		(u1_t action, beeiotpkg_t * pkg, int ndid, int async);
 
@@ -130,16 +119,25 @@ extern int	JS_RegisterNode	(beeiotpkg_t * joinpkg, int async);
 extern int	JS_ValidatePkg	(beeiotpkg_t* mystatus);
 extern int	ByteStreamCmp	(byte * bina, byte * binb, int binlen);
 extern int	JS_AppProxy	(int ndid, char * framedata, byte framelen);
-extern void myisr_init (Radio * channel);	// see radio2.cpp
-void isr_init (int channel) ;
+
 
 /******************************************************************************
  * NwNodeScan()
+ * INPUT:
+ *	ghwset		Array of LoRa Modem HW cfg settings
+ *  nmodem		# of Modem instances in gwset[] (assumed: limited to MAXGW in main() )
+ *  defchannel	Default Channel cfg set for jOIN requests
+ * RETURN:
+ *   0			all channel session finshed successfully (but sessions are endless)
+ *  -1			wrong input params
  ******************************************************************************/
-int NwNodeScan () {
+int NwNodeScan (modemcfg_t *gwhwset, int nmodem, int defchannel) {
     uint32_t lasttime;
 	int rc;
 
+	if(!gwhwset || !nmodem)	// check input
+		return(-1);
+	
 	printf("  NwS: BeeIoT-WAN NwServer: Start Node Scan\n");
 
 	// get current timestamp
@@ -147,46 +145,32 @@ int NwNodeScan () {
 	strftime(TimeString, 80, "%d-%m-%y %H:%M:%S", localtime(&now.tv_sec));
 	 BHLOG(LOGBH) printf("  NwS<%s>: Setup started for BIoTWAN v%d.%d\n", 
 		TimeString,  (int)BIoT_VMAJOR, (int)BIoT_VMINOR);
-    
-	if(cfgini->loranumchn >= 1){	// preset Lora Port 0
-		pinMode(cfgini->lora_cs0, OUTPUT);
-		pinMode(cfgini->lora0rst, OUTPUT);
-		pinMode(cfgini->lora0dio0,INPUT);
-		pinMode(cfgini->lora0dio1,INPUT);
-		pinMode(cfgini->lora0dio2,INPUT);
-		digitalWrite(cfgini->lora_cs0, HIGH);	// active low
-		digitalWrite(cfgini->lora0rst, HIGH);	// active low
-	}
-	if(cfgini->loranumchn >= 2){	// preset Lora Port 1
-		pinMode(cfgini->lora_cs1, OUTPUT);
-		pinMode(cfgini->lora1rst, OUTPUT);
-		pinMode(cfgini->lora1dio0,INPUT);
-		pinMode(cfgini->lora1dio1,INPUT);
-		pinMode(cfgini->lora1dio2,INPUT);
-		digitalWrite(cfgini->lora_cs1, HIGH);	// active low
-		digitalWrite(cfgini->lora1rst, HIGH);	// active low
-	}
+
 	wiringPiSPISetup(SPI0, SPIFRQ);	// initialize common SPI0 channel: MISO/MOSI/SCK
 	 
 	// Init NodeDB[] for new registrations:
 	for(int i=0; i<MAXNODES; i++){
+		nodedb_t * pndb = &NDB[i];
+//		BHLOG(LOGBH) printf("  NwS: NDB:%p - NDB[%i]:%p - pndb:%p\n", &NDB, i, &NDB[i], pndb);
 		NDB[i].nodeinfo.vmajor =0; // free entry if 'NDB[x].nodeinfo.vmajor == 0'
 		NDB[i].nodeinfo.vminor =0;
 		NDB[i].nodeinfo.devEUI[0] =0;
 		NDB[i].nodeinfo.devEUI[1] =0;
 		NDB[i].nodeinfo.devEUI[2] =0;
 		NDB[i].nodeinfo.devEUI[3] =0;
-		NDB[i].nodecfg.gwid		= gwid0;
-		NDB[i].nodecfg.nodeid	= NODEIDBASE + i;	// a bit critical here: NODEIDx is defined statically
-		NDB[i].nodecfg.vmajor	= BIoT_VMAJOR;	// Major + Minor version: V01.00
-		NDB[i].nodecfg.vminor	= BIoT_VMINOR;
-		NDB[i].nodecfg.verbose	= 0;
-		NDB[i].nodecfg.channelidx =0;
-		NDB[i].nodecfg.freqsensor = (int) 60;	// [min] reporting frequence of status pkg.
+		pndb->nodecfg.gwid		= gwid0;
+		pndb->nodecfg.nodeid	= NODEIDBASE + i;	// a bit critical here: NODEIDx is defined statically
+		pndb->nodecfg.vmajor	= BIoT_VMAJOR;	// Major + Minor version: V01.00
+		pndb->nodecfg.vminor	= BIoT_VMINOR;
+		pndb->nodecfg.verbose	= 0;
+		pndb->nodecfg.channelidx =0;
+		pndb->nodecfg.freqsensor = (int) 60;	// [min] reporting frequence of status pkg.
 		NDB[i].msg.ack = 0;
 		NDB[i].msg.idx = 0;
-		NDB[i].msg.pkg = (beeiotpkg_t*)NULL;
 		NDB[i].msg.retries = 0;
+		NDB[i].msg.rssi = 0;
+		NDB[i].msg.snr = 0;	
+		NDB[i].msg.pkg = (beeiotpkg_t*)NULL;
 	}
 	
 	// Initialize BIoT WAN default addresses for joining nodes
@@ -203,19 +187,53 @@ int NwNodeScan () {
 
 	// Preset LoRa Modem Configuration	
 	// Modem Setting for RX Mode: 
-//    SetupLoRa();	// -> enter SLEEP Mode	(Radio.cpp)
-	if(cfgini->loranumchn>=1){	// of Radio2.cpp)
-		lora0 = new Radio(cfgini->lora0channel);		// instantiate LoRa0 Port with Channelcfg = 0;
-		isr_init(0);	// assign ISRs to Lora channel0
-	}
-	if(cfgini->loranumchn>=2){	// of Radio2.cpp)
-		lora1 = new Radio(cfgini->lora1channel);		// instantiate LoRa0 Port with Channelcfg
-		isr_init(1);	// assign ISRs to Lora channel0
-	}
 
-	//	PrintLoraStatus(LOGALL);
+// for Queue testing
+	//	MsgQueue<MsgBuffer> * gwq = init_gwqueue(0);		// create
+/*	MsgQueue gwq; // create
+	gwq.PrintStatus();
+	MsgBuffer mb(99,2,0,0);
+	gwq.PushMsg(mb);	// MsgBuffer is moved to Queue (!)
+	gwq.PrintStatus();
+	gwq.PopMsg();		// MsgBuffer is deleted !
+	gwq.PrintStatus();
+*/	// end of testing
+	
+	// 1. Create LoRa modem object
+	// 2. Create MSG Queue
+	// 3. Assign MsgQueue to LoRa Modem
+	for(int mid=0; mid < nmodem; mid++){	// Min. 1 channel -> for JOIN needed
+		gwhwset[mid].modem = new Radio(&gwhwset[mid]);		// instantiate LoRa Port 
+		// create new MsgQueue and assign to new Modem session
+		gwset[mid].gwq = new MsgQueue;		// create & store global Msg Queue ptr
+		gwhwset[mid].modem->assign_gwqueue(*gwset[mid].gwq); // assign Queue to Modem
+		gwset[mid].gwq->PrintStatus();
+	}
+	
+	BHLOG(LOGLORAW) printf("  NwS: LoRa Modem Setup finished; Start Channel scanning...\n");
+	
+	// Activate modemwise in order
+	for(int mid=0; mid < nmodem; mid++){	// Min. 1 channel -> for JOIN needed
+		// get current timestamp
+		gettimeofday(&now, 0);
+		strftime(TimeString, 80, "%d-%m-%y %H:%M:%S", localtime(&now.tv_sec));
 
-	BHLOG(LOGLORAR)lora0->PrintLoraStatus(LOGALL);
+		if(gwhwset[mid].modem){
+			BHLOG(LOGLORAR) printf("  NwS: Lora%i Register Configuration:\n", (int)gwhwset[mid].modemid);
+			BHLOG(LOGLORAR)gwhwset[mid].modem->PrintLoraStatus(LOGALL);
+			// Start LoRa Read Loop in  "continuous read" Mode
+			gwhwset[mid].modem->startrx(RXMODE_SCAN, 0);	// RX in RX_CONT Mode 
+		}else{
+			if (mid == 0){	// was it the first LoRa modem which failed ?
+				return(-2);	// we need minimum 1 Modem -> break program.
+			}else{ // no 2. modem detected
+				--nmodem;
+				BHLOG(LOGLORAR) printf("NwS: FallBack Multi -> Single CHannel Mode");
+				break;
+			}
+		}			
+	}
+		
 /* Working Example Output right from here:
 LoRa Modem Register Status:     Version: 0x12  LoRa Modem OpMode : 0x80
   MODEM_CONFIG1     : 0x72  DIO 0-3 Mapping   : 0x00  SYNC_WORD         : 0x12
@@ -229,40 +247,28 @@ LoRa Modem Register Status:     Version: 0x12  LoRa Modem OpMode : 0x80
   PAYLOAD_LENGTH    : 0x40  Last PACKET_RSSI  : 0x00  #of valid Packets : 0x0000
   Current_RSSI      : 0x00  IRQ Level         : 0  
 */
-	if(cfgini->loranumchn>=2){	// of Radio2.cpp)
-		BHLOG(LOGLORAR)lora1->PrintLoraStatus(LOGALL);
-	}
-	BHLOG(LOGLORAW) printf("  NwS: LoRa Modem Setup finished\n");
 
-	// get current timestamp
-	gettimeofday(&now, 0);
-	strftime(TimeString, 80, "%d-%m-%y %H:%M:%S", localtime(&now.tv_sec));
 	BHLOG(LOGBH) printf("NwS:********************************************************************\n");
-    BHLOG(LOGLORAW) printf("  NwS<%s>:  Start waiting for LoRa Node Packets in Contiguous Mode on all channels\n",
+    BHLOG(LOGLORAW) printf("  NwS<%s>:  Start waiting for LoRa Node Packets in Contiguous Mode by all channels\n",
 		TimeString);
 
-	// Start LoRa Read Loop in  "continuous read" Mode
-	lora0->startrx(RXMODE_SCAN, 0);	// RX in RX_CONT Mode 
-	if(cfgini->loranumchn>=2){	// of Radio2.cpp)
-		lora1->startrx(RXMODE_SCAN, 0);	// RX in RX_CONT Mode 
-	}
-
-	// run forever: wait for incoming packages via radio_irq_handler()
-    while(1) {
+// run forever: wait for incoming packages via radio_irq_handler()
+while(1) {
+	for(int mid=0; mid < nmodem; mid++){
 		// ISR waiting for rising DIO0 level -> starting receivepacket() directly
-		while(BeeIotRXFlag){	// Do we have a new package in the RX Queue ?
+		while(BeeIotRXFlag){	// Do we have a package in the RX Queue ?
 			// check RX Queue BeeIoT WAN Status and process package accordingly
 			// get current timestamp
 			gettimeofday(&now, 0);
 			strftime(TimeString, 80, "%d-%m-%y %H:%M:%S", localtime(&now.tv_sec));
-			BHLOG(LOGLORAR) printf("  NwS<%s>: New RX Packet: Parsing  Queue-MyRXData[%i] (BeeIoTRXFlag:%i)\n", 
-					TimeString, (int)RXPkgSrvIdx, (int)BeeIotRXFlag);
+			BHLOG(LOGLORAR) printf("  NwS<%s>: New RX Packet: Parsing MsgQueue[0] (Size:%i)\n", 
+					TimeString, (int)BeeIotRXFlag);
 			rc = BeeIoTParse(&MyRXData[RXPkgSrvIdx]);
 			if(rc < 0){
-				BHLOG(LOGLORAR) printf("  NwS: Parsing of RXMsg[%i] failed rc=%i\n", (int)RXPkgSrvIdx, rc);
+				BHLOG(LOGLORAR) printf("  NwS: Parsing of MsgQueue[0] failed rc=%i\n", rc);
 				// ToDo: Exit/Recover Code here ???
-				// BHLOG(LOGLORAR) lora0->PrintLoraStatus(LOGALL);		
-				// BHLOG(LOGLORAR) lora1->PrintLoraStatus(LOGALL);		
+				// BHLOG(LOGLORAR) gwset[mid].gwq->PrintStatus();		
+				// BHLOG(LOGLORAR) gwhwset[mid].modem->PrintLoraStatus(LOGALL);		
 			}
 
 			// switch to next Queue element
@@ -276,24 +282,9 @@ LoRa Modem Register Status:     Version: 0x12  LoRa Modem OpMode : 0x80
 				(int)RXPkgSrvIdx, (int)RXPkgIsrIdx, (int)BeeIotRXFlag);
 		}
 		
-		if((lora0->getopmode() & OPMODE_RX)!= OPMODE_RX){
-			//re-read config.ini file again (could have been changed in between) 
-			cfgini = getini((char*)CONFIGINI);
-			if( cfgini == NULL){
-				printf("    BeeIoT-Init: INI File not found at: %s\n", CONFIGINI);
-				// exit(EXIT_FAILURE);
-				// continue with already buffered config struct data till we have access again
-			}
-			lflags	= (unsigned int) cfgini->biot_verbose;	// get the custom verbose mode again
+		if((gwhwset[mid].modem->getopmode() & OPMODE_RX)!= OPMODE_RX){
 
-			// Start LoRa Mode: continuous read loop - again
-			BHLOG(LOGLORAR) printf("  NwS: Enter RX_Cont Mode for lora0\n");
-			lora0->startrx(RXMODE_SCAN, 0);	// RX in RX_CONT Mode (Beacon Mode)
-			BHLOG(LOGBH) printf("NwS:*********************New Packet*****************************************\n");
-			//	lora0->PrintLoraStatus(LOGALL);			
-		}
-		if(cfgini->loranumchn==2){
-			if((lora1->getopmode() & OPMODE_RX)!= OPMODE_RX){
+			if(mid==0){ // get new config only by status change of def. JOIN modem
 				//re-read config.ini file again (could have been changed in between) 
 				cfgini = getini((char*)CONFIGINI);
 				if( cfgini == NULL){
@@ -302,40 +293,32 @@ LoRa Modem Register Status:     Version: 0x12  LoRa Modem OpMode : 0x80
 					// continue with already buffered config struct data till we have access again
 				}
 				lflags	= (unsigned int) cfgini->biot_verbose;	// get the custom verbose mode again
-
-				// Start LoRa Mode: continuous read loop - again
-				BHLOG(LOGLORAR) printf("  NwS: Enter RX_Cont Mode for lora1\n");
-				lora1->startrx(RXMODE_SCAN, 0);	// RX in RX_CONT Mode (Beacon Mode)
-				BHLOG(LOGBH) printf("NwS:*********************New Packet*****************************************\n");
-				//	lora1->PrintLoraStatus(LOGALL);
+				cfgini->loranumchn = nmodem;	// limit # of supp. modems to what have been told by main()
 			}
+
+			// Start LoRa Mode: continuous read loop - again
+			BHLOG(LOGLORAR) printf("  NwS: Enter RX_Cont Mode for Lora Modem%i\n", mid);
+			gwhwset[mid].modem->startrx(RXMODE_SCAN, 0);	// RX in RX_CONT Mode (Beacon Mode)
+			gettimeofday(&now, 0);
+			strftime(TimeString, 80, "%d-%m-%y %H:%M:%S", localtime(&now.tv_sec));
+			BHLOG(LOGBH) printf("NwS: %s: ********* Wait for New Packet ********\n", TimeString);
+			//	gwhwset[mid].modem->PrintLoraStatus(LOGALL);			
 		}
-		delay(SCANDELAY);					// wait per loop in ms -> no time to loose.
-    }
+	} // end of Modem-Loop
+
+	delay(SCANDELAY);					// wait per loop in ms -> no time to loose.
+} // while(run forever)
+
+	// this point will never be reached
+
+	// end LoRa Gateway sessions
+	delete gwhwset[0].modem;
+	delete gwhwset[1].modem;
+
     return (0);
 }
 
 
-// configure timer and interrupt handler
-void isr_init (int channel) {
-	switch (channel){
-	case 0:
-		lora0->Radio_AttachIRQ(lora0->sxdio0, INT_EDGE_RISING, []{lora0->MyIRQ0();} );
-		lora0->Radio_AttachIRQ(lora0->sxdio1, INT_EDGE_RISING, []{lora0->MyIRQ1();} );
-		lora0->Radio_AttachIRQ(lora0->sxdio2, INT_EDGE_RISING, []{lora0->MyIRQ2();} );
-		BHLOG(LOGLORAR) printf("  ISR_Init(%i): --- ISR on DIO0+1+2 assigned ---\n", lora0->GetModemIdx());
-		break;
-	case 1:
-		lora1->Radio_AttachIRQ(lora1->sxdio0, INT_EDGE_RISING, []{lora1->MyIRQ0();} );
-		lora1->Radio_AttachIRQ(lora1->sxdio1, INT_EDGE_RISING, []{lora1->MyIRQ1();} );
-		lora1->Radio_AttachIRQ(lora1->sxdio2, INT_EDGE_RISING, []{lora1->MyIRQ2();} );
-		BHLOG(LOGLORAR) printf("  ISR_Init(%i): --- ISR on DIO0+1+2 assigned ---\n", lora1->GetModemIdx());
-		break;
-	default:
-		BHLOG(LOGLORAR) printf("  ISR_Init(%i): --- wrong Lora channel idx => No ISRs assigned ---\n", channel);
-		return;
-	}
-}
 
 
 
@@ -373,7 +356,7 @@ char *ptr;					// ptr to next sensor parameter field
 
 	needaction = 0;
 	pkglen = BIoT_HDRLEN + mystatus->hd.frmlen + BIoT_MICLEN;
-        cp_nb_rx_rcv++;		// # of received packages
+	cp_nb_rx_rcv++;		// statistics for BIoTApp(): # received pkgs. +1
 
 	// now check real data: MIC & Header first -> JOIN server
 	rc = JS_ValidatePkg(mystatus);
@@ -443,7 +426,7 @@ char *ptr;					// ptr to next sensor parameter field
 		rc = JS_RegisterNode(mystatus, 0);	// evaluate WLTable and create NDB[] entry
 		if(rc >= 0){
 			ndid = rc;	// get index of new NDB-entry 
-			BHLOG(LOGLORAW) printf("  BeeIoTParse: New Node: Send CONFIG (with new channel data) as ACK\n");
+			BHLOG(LOGLORAW) printf("  BeeIoTParse: New Node%i Send CONFIG (with new channel data) as ACK\n",ndid);
 			// give node some time to recover from SendMsg before 
 			delay(MSGRX1DELAY);
 			needaction = CMD_CONFIG; // acknowledge JOIN request
@@ -576,7 +559,7 @@ Radio * Modem;
 		pack->destID = pkg->hd.sendID;	// The BeeIoT node is the messenger
 		pack->sendID = (u1_t) gwid0;;	// New sender: its me on JOIN channel
 		pack->cmd = action;				// get our action command
-		pack->index = pkg->hd.index;	// get last pkg msgid
+		pack->index = pkg->hd.index;	// get last pkgid
 		pack->frmlen = 0;				// send BeeIoT header for ACK only
 		pkglen = BIoT_HDRLEN+BIoT_MICLEN; // just the BeeIoT header + MIC
 		break;
@@ -590,7 +573,6 @@ Radio * Modem;
 		pcfg->hd.sendID = (u1_t)gwid0;	// New sender: its me on JOIN channel
 		pcfg->hd.cmd = action;			// get our action command
 		pcfg->hd.index = pkg->hd.index;	// get last pkg msgid
-	// ToDO fill dcfg with data from NDB[] -> how to get NDB index ?
 		pcfg->hd.frmlen = sizeof(devcfg_t); // 
 
 		pndb = &NDB[ndid];	// get Cfg init data from NDB entry of this node
@@ -623,11 +605,11 @@ Radio * Modem;
 	// Do final TX for all cases:
 	BeeIotTXFlag = 0;						// spawn IRQ-> Userland TX flag
 	if(actionpkg.hd.sendID == GWIDx){ // if default JOIN channel addressed
-		Modem = lora0;
+		Modem = gwset[0].modem;
 	}else if(cfgini->loranumchn >= 2){	// multi channel mode ? -> use next channel
-		Modem = lora1;
+		Modem = gwset[1].modem;
 	}else{ // use default channel always (also for non default GW-ID)
-		Modem = lora0;
+		Modem = gwset[0].modem;
 	}
 
 	Modem->starttx((byte *)&actionpkg, pkglen );	// send LoRa pkg	

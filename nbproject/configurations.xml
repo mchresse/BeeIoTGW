@@ -9,6 +9,7 @@
       <itemPath>beeiotgw/beeiot.h</itemPath>
       <itemPath>beeiotgw/beelora.h</itemPath>
       <itemPath>beeiotgw/getini.h</itemPath>
+      <itemPath>beeiotgw/gwqueue.h</itemPath>
       <itemPath>beeiotgw/ini.h</itemPath>
       <itemPath>beeiotgw/radio.h</itemPath>
       <itemPath>beeiotgw/regslora.h</itemPath>
@@ -29,6 +30,7 @@
       <itemPath>config.ini</itemPath>
       <itemPath>config.tpl</itemPath>
       <itemPath>beeiotgw/getini.c</itemPath>
+      <itemPath>beeiotgw/gwqueue.cpp</itemPath>
       <itemPath>beeiotgw/ini.c</itemPath>
       <itemPath>beeiotgw/main.cpp</itemPath>
       <itemPath>beeiotgw/radio.cpp</itemPath>
@@ -58,7 +60,7 @@
       </toolsSet>
       <compileType>
         <ccTool>
-          <standard>11</standard>
+          <standard>8</standard>
         </ccTool>
         <linkerTool>
           <linkerLibItems>
@@ -89,6 +91,10 @@
       <item path="beeiotgw/getini.c" ex="false" tool="0" flavor2="0">
       </item>
       <item path="beeiotgw/getini.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="beeiotgw/gwqueue.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="beeiotgw/gwqueue.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="beeiotgw/ini.c" ex="false" tool="0" flavor2="0">
       </item>
@@ -151,6 +157,10 @@
       <item path="beeiotgw/getini.c" ex="false" tool="0" flavor2="0">
       </item>
       <item path="beeiotgw/getini.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="beeiotgw/gwqueue.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="beeiotgw/gwqueue.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="beeiotgw/ini.c" ex="false" tool="0" flavor2="0">
       </item>

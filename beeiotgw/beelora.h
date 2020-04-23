@@ -18,6 +18,7 @@
 #define BEELORA_H
 
 #include <string>
+#include "gwqueue.h"
 
 // LoRaLogStatus() logging modes
 #define LOGDYN	1
@@ -64,9 +65,6 @@ enum {	NODEID1=NODEIDBASE+1, NODEID2, NODEID3, NODEID4, NODEID5};	// Transfer ID
 
 // Max. time a TX request is waiting for TXDone
 #define MAXTXTO		40			// TX TO at n x MAX_PAYLOAD_LENGTH in ms: 40 x 0x80ms = 5sec.
-#define MAXRXPKG	10			// RX Queue Len: Max. number of parallel processed RX packages
-
-
 
 #ifndef RX_RAMPUP
 #define RX_RAMPUP  (us2osticks(2000))
@@ -126,15 +124,6 @@ u4_t os_aes (u1_t mode, xref2u1_t buf, u2_t len);
 #define TTNPORT		1700              // The port on which to send data
 
 //******************************************************************
-// Queue item for RX packages
-typedef struct {
-//	beeiotmsg_t * next;	// connection to next active message of node
-    byte idx;           // index of sent message: 0..255 (round robin)
-    byte retries;       // number of initiated retries
-	byte ack;			// ack flag 1 = message received
-    beeiotpkg_t * pkg; // sent message struct
-} beeiotmsg_t;
-
 // NodeWLTable -> manually preset for reference of join requests
 typedef struct{
 	byte	nodeid;

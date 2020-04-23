@@ -92,7 +92,7 @@ typedef struct {
 #define WEBNOTICEMARKER "//NoticeAddHere"
 	
 int	beelog(char *   comment);
-int     beecsv(dataset  * data);
+int beecsv(dataset  * data);
 
 
 #endif /* BEEIOT_H */

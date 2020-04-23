@@ -63,20 +63,22 @@
 #include <linux/sockios.h>
 
 #include "base64.h"
-// #include "loraregs.h"
 #include "BeeIoTWan.h"
 #include "beelora.h"
 #include "beeiot.h"
 #include "radio.h"
+#include "gwqueue.h"
 
-extern unsigned int	lflags; // BeeIoT log flag field
+// global variables from main.cpp
+extern unsigned int	lflags; // BeeIoT log flag field (main.cpp)
 extern nodedb_t NDB[];		// if 'NDB[x].nodeinfo.version == 0' => empty entry
 // -> typeset see beelora.h; instance in JoinSrv.cpp
 
 // Central Database of all measured values and runtime parameters
 extern dataset	bhdb;		// central beeIoT data DB
 extern configuration * cfgini;			// ptr. to struct with initial parameters
-
+// incl. ptr to  LoRa  modem objects
+extern modemcfg_t	*	gwset;		// GateWay related config sets for Radio Instantiation
 
 //******************************************************************
 // Set my GPS location (preset manually, if no GPS access
@@ -104,16 +106,12 @@ static char description[64] = "";                        /* used for free form d
 byte receivedbytes;			// generic RX msg data len
 byte message[256];			// generic RX msg buffer
 byte buf64[512];			// payload encoding buffer
+int	 curlcount;				// count curl-lib ftp xfer calls for debugging reasons
 
 // to retrieve local LAN Port MAC address (defined in main ()
 extern struct sockaddr_in si_other;
 extern int s, slen;
 extern struct ifreq ifr;
-
-
-// current LoRa MAC layer settings -> radio.cpp
-extern Radio* lora0;	// in NwSrv.cpp
-extern Radio* lora1;	// in NwSrv.cpp
 
 // ToDO: to be initialize/updated by radio.spp layer during rx/tx package handling
 uint32_t cp_nb_rx_rcv	= 0; // # received packages
@@ -138,7 +136,7 @@ void sendstat(void);
 
 //******************************************************************************
 // AppBIoT()
-// Analysing BIoT Frame payloads for Weight Scale lifecycle
+// Analyzing BIoT Frame payloads for Weight Scale lifecycle
 // return:
 //  0       Data processed successfully -> ACK can be sent
 //	1		add. Message for RX1 available in TXBUFFER
@@ -160,7 +158,6 @@ int AppBIoT	(int ndid, char* data, byte len){
 	strftime(TimeString, 80, "%Y-%m-%d %H:%M:%S", localtime(&now.tv_sec));
     BHLOG(LOGBH) printf("  AppBIoT: %s -Processing new Sensor Status data (len:%i) from Node 0x%02X\n", 
 				TimeString, (int)len, (unsigned char) NDB[ndid].nodecfg.nodeid);
-
 
     idx = 0; // start with first entry (by now the only one)
 
@@ -187,7 +184,7 @@ int AppBIoT	(int ndid, char* data, byte len){
             &(bhdb.dlog[idx].BattCharge),   // in V !
             &(bhdb.dlog[idx].BattLoad),		// in V !
             &(bhdb.dlog[idx].BattLevel),
-            &(bhdb.dlog[idx].index),
+            &(bhdb.dlog[idx].index),		// Data Msg Index (not Lora Pkg Index !)
             &(bhdb.dlog[idx].comment) );
             if(strlen(bhdb.date) + strlen(bhdb.time) <= LENTMSTAMP){
                 sprintf(bhdb.dlog[idx].timeStamp, "%s %s", bhdb.date, bhdb.time);
@@ -207,9 +204,9 @@ int AppBIoT	(int ndid, char* data, byte len){
     // We have received a complete sensor parameter Set => Store it !
         // complete DB datarow by Node information
         bhdb.packid     = (int)0 + (short)NDB[ndid].nodeinfo.frmid[0]; // get sequential index of payload packages
-        bhdb.loopid     = bhdb.dlog[idx].index;     // save sensor scan loop counter of sensor data set
+        bhdb.loopid     = bhdb.dlog[idx].index;     // MsgID: sensor scan loop counter of sensor data set
         bhdb.ipaddr[0]  = 0;                        // no IP yet
-        memcpy((byte*)& bhdb.BoardID, (byte*) & NDB[ndid].nodeinfo.devEUI, sizeof(uint64_t));
+        memcpy((byte*)&bhdb.BoardID, (byte*) &NDB[ndid].nodeinfo.devEUI, sizeof(uint64_t));
         bhdb.NodeID     = NDB[ndid].nodecfg.nodeid; // BIoT network identifier to expand CSV File name
 
         // 1. Forward Data to local Web Service 
@@ -323,14 +320,14 @@ void UploadPkg( char * msg, int pkglen, long int SNR, byte rssi ) {
             j = snprintf((char *)(buff_up + buff_index), TX_BUFF_SIZE-buff_index, "\"tmst\":%u", tmst);
             buff_index += j;
             j = snprintf((char *)(buff_up + buff_index), TX_BUFF_SIZE-buff_index, 
-					",\"chan\":%1u,\"rfch\":%1u,\"freq\":%.6lf", 0, 0, (double)lora0->getchannelfrq() / 1000000);
+					",\"chan\":%1u,\"rfch\":%1u,\"freq\":%.6lf", 0, 0, (double)(gwset[0].modem->getchannelfrq()) / 1000000);
             buff_index += j;
             memcpy((void *)(buff_up + buff_index), (void *)",\"stat\":1", 9);
             buff_index += 9;
             memcpy((void *)(buff_up + buff_index), (void *)",\"modu\":\"LORA\"", 14);
             buff_index += 14;
             /* Lora datarate & bandwidth, 16-19 useful chars */
-            switch (lora0->getspreading()) {
+            switch (gwset[0].modem->getspreading()) {
             case SF7:
                 memcpy((void *)(buff_up + buff_index), (void *)",\"datr\":\"SF7", 12);
                 buff_index += 12;
@@ -359,7 +356,7 @@ void UploadPkg( char * msg, int pkglen, long int SNR, byte rssi ) {
                 memcpy((void *)(buff_up + buff_index), (void *)",\"datr\":\"SF?", 12);
                 buff_index += 12;
             }
-			switch (lora0->getband()){
+			switch (gwset[0].modem->getband()){
 			case BW125:
 				memcpy((void *)(buff_up + buff_index), (void *)"BW125\"", 6);
 				break;
@@ -374,7 +371,7 @@ void UploadPkg( char * msg, int pkglen, long int SNR, byte rssi ) {
 			}
             buff_index += 6;
 
-			switch (lora0->getcoding()){
+			switch (gwset[0].modem->getcoding()){
 			case CR_4_5:
 				memcpy((void *)(buff_up + buff_index), (void *)",\"codr\":\"4/5\"", 13);
 				break;

@@ -84,7 +84,6 @@ nodewltable_t WLTab[MAXNODES+1]={ // +1 for dummy JOIN line ID=0
 	0x00, 0x00, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0,  0,0,0,
 };//-------------------------------------------------
 
-
 nodedb_t NDB[MAXNODES];	// if 'NDB[x].nodeinfo.version == 0' => empty entry
 // -> typeset see beelora.h
 

@@ -42,6 +42,7 @@ OBJECTFILES= \
 	${OBJECTDIR}/beeiotgw/base64.o \
 	${OBJECTDIR}/beeiotgw/beelog.o \
 	${OBJECTDIR}/beeiotgw/getini.o \
+	${OBJECTDIR}/beeiotgw/gwqueue.o \
 	${OBJECTDIR}/beeiotgw/ini.o \
 	${OBJECTDIR}/beeiotgw/main.o \
 	${OBJECTDIR}/beeiotgw/radio.o
@@ -105,6 +106,11 @@ ${OBJECTDIR}/beeiotgw/getini.o: beeiotgw/getini.c
 	${MKDIR} -p ${OBJECTDIR}/beeiotgw
 	${RM} "$@.d"
 	$(COMPILE.c) -O2 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/beeiotgw/getini.o beeiotgw/getini.c
+
+${OBJECTDIR}/beeiotgw/gwqueue.o: beeiotgw/gwqueue.cpp
+	${MKDIR} -p ${OBJECTDIR}/beeiotgw
+	${RM} "$@.d"
+	$(COMPILE.cc) -O2 -std=c++98 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/beeiotgw/gwqueue.o beeiotgw/gwqueue.cpp
 
 ${OBJECTDIR}/beeiotgw/ini.o: beeiotgw/ini.c
 	${MKDIR} -p ${OBJECTDIR}/beeiotgw

@@ -1,12 +1,6 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
-
 /* 
  * File:   radio.h
- * Author: mchresse
+ * Author: mchresse - Randolph Esser
  *
  * Created on 11. April 2020, 15:28
  */
@@ -16,23 +10,89 @@
 
 #include "regslora.h"
 
+//***************************************************************
+// LoRa Modem Hardware IO & IRQ callback function declarations
+class Radio;	// forward declaration for typedef
+typedef void (Radio::*IrqHandler )( void );	// prototype of DIOx-IRQ handler routines
 
+
+// Global modem HW IO configuration settings (per instance)
+typedef struct {
+		byte	sxcs;		// Chip Select
+		byte	sxrst;		// Reset line
+		byte	sxdio0;		// DIOx IRQ line
+		byte	sxdio1;		// DIOx IRQ line
+		byte	sxdio2;		// DIOx IRQ line
+		byte	sxdio3;		// DIOx IRQ line
+		byte	sxdio4;		// DIOx IRQ line		
+		byte	sxdio5;		// DIOx IRQ line		
+}iopins_t;
+
+typedef struct{
+	byte	modemid;		// index of modem instance	-> set by main() cfgini
+	iopins_t iopins;		// GPIO port definition	-> set by main() cfgini
+	byte	chncfg;			// ID of channel configuration set
+	Radio * modem;			// ptr to modem instance -> set by constructor
+	MsgQueue * gwq;			// ptr to modem Msg Queue for all GW channels
+}modemcfg_t;
+
+typedef struct{
+	long freq;				// =EU868_F1..9,DN (EU868_F1: 868.1MHz)
+	s1_t pw;				// =2-16  TX PA Mode (14)
+	sf_t sf;				// =0..8 Spreading factor FSK,7..12,SFrFu (1:SF7)
+	bw_t bw;				// =0..3 RFU Bandwidth 125-500 (0:125kHz)
+	cr_t cr;				// =0..3 Coding mode 4/5..4/8 (0:4/5)
+	byte ih;				// =1 implicite Header Mode (0)
+	u1_t ihlen;				// =0..n if IH -> header length (0)
+	u1_t nocrc;				// =0/1 no CRC check used for Pkg (0)
+	u1_t noRXIQinv;			// =0/1 flag to switch RX+TX IQinv. on/off (1)
+}chncfg_t;
+
+typedef struct {
+	byte	 modemid;			// Modem ID: 0.. cfgini->loranumchn;
+	chncfg_t chncfg;			// Configuration of modem LoRa transmit channel
+
+	// current LoRa Modem Op.Mode
+	byte currentMode;			// Modem status: SLEEP/IDLE/RX/TX
+	bool sx1276;				// Semtech LoRa ChipType: =0(SX1276), =1(SX1272) (0)
+	MsgQueue * gwq;				// Ptr on Modem MsgQueue of LoRa Packages
 	
+	// used by ISR routine
+	int	 irqlevel;				// =0..n IRQ Enable semaphor: (0: IRQs allowed) 
+	byte snr;					// Signal/Noise Ratio level [db]
+	byte rssi;					// Received signal strength indication [dbm]
+	byte rxbuffer[256];			// generic frame buffer for unknown packages
+	byte rxdlen;				// length of generic/unknown package
+	byte txbuffer[256];			// universal TX buffer
+	byte txdlen;				// length of TX package to be sent
+
+	// (initialized by radio_init(), used by radio_rand1())
+	u1_t randbuf[16];
+
+	struct timeval now;			// current timestamp used each time a ISR time check is done
+	unsigned long txstart;		// tstamp when TX Mode was entered
+	unsigned long txend;		// Delta: now - txstart
+	unsigned long rxtime;		// tstamp when last rx package arrived
+} modemset_t;
+
+
+
+
 //******************************************************************************
-// Lora Radio Layer class
+// Lora Radio Layer class declaration
 // Handling of Semtech SX1276 chip communication and IRQ service
 // RD/WR packages via Queue member functions
 
 class Radio {
-//******************************************************************************
+//***************************************************************
 public:
-	byte	sxcs, sxrst, sxdio0, sxdio1, sxdio2, sxdio3, sxdio4, sxdio5;
+//******************************
+// RADIO member function / API:
 
-	//*****************************************************************************
-	// RADIO member function / API
-	// RADIO Constructor: default is cfg channel index=0 (for JOIN requests)
-	Radio(byte channelidx=0);	// -> SetupLora() => discover SX chip and setup config channel by idx
-	~Radio();	// release current SX Chip an SPI channel
+	// RADIO Constructor: 
+	// default is modem index=0, ín Multi modem mode: used for JOIN requests only
+	Radio(modemcfg_t * modem);	// Detect SX lora chip and setup config channel
+	~Radio();					// reset SX Chip (Sleep)
 
 	int	 GetModemIdx(void);		// deliver index of modem instance
 	long getchannelfrq(void);	// channel frequency e.g.868.1MHz
@@ -45,7 +105,7 @@ public:
 	// print LoraRegister Status to Serial port in diff. sizes
 	void PrintLoraStatus(int logtype);
 
-	// Deliver cuurent Modem OpMode
+	// Deliver current Modem OpMode
 	byte getopmode(void);
 	// Set SX chip Operation mode
 	void setopmode (u1_t mode);
@@ -62,44 +122,30 @@ public:
 	void MyIRQ0(void);	// DIO0 IRQ wrapper
 	void MyIRQ1(void);	// DIO1 IRQ wrapper
 	void MyIRQ2(void);	// DIO2 IRQ wrapper
+
 		
-//******************************************************************************
+	// Hardware DIOx-IRQ function ptr  table for isr_init();
+    IrqHandler * dioISR;
+	
+	// link GW Queue to modem session
+	void assign_gwqueue(MsgQueue & gwq);
+
+	// Helper function in Msg Queue handling for direct SX FiFo read to MsgBuffer
+	friend int	MsgBuffer::setpkgfifo(Radio & Modem, byte sxreg, byte dlen);
+
+	//******************************************************************************
 protected:
-	// (initialized by radio_init(), used by radio_rand1())
-	u1_t randbuf[16];
+
+	
+//******************************************************************************
+private:
+	modemcfg_t* modemp;		// modem cfg. settings for initialization by constructor
+	modemset_t	mset;		// internal modem channel configuration settings
 
 	//*****************************************************************************
-	// RADIO layer: default cfg settings
+	// RADIO layer: default cfg. settings	(defaults)
 	//*****************************************************************************
-	long freq	= FREQ;					// =EU868_F1..9,DN (EU868_F1: 868.1MHz)
-	s1_t pw		= TXPOWER;				// =2-16  TX PA Mode (14)
-	sf_t sf		= SPREADING;			// =0..8 Spreading factor FSK,7..12,SFrFu (1:SF7)
-	bw_t bw		= SIGNALBW;				// =0..3 RFU Bandwidth 125-500 (0:125kHz)
-	cr_t cr		= CODING;				// =0..3 Coding mode 4/5..4/8 (0:4/5)
-	byte ih		= IHDMODE;				// =1 implicite Header Mode (0)
-	u1_t ihlen	= IHEADERLEN;			// =0..n if IH -> header length (0)
-	u1_t nocrc	= NOCRC;				// =0/1 no CRC check used for Pkg (0)
-	u1_t noRXIQinversion = NORXIQINV;	// =0/1 flag to switch RX+TX IQinv. on/off (1)
 	
-	// current LoRa Modem Op.Mode
-	byte	currentMode = OPMODE_LORA | OPMODE_SLEEP; // (start LoRa Modem in SLEEP Mode)
-	bool	sx1276;				// Semtech LoRa ChipType: =0(SX1276), =1(SX1272) (0)
-	byte	modem=0;			// Modem ID: 0.. cfgini->loranumchn;
-	
-	// used by ISR routine
-	int	 irqlevel = 0;					// =0..n IRQ Enable semaphor: (0: IRQs allowed) 
-	byte snr;					// Signal/Noise Ratio level
-	byte rssi;					// 
-	byte rxframe[256];			// generic frame buffer for unknown packages
-	byte rxdlen = 0;			// length of generic/unknown package
-	byte txframe[256];			// universal TX buffer
-	byte txdlen = 0;			// length of TX package to be sent
-
-	struct timeval now;			// current timestamp used each time a ISR time check is done
-	unsigned long txstart;		// tstamp when TX Mode was entered
-	unsigned long txend;		// Delta: now - txstart
-	unsigned long rxtime;		// tstamp when last rx package arrived
-
 	//*****************************************
 	// enhanced version for diff. power classes
 	enum policy_t {
@@ -107,6 +153,8 @@ protected:
 		LMICHAL_radio_tx_power_policy_paboost,
 		LMICHAL_radio_tx_power_policy_rfo
 	};
+	//Detect supported modem chiptype
+	int getchiptype(void);
 
 	// preset HW GPIO definitions for selected Modem of Radio-Instance
 	int  setmodemcfg(byte channelidx);

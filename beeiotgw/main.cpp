@@ -64,23 +64,25 @@
 #include <wiringPiSPI.h>
 
 #include "BeeIoTWan.h"
+#include "beelora.h"
 #include "beeiot.h"
-
-unsigned int	lflags;               // BeeIoT log flag field
+#include "radio.h"
 
 /*******************************************************************************
  * BIoTWAN global variables
  * 
  *******************************************************************************/
 
+unsigned int	lflags;			// BeeIoT log flag field
+
 // Central Database of all measured values and runtime parameters
 dataset	bhdb;					// central beeIoT data DB
 
 // The one and only global init parameter set buffer parsed from config.ini file
 configuration * cfgini;			// ptr. to struct with initial parameters
+modemcfg_t	*	gwset;		// GateWay related config sets for Radio Instantiation
 
 char	csv_notice[MAXMSGLEN];	// free notice field for *.csv file
-int		curlcount;				// count curllib ftp xfer calls for debugging reasons
 	
 // to retrieve local LAN Port MAC address
 struct sockaddr_in si_other;
@@ -94,10 +96,11 @@ extern char	  TimeString[128];	// contains formatted Timestamp string of each lo
 
 //******************************************************************************
 //  Function prototypes
-extern int  NwNodeScan (void);
-int beelog(char * comment);
-int * initall();
 
+extern int  NwNodeScan (modemcfg_t * gwset, int nmodem, int defchannel);
+int beelog(char * comment);
+int initall();
+int setmodemcfg(modemcfg_t * modem);
 
 /******************************************************************************
  * MAIN()
@@ -123,8 +126,12 @@ int main () {
 //  lflags = 0;   // Define Log level (search for Log values in beeiot.h)
 //  lflags = LOGBH + LOGOW + LOGHX + LOGLAN + LOGEPD + LOGSD + LOGADS + LOGSPI + LOGLORAR + LOGLORAW;
 
-	 // read of config.ini runtime parameters
-	initall();	// setup BHDB 
+	 // read of config.ini runtime parameters and setup all global structs
+	rc = initall();
+	if(rc != 0){	// setup BHDB + gwset[]
+		BHLOG(LOGBH) printf("Main: InitAll failed with RC: %i\n", rc); 
+		exit(-1);	// Initialization failed
+	}
 
 
 	sprintf(msg, "<%s> BIoT started", TimeString);
@@ -159,14 +166,15 @@ int main () {
 		 strncpy(bhdb.macaddr, ifr.ifr_hwaddr.sa_data, LENMACADDR);
 	}
 	
-	// run forever: wait for incoming packages via radio_irq_handler()
-	// STart BIoT WAN Node scan routine
-	NwNodeScan ();
-	// will never reach this point !
-	// Further processing of BIoT messages by BIoTApp() function
+	// Run NwNodeScan(): BIoT WAN Node scan routine forever: 
+	// Wait for incoming packages via radio_irq_handler()
+	rc = NwNodeScan(gwset, cfgini->loranumchn, cfgini->loradefchn);
 
-    return (0);
+	// this point will be never reached
+	delete gwset;
+    exit(0);
 } // end of main ()
+
 
 /*******************************************************************************
 * Function: InitAll()
@@ -189,13 +197,13 @@ int main () {
 *	-1		something essential went wrong -> break main
 *********************************************************************************
 */
-int * initall(){
+int initall(){
 int		i,rc=0;
 char	sbuf[MAXMSGLEN];
 
 	
 	// retrieve initial config runtime settings
-	cfgini = getini(CONFIGINI);
+	cfgini = getini((char *)CONFIGINI);
 	if( cfgini == NULL){
 		printf("    BeeIoT-Init: INI FIle not found at: %s\n", CONFIGINI);
 		exit(EXIT_FAILURE);
@@ -210,7 +218,7 @@ char	sbuf[MAXMSGLEN];
 	//  setup Wiring-PI Lib
 	if(wiringPiSetup() < 0) {    // using wPi pin mapping
 		BHLOG(LOGBH) printf("    BeeIoT-Init: wiringPi-Init for wPi# Error\n");
-		beelog(" - Exit: Wiring-Pi Lib GPIO init failed\n");
+		beelog((char *) " - Exit: Wiring-Pi Lib GPIO init failed\n");
 		if(cfgini->biot_actionIOfailure != AOF_NOOP){
 			exit(EXIT_FAILURE);
 		}
@@ -232,9 +240,71 @@ char	sbuf[MAXMSGLEN];
 
 // init housekeeping stuff
 	sprintf(csv_notice, "started");	// prepare "Start" notice of new value series	
+
+	//initialize GateWay config sets by cfgini
+	if (cfgini->loranumchn > MAXGW) {	// limit user channel ID to MAX support in code
+		cfgini->loranumchn = MAXGW;
+	}
+	
+	gwset = new modemcfg_t[cfgini->loranumchn];	// get space for # of supported Gateway cfg sets
+	for(int i = 0; i < cfgini->loranumchn; i++){
+		gwset[i].modemid = i;
+		setmodemcfg(&gwset[i]);		
+		gwset[i].modem = (Radio *) NULL;
+	}
 	
 	return(0);
 } // end of InitAll()
 
+//************************************************************
+// SetModemCfg()
+// Init modem HW IO cfg settings based on User cfgini.ini file
+// Global: struct cfgini
+// Return:
+//	=0: configuration complete
+//	-1	no cfgini data struct
+//	-2  wrong ModemID defined by User config.ini file
+//	-3	wrong ModemID in structure must be between 0..cfgini->loranumchn-1
+int setmodemcfg(modemcfg_t * modem){
+	if (!cfgini)	
+		return(-1);
 
+	switch(modem->modemid){
+		case 0:
+			modem->iopins.sxcs		= cfgini->lora_cs0;
+			modem->iopins.sxrst		= cfgini->lora0rst;
+			modem->iopins.sxdio0	= cfgini->lora0dio0;
+			modem->iopins.sxdio1	= cfgini->lora0dio1;
+			modem->iopins.sxdio2	= cfgini->lora0dio2;
+			modem->iopins.sxdio3	= cfgini->lora0dio3;
+			modem->iopins.sxdio4	= cfgini->lora0dio4;
+			modem->iopins.sxdio5	= cfgini->lora0dio5;
+			modem->chncfg			= cfgini->lora0channel;
+			break;
+		case 1:
+			modem->iopins.sxcs		= cfgini->lora_cs1;
+			modem->iopins.sxrst		= cfgini->lora1rst;
+			modem->iopins.sxdio0	= cfgini->lora1dio0;
+			modem->iopins.sxdio1	= cfgini->lora1dio1;
+			modem->iopins.sxdio2	= cfgini->lora1dio2;
+			modem->iopins.sxdio3	= cfgini->lora1dio3;
+			modem->iopins.sxdio4	= cfgini->lora1dio4;
+			modem->iopins.sxdio5	= cfgini->lora1dio5;
+			modem->chncfg			= cfgini->lora1channel;
+			break;
+		default: // don't know what to do  
+			return(-3);
+	}
+	// define Mode & Pwrlevel per IO port
+	pinMode(modem->iopins.sxcs,  OUTPUT);
+	pinMode(modem->iopins.sxrst, OUTPUT);
+	pinMode(modem->iopins.sxdio0,INPUT);
+	pinMode(modem->iopins.sxdio1,INPUT);
+	pinMode(modem->iopins.sxdio2,INPUT);
+	digitalWrite(modem->iopins.sxcs,  HIGH);	// active low
+	digitalWrite(modem->iopins.sxrst, HIGH);	// active low
+	modem->modem = NULL;	// by now no instance defined
+
+	return(0);
+}
 // end of main.cpp
