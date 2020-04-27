@@ -43,7 +43,7 @@ class Radio;
 class MsgBuffer {
 public:
 	// Constructor & Destructor:
-	MsgBuffer(int modemid, byte pkgid, int rssi, byte snr);
+	MsgBuffer(int modemid,int rssi, byte snr);
 	~MsgBuffer();
 
 	// get MsgHd Params in detail
@@ -55,11 +55,14 @@ public:
 	int		getsnr(void);
 
 	// get LoRa Package raw copied to pkgx user buffer
-	int		getpkg(beeiotpkg_t & pkgx);	
+	int		getpkg(beeiotpkg_t * pkgx);	
 	void	setmsghd(msghd_t & msghdx);	// set complete MsgHD at once
+	void	setpkgid_ack(byte pkgid, bool ack);
 
 	// set LoRa Package to MsgBuffer directly out of the SX FiFo (HAL: SPI buffer copy)
-	int		setpkgfifo(Radio & Modem, byte sxreg, byte dlen);
+	int		setpkgfifo(Radio * Modem, byte sxreg, int dlen);
+	
+	void	printpkg(int dlen);
 
 	// overload< Operator (for prio queue sort)
 	friend bool operator < (MsgBuffer & msga, MsgBuffer & msgb);
@@ -103,11 +106,12 @@ class MsgQueue {
 	protected:
 	private:
 		std::queue<MsgBuffer> * mq;
-		
-		// RX Queue buffer & control
-		byte    RXFlag;            // Semaphore for received message(s) 0 ... MAXRXPKG-1
-		byte    IsrIdx;            // WR index on next RX Queue Package for ISR callback Write
-		byte    SrvIdx;            // RD index on next RX Queue Package for BIoTParse() Service
+		int mid;		// current modem ID Queue was assigned to
+
+		// RX Queue buffer & control -> obsolete
+//		byte    RXFlag;            // Semaphore for received message(s) 0 ... MAXRXPKG-1
+//		byte    IsrIdx;            // WR index on next RX Queue Package for ISR callback Write
+//		byte    SrvIdx;            // RD index on next RX Queue Package for BIoTParse() Service
 
 }; // end of class MsgQueue
 

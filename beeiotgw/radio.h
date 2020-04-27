@@ -9,12 +9,12 @@
 #define _RADIO_H
 
 #include "regslora.h"
+#include <memory>
 
 //***************************************************************
 // LoRa Modem Hardware IO & IRQ callback function declarations
 class Radio;	// forward declaration for typedef
 typedef void (Radio::*IrqHandler )( void );	// prototype of DIOx-IRQ handler routines
-
 
 // Global modem HW IO configuration settings (per instance)
 typedef struct {
@@ -28,15 +28,18 @@ typedef struct {
 		byte	sxdio5;		// DIOx IRQ line		
 }iopins_t;
 
+// Global Modem descriptor
 typedef struct{
-	byte	modemid;		// index of modem instance	-> set by main() cfgini
-	iopins_t iopins;		// GPIO port definition	-> set by main() cfgini
-	byte	chncfg;			// ID of channel configuration set
-	Radio * modem;			// ptr to modem instance -> set by constructor
-	MsgQueue * gwq;			// ptr to modem Msg Queue for all GW channels
+	byte		modemid;	// index of modem instance	-> set by main() cfgini
+	byte		gwid;		// modem corresponding Pkg GWIDx
+	byte		chncfg;		// ID of channel configuration set
+	iopins_t	iopins;		// GPIO port definition	-> set by main() cfgini
+	Radio *		modem;		// ptr to modem instance -> set by constructor
+	MsgQueue *	gwq;		// ptr to modem Msg Queue for all GW channels
 }modemcfg_t;
 
-typedef struct{
+// Radio-Modem internal used config channel set
+typedef struct{ 
 	long freq;				// =EU868_F1..9,DN (EU868_F1: 868.1MHz)
 	s1_t pw;				// =2-16  TX PA Mode (14)
 	sf_t sf;				// =0..8 Spreading factor FSK,7..12,SFrFu (1:SF7)
@@ -48,17 +51,18 @@ typedef struct{
 	u1_t noRXIQinv;			// =0/1 flag to switch RX+TX IQinv. on/off (1)
 }chncfg_t;
 
+// Radio internal housekeeping
 typedef struct {
 	byte	 modemid;			// Modem ID: 0.. cfgini->loranumchn;
 	chncfg_t chncfg;			// Configuration of modem LoRa transmit channel
 
 	// current LoRa Modem Op.Mode
 	byte currentMode;			// Modem status: SLEEP/IDLE/RX/TX
-	bool sx1276;				// Semtech LoRa ChipType: =0(SX1276), =1(SX1272) (0)
-	MsgQueue * gwq;				// Ptr on Modem MsgQueue of LoRa Packages
+	byte chiptype;				// Modem chip type: Semtech LoRa Chip: SX1276 0x12, =0: unknown
+	MsgQueue * gwq;				// local Ptr on Modem MsgQueue of LoRa Packages
 	
 	// used by ISR routine
-	int	 irqlevel;				// =0..n IRQ Enable semaphor: (0: IRQs allowed) 
+	int	 irqlevel;				// =0..n IRQ Enable semaphore: (0: IRQs allowed) 
 	byte snr;					// Signal/Noise Ratio level [db]
 	byte rssi;					// Received signal strength indication [dbm]
 	byte rxbuffer[256];			// generic frame buffer for unknown packages
@@ -75,6 +79,13 @@ typedef struct {
 	unsigned long rxtime;		// tstamp when last rx package arrived
 } modemset_t;
 
+//*****************************************
+// enhanced version for diff. power classes
+enum policy_t {
+	LMICHAL_radio_tx_power_policy_20dBm, 
+	LMICHAL_radio_tx_power_policy_paboost,
+	LMICHAL_radio_tx_power_policy_rfo
+};
 
 
 
@@ -91,7 +102,7 @@ public:
 
 	// RADIO Constructor: 
 	// default is modem index=0, ín Multi modem mode: used for JOIN requests only
-	Radio(modemcfg_t * modem);	// Detect SX lora chip and setup config channel
+	Radio(modemcfg_t * modemcfg); // Detect SX lora chip and setup config channel
 	~Radio();					// reset SX Chip (Sleep)
 
 	int	 GetModemIdx(void);		// deliver index of modem instance
@@ -124,14 +135,14 @@ public:
 	void MyIRQ2(void);	// DIO2 IRQ wrapper
 
 		
-	// Hardware DIOx-IRQ function ptr  table for isr_init();
-    IrqHandler * dioISR;
+	// Hardware DIOx-IRQ function ptr for dyn. table used in  isr_init();
+    IrqHandler *dioISR;
 	
 	// link GW Queue to modem session
 	void assign_gwqueue(MsgQueue & gwq);
 
 	// Helper function in Msg Queue handling for direct SX FiFo read to MsgBuffer
-	friend int	MsgBuffer::setpkgfifo(Radio & Modem, byte sxreg, byte dlen);
+	friend int	MsgBuffer::setpkgfifo(Radio * Modem, byte sxreg, int dlen);
 
 	//******************************************************************************
 protected:
@@ -139,20 +150,15 @@ protected:
 	
 //******************************************************************************
 private:
-	modemcfg_t* modemp;		// modem cfg. settings for initialization by constructor
-	modemset_t	mset;		// internal modem channel configuration settings
 
-	//*****************************************************************************
-	// RADIO layer: default cfg. settings	(defaults)
-	//*****************************************************************************
-	
-	//*****************************************
-	// enhanced version for diff. power classes
-	enum policy_t {
-		LMICHAL_radio_tx_power_policy_20dBm, 
-		LMICHAL_radio_tx_power_policy_paboost,
-		LMICHAL_radio_tx_power_policy_rfo
-	};
+
+	//**************************************************************************
+	// RADIO layer: default cfg. settings
+	//
+	modemcfg_t* modemp;		// modem related initial config settings for constructor
+	modemset_t	mset;		// internal modem channel configuration settings	
+
+
 	//Detect supported modem chiptype
 	int getchiptype(void);
 

@@ -50,7 +50,6 @@ using namespace std;
 
 extern unsigned int	lflags;               // BeeIoT log flag field
 
-// MsgQueue<MsgBuffer> * GwQueue;
 
 //*****************************************************************+
 // Init_GwQueue()
@@ -69,10 +68,11 @@ MsgQueue * init_gwqueue(int mid){
 // The MsgQueue Constructor
 MsgQueue::MsgQueue(){
 	mq = new std::queue<MsgBuffer>;  // get a new Queue instance
-	RXFlag =0;
-	SrvIdx =0;	// remains 0: FiFo
-	IsrIdx =0;	// index to last element
-	BHLOG(LOGBH) printf("  MsgQueue: New empty MsgQueue created\n");
+	if(!mq){	// no Queue received
+		throw (int) EX_MSGQU_INIT;		// Exc.ID: RADIO Init failed -> break;
+	}
+
+	BHLOG(LOGQUE) printf("  MsgQueue: New empty MsgQueue created\n");
 }
 
 // The MsgQueue destructor
@@ -80,20 +80,18 @@ MsgQueue::~MsgQueue(){
 	while(!mq->empty()){
 		mq->pop();
 	}
-	BHLOG(LOGBH) printf("  MsgQueue: MsgQueue removed\n");
+	BHLOG(LOGQUE) printf("  MsgQueue: MsgQueue removed\n");
 }
 
 // create and add MsgBuffer to PrioQueue-end: FiFo
 // sort by ModemID: 0 = high prio
 // replace for IsrIdx 
 void MsgQueue::PushMsg(MsgBuffer & mbuf){
-	mq->push(mbuf);	// add after last: FiFo
-	++RXFlag;
-	SrvIdx = 0;	// remains 0: FiFo
-	IsrIdx = mq->size();	// index to last element
 	int mid = mbuf.getmid();
 	byte pkgid = mbuf.getpkgid();
-	BHLOG(LOGBH) printf("  MsgQueue: Push Msg[%i] ID:%i\n",mid, pkgid);
+	BHLOG(LOGQUE) printf("  MsgQueue: Push Msg[%i] ID:%i\n",mid, pkgid);
+
+	mq->push(mbuf);	// add after last: FiFo
 }
 
 // remove MsgBuffer obj. from PrioQueue-start: FiFo
@@ -106,10 +104,8 @@ void MsgQueue::PopMsg(){
 
 	int mid = mbuf.getmid();
 	byte pkgid = mbuf.getpkgid();
-	BHLOG(LOGBH) printf("  MsgQueue: Pop Msg[%i] ID:%i from Queue\n", mid, pkgid);
+	BHLOG(LOGQUE) printf("  MsgQueue: Pop Msg[%i] ID:%i from Queue\n", mid, pkgid);
 
-	--RXFlag;
-	IsrIdx = mq->size();	// new index to last element
 	mq->pop();	// remove first element: FiFo
 }
 
@@ -127,12 +123,12 @@ MsgBuffer & MsgQueue::GetMsg(){
 // Print MsgBuffer-Queue Status: as one line with 'newline'
 int MsgQueue::PrintStatus(){
 	if(mq->empty()){
-		BHLOG(LOGBH) printf("  MsgQueue: Length:%i, RXFlag:%i, ISRIdx:%i, SRvIdx:%i, Msg0: None\n", 
-				mq->size(), RXFlag, (int)IsrIdx, (int)SrvIdx);
+		printf("  MsgQueue: Length:%i, Msg0: None\n", 
+				mq->size());
 	}else{
 		MsgBuffer & msg = GetMsg();
-		BHLOG(LOGBH) printf("  MsgQueue: Length:%i, RXFlag:%i, ISRIdx:%i, SRvIdx:%i, Msg0: Modem%i->MsgID:%i\n", 
-				mq->size(), RXFlag, (int)IsrIdx, (int)SrvIdx, (int)msg.getmid(), (int)msg.getpkgid());
+		printf("  MsgQueue: Length:%i, Modem%i->MsgID:%i\n", 
+				mq->size(),(int)msg.getmid(), (int)msg.getpkgid());
 	}
 	return(mq->size());
 }
@@ -144,20 +140,23 @@ int MsgQueue::PrintStatus(){
 // Used as entity for PrioQueue-class
 
 // Constructor & Destructor:
-MsgBuffer::MsgBuffer(int modemid, byte pkgid, int rssi, byte snr){
+MsgBuffer::MsgBuffer(int modemid, int rssi, byte snr){
 	msghd.mid		= modemid;
-	msghd.pkgid		= pkgid;
+	msghd.pkgid		= 0;
 	msghd.rssi		= rssi;
 	msghd.snr		= snr;
 	msghd.retries	= 0;
 	msghd.ack		= 0;
 	pkg = new beeiotpkg_t;	// reserve Msg buffer space
-	BHLOG(LOGLORAW) printf("  MsgBuffer[%i]: New MsgBuffer for id:%i created\n", getmid(), getpkgid());
+	if(!pkg){	// no Pkg buffer received
+		throw (int) EX_MSGQU_INIT;		// Exc.ID: RADIO Init failed -> break;
+	}
+	BHLOG(LOGQUE) printf("  MsgBuffer[%i]: New MsgBuffer for id:%i created\n", getmid(), getpkgid());
 }
 
 MsgBuffer::~MsgBuffer(){
-	BHLOG(LOGBH) printf("  MsgBuffer[%i]: Delete Msg-ID:%i\n", getmid(), getpkgid());
-	delete pkg;			// release msg buffer
+	BHLOG(LOGQUE) printf("  MsgBuffer[%i]: Delete MsgBuffer %i\n", getmid(), getpkgid());
+//	delete pkg;			// release msg buffer
 }
 
 // overload < Operator (for prio qeueue sort)
@@ -189,20 +188,37 @@ int	MsgBuffer::getsnr(void){
 
 // Raw Copy MsgBuffer to User Package buffer
 // return amount of copied data in byte
-int	MsgBuffer::getpkg(beeiotpkg_t &pkgx){
-	memcpy((byte*)&pkgx, (byte*)&pkg, sizeof(beeiotpkg_t));
+int	MsgBuffer::getpkg(beeiotpkg_t * pkgx){
+	memcpy((byte*)pkgx, (byte*) pkg, sizeof(beeiotpkg_t));
 	return(sizeof(beeiotpkg_t));
 }	
 
 // Copy LoRa SX-FiFo Package to MsgBuffer directly out of the SPI FiFo Register
 // using: Radio::HAL: SPI-WRbuffer cop)
-int	MsgBuffer::setpkgfifo(Radio & Modem, byte sxreg, byte dlen){
+int	MsgBuffer::setpkgfifo(Radio * Modem, byte sxreg, int dlen){
 	if(dlen > sizeof(beeiotpkg_t)) 
 		dlen = sizeof(beeiotpkg_t);	// copy max. size of dest. buffer
 
-	Modem.readBuf(sxreg, (byte *) &pkg, (byte) dlen);	// call as friend function to Radio class
-	BHLOG(LOGBH) printf("  MsgBuffer[%i]: Rd SX FiFo - %d Bytes/n", (int)Modem.mset.modemid, (int)dlen);
+	Modem->readBuf(sxreg, (byte *) pkg, (byte) dlen);	// call as friend function to Radio class
+	BHLOG(LOGQUE) printf("  MsgBuffer[%i]: Rd SX FiFo - %d Bytes/n", (int)Modem->mset.modemid, dlen);
 	return(dlen); // return # of copied bytes
+}
+
+
+// Print pkg bytewise in one line in hex format
+void MsgBuffer::printpkg(int dlen = 0){
+	if(dlen > sizeof(beeiotpkg_t)) 
+		dlen = sizeof(beeiotpkg_t);	// copy max. size of dest. buffer
+	byte * ppkg = (byte*) pkg;
+	for (int i=0; i<dlen; i++){
+		printf("%02X ", ppkg[i]);
+	}
+}
+
+// Set Package ID & Ack Flag
+void MsgBuffer::setpkgid_ack(byte pkgid, bool ack){
+	msghd.pkgid		= pkgid;
+	msghd.ack		= ack;
 }
 
 // Simply initialize all MsgBuffer Header params at once
@@ -213,6 +229,6 @@ void MsgBuffer::setmsghd(msghd_t & msghdx){
 	msghd.retries	= msghdx.retries;
 	msghd.rssi		= msghdx.rssi;
 	msghd.snr		= msghdx.snr;	
-	BHLOG(LOGBH) printf("  MsgBuffer[%i]: Init Buffer - PkgID%i, RSSI:%i, SNR:%i/n",
+	BHLOG(LOGQUE) printf("  MsgBuffer[%i]: Init Buffer - PkgID%i, RSSI:%i, SNR:%i/n",
 			(int)msghd.mid, (int)msghd.pkgid, (int)msghd.rssi, (int)msghd.snr);
 }	// set complete MsgHD at once

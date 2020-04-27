@@ -114,17 +114,12 @@ int main () {
 
 	
 	setbuf(stdout, 0);		// disable buffering on stdout
-	printf("*** BeeIoT-WAN MAIN ***\n");
+	lflags = LOGBH;   // Define Log level (search for Log values in beeiot.h)
+//  lflags = LOGBH + LOGOW + LOGHX + LOGLAN + LOGEPD + LOGSD + LOGADS + LOGSPI + LOGLORAR + LOGLORAW;
 
 	// get current timestamp
 	gettimeofday(&now, 0);
 	strftime(TimeString, 80, "%d-%m-%y %H:%M:%S", localtime(&now.tv_sec));
-	 BHLOG(LOGBH) printf("%s: Setup starts with BIoTWAN v%d.%d\n", 
-		TimeString,  (int)BIoT_VMAJOR, (int)BIoT_VMINOR);
-
-	
-//  lflags = 0;   // Define Log level (search for Log values in beeiot.h)
-//  lflags = LOGBH + LOGOW + LOGHX + LOGLAN + LOGEPD + LOGSD + LOGADS + LOGSPI + LOGLORAR + LOGLORAW;
 
 	 // read of config.ini runtime parameters and setup all global structs
 	rc = initall();
@@ -132,9 +127,11 @@ int main () {
 		BHLOG(LOGBH) printf("Main: InitAll failed with RC: %i\n", rc); 
 		exit(-1);	// Initialization failed
 	}
+	BHLOG(LOGBH) printf("  %s: Setup starts with BIoTWAN v%d.%d\n", 
+		TimeString,  (int)BIoT_VMAJOR, (int)BIoT_VMINOR);	
 
 
-	sprintf(msg, "<%s> BIoT started", TimeString);
+	sprintf(msg, "BIoT started", TimeString);
 	beelog (msg);	// remember used offset 
 
 	// Get Local LAN Port settings
@@ -210,14 +207,15 @@ char	sbuf[MAXMSGLEN];
 	}
 	lflags		= (unsigned int) cfgini->biot_verbose;	// now we have the custom verbose mode
 
-	printf("============== BIoTWAN v%i.%i =========================\n\n", cfgini->vmajor, cfgini->vminor);
-	sprintf(sbuf, "##### BeeIoT Server v%i.%i - started (Cfg. v%s) #####", cfgini->vmajor, cfgini->vminor, cfgini->version);  
+	printf("============== BeeIoT WAN Gateway v%i.%i (%s: v%i.%i) ===============\n\n",
+			BIoT_VMAJOR, BIoT_VMINOR, (char *) CONFIGINI, cfgini->vmajor, cfgini->vminor);
+	sprintf(sbuf, "##### BeeIoT WAN Server v%i.%i - started (Cfg. v%s) #####", cfgini->vmajor, cfgini->vminor, cfgini->version);  
 	beelog(sbuf);	// log init of program log file
 
 
 	//  setup Wiring-PI Lib
 	if(wiringPiSetup() < 0) {    // using wPi pin mapping
-		BHLOG(LOGBH) printf("    BeeIoT-Init: wiringPi-Init for wPi# Error\n");
+		BHLOG(LOGBH) printf("BeeIoT-Init: wiringPi-Init for wPi# Error\n");
 		beelog((char *) " - Exit: Wiring-Pi Lib GPIO init failed\n");
 		if(cfgini->biot_actionIOfailure != AOF_NOOP){
 			exit(EXIT_FAILURE);
@@ -248,9 +246,12 @@ char	sbuf[MAXMSGLEN];
 	
 	gwset = new modemcfg_t[cfgini->loranumchn];	// get space for # of supported Gateway cfg sets
 	for(int i = 0; i < cfgini->loranumchn; i++){
-		gwset[i].modemid = i;
-		setmodemcfg(&gwset[i]);		
-		gwset[i].modem = (Radio *) NULL;
+		gwset[i].modemid	= i;
+		gwset[i].gwid		= GWIDx - i;
+		gwset[i].chncfg		= 0;
+		setmodemcfg(&gwset[i]);
+		gwset[i].modem		= (Radio *) NULL;
+		gwset[i].gwq		= (MsgQueue*) NULL;
 	}
 	
 	return(0);

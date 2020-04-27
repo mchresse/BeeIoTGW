@@ -126,8 +126,9 @@ u4_t os_aes (u1_t mode, xref2u1_t buf, u2_t len);
 //******************************************************************
 // NodeWLTable -> manually preset for reference of join requests
 typedef struct{
-	byte	nodeid;
-	byte	gwid;
+	byte	nodeid;		// Node ID (base: NODEIDBASE + 0...MAXNODES)
+	byte	gwid;		// GW ID   (base: GWIDx - 0...MAXGW) 
+	byte	mid;		// Modem ID(base: 0...mactive) -> NwSrv
 	byte	AppEUI[8];	// corresponding unique AppEUI of serving App
 	byte	DevEUI[8];	// Node unique DevEUI
 	byte	reportfrq;	// [min] Frequency of Status data reports
@@ -144,6 +145,7 @@ typedef struct{
 	byte		AppSKey[16];
 	byte		NwSKey[16];
 	devaddr_t	DevAddr;
+	byte		mid;		// Modem ID corresponding to nodecfg.gwid
 } nodedb_t;
 
 //******************************************************************

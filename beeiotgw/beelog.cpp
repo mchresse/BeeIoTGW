@@ -84,7 +84,7 @@ char	logpath[1024];			// log file path buffer
 	// Build the LOG File data entry+--
 	logline[0] = 0;
 	sprintf(logline, "%s: %s\r\n", TimeString, comment);	// get header line text
-	BHLOG(LOGBH) printf("    BeeLog: %s", logline);
+	BHLOG(LOGBH) printf("  BeeLog: %s", logline);
 	
 	// now write logdata to file
 	sprintf(logpath, "%s/%s", cfgini->web_root, cfgini->biot_LOGFILE); 
@@ -93,7 +93,7 @@ char	logpath[1024];			// log file path buffer
 	if (!bhlog) {
 		//----- FILE NOT FOUND -----	
 		if(!(bhlog = fopen(logpath, "rw"))){	// retry open file with rw parameters
-			printf("	BeeLog: File not found and could not be created at %s\n", logpath);
+			printf("  BeeLog: File %s not found and could not be created\n", logpath);
 			return(-1);
 		}
 		// else new file created
@@ -182,7 +182,7 @@ int		idx;
 	if (!bhlog) {
 		// original log file not existing -----> FILE NOT FOUND -----	
 		if(!(bhlog = fopen(logpath, "rw"))){	// retry open file with rw parameters
-			printf("    BeeCSV: File not found and could not be created at %s\n", logpath);
+			printf("  BeeCSV: File not found and could not be created at %s\n", logpath);
 			return(-1);
 		}
 		// else new file created

@@ -29,10 +29,26 @@
 #define LOGSD		32		// 32:  SD Card & local data handling
 #define LOGADS		64              // 64:  ADS BMS monitoring routines /w ADS1115S
 #define LOGSPI		128		// 128: SPI Init
-#define LOGLORAR	256		// 256: LoRa Init: Radio layer
-#define LOGLORAW	512		// 512: LoRa Init: BeeIoT-WAN
+#define LOGLORAR	256		// 256: LoRa Init: Radio class
+#define LOGLORAW	512		// 512: LoRa Init: BeeIoT-WAN (NwSrv class)
+#define LOGQUE		1024	//1024: MsgQueue & MsgBuffer class handling
+#define LOGJOIN		2048	//2048: JOIN service class
+#define LOGBIOT		4096	//4096: BIoT	Application class
+#define LOGGH		8192	//8192: GH		Application class
+#define LOGTURTLE  16384	//16384:Turtle	Application class
 
 #define	BHLOG(m)	if(lflags & m)	// macro for Log evaluation (type: uint)
+
+// Class Exception return codes
+// MSB declares Base of Except. Class (like 0x10xx:	Exceptions from Radio class)
+// LSB declares Except. Type	(like 0x01: Constructor failed
+#define	EX_RADIO_INIT	0x0101		// Radio Constructor failed -> del. instance
+#define	EX_MSGQU_INIT	0x0201		// MsgQueue Constructor failed -> del. instance
+#define	EX_NWSRV_INIT	0x0301		// NwSrv Constructor failed -> del. instance
+#define	EX_JSRV_INIT	0x0401		// JoinSrv Constructor failed -> del. instance
+#define	EX_APPBIOT_INIT	0x1001		// App: BIoT Srv Constructor failed -> del. instance
+#define	EX_APPGH_INIT	0x1101		// App: GH Srv Constructor failed -> del. instance
+#define	EX_APPTURTLE_INIT 0x1201	// App: Turtle Srv Constructor failed -> del. instance
 
 // Action on IO failure (e.g. file open failure, No OW sensors, No weightcell)
 // config -> bh_actionIOfailure
