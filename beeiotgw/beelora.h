@@ -17,15 +17,12 @@
 #ifndef BEELORA_H
 #define BEELORA_H
 
-#include <string>
-#include "gwqueue.h"
-
 // LoRaLogStatus() logging modes
 #define LOGDYN	1
 #define LOGSTAT 2
 #define LOGALL	3
 
-// Target platform as C library
+// Target platform types
 typedef unsigned char      bit_t;
 typedef unsigned char	   byte;
 typedef unsigned char      u1_t;
@@ -48,7 +45,9 @@ typedef              s4_t  ostime_t;		// tome stamp for LoRa messages
 // -> wPi Mode !
 #define CFG_sx1276_radio		// type of Dragino Hat LoRa chip
 
-#define RXled		 LORAdio0
+// #define RXled	LORAdio0
+#define SPI0		0			// use RPi SPI channel 0
+#define SPIFRQ		500000		// use SPI channel Frequency 0,5MHz
 
 // purpose of receive window - like lmic_t.rxState
 enum { RADIO_RST=0, RADIO_TX, RADIO_RX, RADIO_RXON };
@@ -94,8 +93,7 @@ enum {	NODEID1=NODEIDBASE+1, NODEID2, NODEID3, NODEID4, NODEID5};	// Transfer ID
 #endif
 
 // ======================================================================
-// AES support 
-// !!Keep in sync with lorabase.hpp!!
+// AES support -> aes.cpp
 
 #ifndef AES_ENC  // if AES_ENC is defined as macro all other values must be too
 #define AES_ENC       0x00 

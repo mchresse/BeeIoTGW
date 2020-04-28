@@ -19,11 +19,11 @@
 #include <time.h>
 
 
-// #define MAX_PAYLOAD_LENGTH          0x80	// max. # of bytes to be transmitted
 #include "BeeIoTWan.h"
-#include "beelora.h"
 #include "beeiot.h"
-// #include "oslmic.h"
+#include "gwqueue.h"
+#include "beelora.h"
+#include "radio.h"
 
 #define AES_MICSUB 0x30 // internal use only
 

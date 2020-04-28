@@ -39,23 +39,22 @@
  *******************************************************************************
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <inttypes.h>
 #include <iostream>
+#include <cstdint>
+#include <cstring>
 #include <sys/time.h>
 
 #include "base64.h"
-// #include "loraregs.h"
 
 #define CHANNELTAB_EXPORT // enable channelcfg tab instance here: channeltable_t	txchntab[MAX_CHANNELS]
 #include "BeeIoTWan.h"
 #undef CHANNELTAB_EXPORT  // block double instanciation
 
-#include "beelora.h"
 #include "beeiot.h"
-
+#include "gwqueue.h"	// using STL container classes
+#include "regslora.h"
+#include "beelora.h"
+#include "radio.h"
 
 //******************************************************************************
 // central Logging flags
@@ -66,7 +65,7 @@ extern configuration * cfgini;			// ptr. to struct with initial parameters
 nodewltable_t WLTab[MAXNODES+1]={ // +1 for dummy JOIN line ID=0
 // => The index position in this table results in corresponding NodeID: NODEIDBASE+idx !
 // 0: Dummy start marker of table (NODEID == 0x00 -> used for JOIN requests => don't change)
-	0x00, 0x00, 0x00, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0,  0,0,0,
+	NODEIDBASE, GWIDx, 0,  0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0,  1,0,0,
 //---------------------------------------------------
 // 1: BeeIoT ESP32-WROOM32:	DC8AD5286F24
 	NODEID1, GWID1,	0, BIoT_EUID,					// AppEUI: BIoT
@@ -93,12 +92,12 @@ int JS_RegisterNode	(beeiotpkg_t * joinpkg, int async);
 int JS_ValidatePkg	(beeiotpkg_t* mystatus);
 int	ByteStreamCmp	(byte * bina, byte * binb, int binlen);
 
-int JS_AppProxy(int ndid, char * framedata, byte framelen);
+int JS_AppProxy(int ndid, char * framedata, byte framelen, int mid);
 
 // in BIoTApp.cpp
-extern int AppBIoT		(int ndid, char* data, byte len);	// Bee Weight Scale App
-extern int AppTurtle	(int ndid, char* data, byte len);	// Turtle House Control App
-extern int AppGH		(int ndid, char* data, byte len);	// GreenHouse Control App
+extern int AppBIoT		(int ndid, char* data, byte len, int mid);	// Bee Weight Scale App
+extern int AppTurtle	(int ndid, char* data, byte len, int mid);	// Turtle House Control App
+extern int AppGH		(int ndid, char* data, byte len, int mid);	// GreenHouse Control App
 
 
 //***************************************************************************
@@ -325,7 +324,7 @@ int ByteStreamCmp(byte * bina, byte * binb, int binlen){
 
 //******************************************************************************
 // AppProxy()
-int JS_AppProxy(int ndid, char * framedata, byte framelen){	// ndid refers to valid WLTab entry	
+int JS_AppProxy(int ndid, char * framedata, byte framelen, int mid){	// ndid refers to valid WLTab entry	
 nodedb_t	  * pndb;	// ptr for update of nodedb[]
 int idx;
 int rc;
@@ -338,7 +337,7 @@ int rc;
 	};
 
 	// Jump table for node assigned App Server functions
-	int (* const fapp[])(int, char *, byte) ={
+	int (* const fapp[])(int, char *, byte, int) ={
 		AppBIoT,	// 0: Bee weight cell App
 		AppTurtle,	// 1: Turtle House control App
 		AppGH,		// 2: GreenHouse Control App
@@ -356,7 +355,8 @@ int rc;
 	}
 
 	// call assigned APP Server function with given Frame-payload
-	rc = fapp[idx](ndid, framedata, framelen);
+	rc = fapp[idx](ndid, framedata, framelen, mid);
+
 
 	return(rc);
 }

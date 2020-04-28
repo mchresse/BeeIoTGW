@@ -38,14 +38,16 @@
  *******************************************************************************
  */
 #include <iostream>
+#include <cstdint>
 #include <cstring>
-
+#include <sys/time.h>
+ 
 #include "BeeIoTWan.h"
-#include "beelora.h"
 #include "beeiot.h"
-#include "gwqueue.h"	// using STL container classes
+#include "gwqueue.h"
+#include "beelora.h"
+#include "regslora.h"
 #include "radio.h"
-  
 using namespace std;
 
 extern unsigned int	lflags;               // BeeIoT log flag field

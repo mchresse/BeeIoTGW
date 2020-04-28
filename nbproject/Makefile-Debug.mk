@@ -75,32 +75,32 @@ ${CND_DISTDIR}/${CND_CONF}/${CND_PLATFORM}/beeiotgw: ${OBJECTFILES}
 ${OBJECTDIR}/beeiotgw/BIoTApp.o: beeiotgw/BIoTApp.cpp
 	${MKDIR} -p ${OBJECTDIR}/beeiotgw
 	${RM} "$@.d"
-	$(COMPILE.cc) -g -std=c++11 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/beeiotgw/BIoTApp.o beeiotgw/BIoTApp.cpp
+	$(COMPILE.cc) -g -std=c++14 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/beeiotgw/BIoTApp.o beeiotgw/BIoTApp.cpp
 
 ${OBJECTDIR}/beeiotgw/JoinSrv.o: beeiotgw/JoinSrv.cpp
 	${MKDIR} -p ${OBJECTDIR}/beeiotgw
 	${RM} "$@.d"
-	$(COMPILE.cc) -g -std=c++11 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/beeiotgw/JoinSrv.o beeiotgw/JoinSrv.cpp
+	$(COMPILE.cc) -g -std=c++14 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/beeiotgw/JoinSrv.o beeiotgw/JoinSrv.cpp
 
 ${OBJECTDIR}/beeiotgw/NwSrv.o: beeiotgw/NwSrv.cpp
 	${MKDIR} -p ${OBJECTDIR}/beeiotgw
 	${RM} "$@.d"
-	$(COMPILE.cc) -g -std=c++11 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/beeiotgw/NwSrv.o beeiotgw/NwSrv.cpp
+	$(COMPILE.cc) -g -std=c++14 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/beeiotgw/NwSrv.o beeiotgw/NwSrv.cpp
 
 ${OBJECTDIR}/beeiotgw/aes.o: beeiotgw/aes.cpp
 	${MKDIR} -p ${OBJECTDIR}/beeiotgw
 	${RM} "$@.d"
-	$(COMPILE.cc) -g -std=c++11 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/beeiotgw/aes.o beeiotgw/aes.cpp
+	$(COMPILE.cc) -g -std=c++14 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/beeiotgw/aes.o beeiotgw/aes.cpp
 
 ${OBJECTDIR}/beeiotgw/base64.o: beeiotgw/base64.cpp
 	${MKDIR} -p ${OBJECTDIR}/beeiotgw
 	${RM} "$@.d"
-	$(COMPILE.cc) -g -std=c++11 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/beeiotgw/base64.o beeiotgw/base64.cpp
+	$(COMPILE.cc) -g -std=c++14 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/beeiotgw/base64.o beeiotgw/base64.cpp
 
 ${OBJECTDIR}/beeiotgw/beelog.o: beeiotgw/beelog.cpp
 	${MKDIR} -p ${OBJECTDIR}/beeiotgw
 	${RM} "$@.d"
-	$(COMPILE.cc) -g -std=c++11 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/beeiotgw/beelog.o beeiotgw/beelog.cpp
+	$(COMPILE.cc) -g -std=c++14 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/beeiotgw/beelog.o beeiotgw/beelog.cpp
 
 ${OBJECTDIR}/beeiotgw/getini.o: beeiotgw/getini.c
 	${MKDIR} -p ${OBJECTDIR}/beeiotgw
@@ -110,7 +110,7 @@ ${OBJECTDIR}/beeiotgw/getini.o: beeiotgw/getini.c
 ${OBJECTDIR}/beeiotgw/gwqueue.o: beeiotgw/gwqueue.cpp
 	${MKDIR} -p ${OBJECTDIR}/beeiotgw
 	${RM} "$@.d"
-	$(COMPILE.cc) -g -std=c++11 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/beeiotgw/gwqueue.o beeiotgw/gwqueue.cpp
+	$(COMPILE.cc) -g -std=c++14 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/beeiotgw/gwqueue.o beeiotgw/gwqueue.cpp
 
 ${OBJECTDIR}/beeiotgw/ini.o: beeiotgw/ini.c
 	${MKDIR} -p ${OBJECTDIR}/beeiotgw
@@ -120,12 +120,12 @@ ${OBJECTDIR}/beeiotgw/ini.o: beeiotgw/ini.c
 ${OBJECTDIR}/beeiotgw/main.o: beeiotgw/main.cpp
 	${MKDIR} -p ${OBJECTDIR}/beeiotgw
 	${RM} "$@.d"
-	$(COMPILE.cc) -g -std=c++11 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/beeiotgw/main.o beeiotgw/main.cpp
+	$(COMPILE.cc) -g -std=c++14 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/beeiotgw/main.o beeiotgw/main.cpp
 
 ${OBJECTDIR}/beeiotgw/radio.o: beeiotgw/radio.cpp
 	${MKDIR} -p ${OBJECTDIR}/beeiotgw
 	${RM} "$@.d"
-	$(COMPILE.cc) -g -std=c++11 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/beeiotgw/radio.o beeiotgw/radio.cpp
+	$(COMPILE.cc) -g -std=c++14 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/beeiotgw/radio.o beeiotgw/radio.cpp
 
 # Subprojects
 .build-subprojects:

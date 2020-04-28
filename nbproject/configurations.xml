@@ -60,7 +60,8 @@
       </toolsSet>
       <compileType>
         <ccTool>
-          <standard>8</standard>
+          <standard>11</standard>
+          <commandlineTool>g++</commandlineTool>
         </ccTool>
         <linkerTool>
           <linkerLibItems>

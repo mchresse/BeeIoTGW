@@ -9,7 +9,6 @@
 #define _RADIO_H
 
 #include "regslora.h"
-#include <memory>
 
 //***************************************************************
 // LoRa Modem Hardware IO & IRQ callback function declarations
@@ -32,10 +31,17 @@ typedef struct {
 typedef struct{
 	byte		modemid;	// index of modem instance	-> set by main() cfgini
 	byte		gwid;		// modem corresponding Pkg GWIDx
-	byte		chncfg;		// ID of channel configuration set
+	byte		chncfgid;	// ID of channel configuration set
 	iopins_t	iopins;		// GPIO port definition	-> set by main() cfgini
 	Radio *		modem;		// ptr to modem instance -> set by constructor
 	MsgQueue *	gwq;		// ptr to modem Msg Queue for all GW channels
+
+    // Statistic: to be initialize/updated by radio layer during rx/tx package handling
+    uint32_t cp_nb_rx_rcv;	// # received packages
+    uint32_t cp_nb_rx_ok;	// # of correct received packages
+    uint32_t cp_up_pkt_fwd;	// # of sent status packages to REST/WEb service
+    uint32_t cp_nb_rx_bad;	// # of invalid RX packages
+    uint32_t cp_nb_rx_crc;	// # of RX packages /w CRC error
 }modemcfg_t;
 
 // Radio-Modem internal used config channel set
@@ -53,30 +59,30 @@ typedef struct{
 
 // Radio internal housekeeping
 typedef struct {
-	byte	 modemid;			// Modem ID: 0.. cfgini->loranumchn;
-	chncfg_t chncfg;			// Configuration of modem LoRa transmit channel
+	byte	 modemid;		// Modem ID: 0.. cfgini->loranumchn;
+	chncfg_t chncfg;		// Configuration of modem LoRa transmit channel
 
 	// current LoRa Modem Op.Mode
-	byte currentMode;			// Modem status: SLEEP/IDLE/RX/TX
-	byte chiptype;				// Modem chip type: Semtech LoRa Chip: SX1276 0x12, =0: unknown
+	byte currentMode;		// Modem status: SLEEP/IDLE/RX/TX
+	byte chiptype;			// Modem chip type: Semtech LoRa Chip: SX1276 0x12, =0: unknown
 	MsgQueue * gwq;				// local Ptr on Modem MsgQueue of LoRa Packages
 	
 	// used by ISR routine
-	int	 irqlevel;				// =0..n IRQ Enable semaphore: (0: IRQs allowed) 
-	byte snr;					// Signal/Noise Ratio level [db]
-	byte rssi;					// Received signal strength indication [dbm]
-	byte rxbuffer[256];			// generic frame buffer for unknown packages
-	byte rxdlen;				// length of generic/unknown package
-	byte txbuffer[256];			// universal TX buffer
-	byte txdlen;				// length of TX package to be sent
+	int	 irqlevel;			// =0..n IRQ Enable semaphore: (0: IRQs allowed) 
+	byte snr;				// Signal/Noise Ratio level [db]
+	byte rssi;				// Received signal strength indication [dbm]
+	byte rxbuffer[256];		// generic frame buffer for unknown packages
+	byte rxdlen;			// length of generic/unknown package
+	byte txbuffer[256];		// universal TX buffer
+	byte txdlen;			// length of TX package to be sent
 
 	// (initialized by radio_init(), used by radio_rand1())
 	u1_t randbuf[16];
 
-	struct timeval now;			// current timestamp used each time a ISR time check is done
-	unsigned long txstart;		// tstamp when TX Mode was entered
-	unsigned long txend;		// Delta: now - txstart
-	unsigned long rxtime;		// tstamp when last rx package arrived
+	struct timeval now;		// current timestamp used each time a ISR time check is done
+	unsigned long txstart;	// tstamp when TX Mode was entered
+	unsigned long txend;	// Delta: now - txstart
+	unsigned long rxtime;	// tstamp when last rx package arrived
 } modemset_t;
 
 //*****************************************
@@ -105,7 +111,7 @@ public:
 	Radio(modemcfg_t * modemcfg); // Detect SX lora chip and setup config channel
 	~Radio();					// reset SX Chip (Sleep)
 
-	int	 GetModemIdx(void);		// deliver index of modem instance
+	int	 getmodemidx(void);		// deliver index of modem instance
 	long getchannelfrq(void);	// channel frequency e.g.868.1MHz
 	sf_t getspreading(void);	// channel spreading factor SFx
 	bw_t getband(void);			// Bandwidth: 
@@ -118,95 +124,101 @@ public:
 
 	// Deliver current Modem OpMode
 	byte getopmode(void);
-	// Set SX chip Operation mode
-	void setopmode (u1_t mode);
 
-	// Set Modem Channel configuration: cfgidx == index to txchntab[]
-	void setchannelconfig(byte cfgidx);
-
-	// TX Frame via Lora Modem
-	void starttx (byte* frame, byte dataLen);
-	// RX Lora Modem Channel in Single or RXCont Mode
+	// TX pkg frame via Lora Modem
+	int  starttx (byte* frame, byte dataLen, bool async);
+	// RX Lora Modem Channel in RXSingle or RXCont Mode
 	void startrx (u1_t rxmode, int rxtime);
 	
-	void Radio_AttachIRQ(uint8_t irq_pin, int irqtype, void (*ISR_callback)(void));
-	void MyIRQ0(void);	// DIO0 IRQ wrapper
-	void MyIRQ1(void);	// DIO1 IRQ wrapper
-	void MyIRQ2(void);	// DIO2 IRQ wrapper
-
-		
-	// Hardware DIOx-IRQ function ptr for dyn. table used in  isr_init();
-    IrqHandler *dioISR;
-	
-	// link GW Queue to modem session
+	// link GW Queue to modem session async to instance creation
 	void assign_gwqueue(MsgQueue & gwq);
 
-	// Helper function in Msg Queue handling for direct SX FiFo read to MsgBuffer
+	// Helper function from MsgBuffer: Direct SX FiFo read to MsgBuffer
 	friend int	MsgBuffer::setpkgfifo(Radio * Modem, byte sxreg, int dlen);
 
-	//******************************************************************************
+	// Attach (non-member !) ISR function ptr (created as Lambda function) to IRQ GPIO line
+	void Radio_AttachIRQ(uint8_t irq_pin, int irqtype, void (*ISR_callback)(void));
+	void MyIRQ0(void);		// DIO0 IRQ member function wrapper
+	void MyIRQ1(void);		// DIO1 IRQ member function wrapper
+	void MyIRQ2(void);		// DIO2 IRQ member function wrapper
+
+	// MyIRQx ISR function ptr table for dyn. GPIO-DIOx assignment used in isr_init();
+	IrqHandler *dioISR;		// Ptr table root allocated by Radio()
+
+		//******************************************************************************
 protected:
 
 	
 //******************************************************************************
 private:
-
+	
+	//**************************************************************************
+	// RADIO data: default cfg. struct
+	//
+	// *ModemP: ptr to global modem core configuration table defined in main()-init_all()
+	modemcfg_t* modemp;		// major static input for Radio constructor
+	
+	// internal modem channel configuration settings for runtime usage
+	modemset_t  mset;       // housekeeping: status and user->init values    	
+    
+	// TX Done Flag: =1 TXDone / channel free, =0 TX still in work
+    bool        TXDoneFlag;	// Semaphore for sent message finalization,set by ISR
 
 	//**************************************************************************
-	// RADIO layer: default cfg. settings
-	//
-	modemcfg_t* modemp;		// modem related initial config settings for constructor
-	modemset_t	mset;		// internal modem channel configuration settings	
-
-
-	//Detect supported modem chiptype
-	int getchiptype(void);
-
-	// preset HW GPIO definitions for selected Modem of Radio-Instance
-	int  setmodemcfg(byte channelidx);
-	
-	// RADIO HAL member functions using WiringPi lib
+	// RADIO member functions: 
+	// - HAL functions for Reset / RD / WR via SPI bus
+	//   using WiringPi lib
 	void hal_pin_nss (u1_t val);		// Control CS line of SX chip
 	
-	// Core SPI write of given byte out to radio, read byte from radio and return value.
+	// RADIO HAL: Core SPI write of given byte out to radio, read byte from radio and return value.
 	u1_t hal_spi (u1_t out);			// send 1 Byte via SPI channel via wiringPi Lib	
 
-	// Core SPI transfer with address and one single byte:
+	// RADIO HAL: Core SPI transfer with address and one single byte:
 	u1_t hal_spi_single (u1_t address, u1_t out); 
 
-	// Reset RFM96 module == SX1276 base
-	void resetModem(void);
-
-	// SPI cycle: Enable CS, set address and write 1 Byte, disable CS
+	// RADIO HAL: SPI cycle: Enable CS, set address and write 1 Byte, disable CS
 	void writeReg (u1_t addr, u1_t data );
 
-	// SPI cycle: Enable CS, set address and read 1 Byte, disable CS
+	// RADIO HAL: SPI cycle: Enable CS, set address and read 1 Byte, disable CS
 	u1_t readReg (u1_t addr);
 
-	// SPI cycle: Enable CS, Loop(len): set address and write bytewise from buffer, disable CS
+	// RADIO HAL: SPI cycle: Enable CS, Loop(len): set address and write bytewise from buffer, disable CS
 	void writeBuf (u1_t addr, xref2u1_t buf, u1_t len);
 
-	// SPI cycle: Enable CS, Loop(len): set address and read bytewise to buffer, disable CS
+	// RADIO HAL: SPI cycle: Enable CS, Loop(len): set address and read bytewise to buffer, disable CS
 	void readBuf (u1_t addr, xref2u1_t buf, u1_t len);
 
-	// Set SX chip Operation mode
-	void opmode (u1_t mode);
+	// RADIO HAL: Reset RFM96 module == SX1276 base
+	void resetModem(void);
 	
+	
+	// Get Modem Channel configuration by cfgidx ==> index for mset.chncfg[]
+	void setchannelconfig(byte cfgidx);
+
+	//Detect supported modem chiptype
+	int	 getchiptype(void);
+
 	// Initialize operation mode of SX chip: LORA + SLEEP
-	void opmodeLora(void);
+	void setLoraMode(void);
 	
+	// Set SX chip Operation mode
+	void setopmode (u1_t mode);
+
+	// set Lora Modem channel frequency
+	void configChannelFreq(void);
+
 	// Configure Lora Modem Registers cfg1+2+3 based on config channel settings
 	void configLoraModem(void);	
 	
-	// set Lora Modem Config channel: FREQ
-	void configChannel(void);
+	// get random seed from wideband noise rssi
+	void radio_init(void);
+	
+	// preset HW GPIO definitions for selected Modem of Radio-Instance
+//	int  setmodemcfg(byte channelidx);
 
 	// Set TX Power configuration
 	void configPower (void);	// easy way	(deprecated)
 	void configPower2 (void);	// by LMIC: negotiate power class policy by bandwidth
-	
-	// get random seed from wideband noise rssi
-	void radio_init(void);
 
 	// return next random byte derived from randbuf seed buffer
 	// (buf[0] holds index of next byte to be returned)
@@ -229,4 +241,3 @@ private:
 }; // end of RADIO-class
 
 #endif /* _RADIO_H */
-

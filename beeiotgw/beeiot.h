@@ -59,11 +59,9 @@
 //*******************************************************************
 // Global data declarations
 //*******************************************************************
-#define MAXMSGLEN	1024		// length of univ. message buffer
 
 #define DROWNOTELEN	129
 #define LENTMSTAMP	20
-
 typedef struct {			// data elements of one log line entry
     int     index;			// index of status data data assigned by the node
     char  	timeStamp[LENTMSTAMP];  // time stamp of sensor row  e.g. 'YYYY-MM-DD HH:MM:SS'
@@ -92,16 +90,16 @@ typedef struct {
     char	date[LENDATE];		// Date Stamp: 2019-10-28
     char	time[LENTIME];		// Time Stamp: 08:10:15
     char	ipaddr[LENIPADDR];	// local IPv4 Address xxx:xxx:xxx:xxx
-    char	macaddr[LENMACADDR];    // local MAC  Address xx:xx:xx:xx:xx:xx
-    int         loopid;                 // sensor data set sample ID assigned by the node
-    int		packid;			// package index to assure LoRa sequentiality
-    uint64_t    BoardID;                // unique Identifier of MIC board (6 Byte effective) not used by now
-    unsigned char NodeID;               // unique Identifier (short) of BIoT Network to expand CSV file name
+    char	macaddr[LENMACADDR];// local MAC  Address xx:xx:xx:xx:xx:xx
+    int		loopid;             // sensor data set sample ID assigned by the node
+    int		packid;				// package index to assure LoRa sequentiality
+    uint64_t BoardID;			// unique Identifier of MIC board (6 Byte effective) not used by now
+    uint8_t	 NodeID;			// unique Identifier (short) of BIoT Network to expand CSV file name
     datrow	dlog[datasetsize];	// all sensor data set logs till upload to server
 } dataset;
 
 #define	CSV_HEADER	"Datum,Zeit,GewichtBeute,Temp.Extern,TempIntern,Temp.Beute1,Temp.RTC,Batt.ESP3V,Board5V,BattCharge,BattLoad,BattLevel"
-#define LOGLINELEN	1024            // max length of one log textline incl. comments
+#define LOGLINELEN	1024	// max length of one log textline incl. comments
 #define LOGDATELEN	32		// length of log dat&time string
 #define LOGNOTELEN	512		// length of logline comment string
 #define WEBIDXMAXLLEN	512

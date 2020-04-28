@@ -48,12 +48,10 @@
 // For used 3rd party open source see also Readme_OpenSource.txt
 //*******************************************************************
 
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <stdint.h>
+#include <iostream>
+#include <cstdint>
+#include <cstring>
 #include <sys/time.h>
-#include <time.h>
 
 #include <sys/ioctl.h>
 #include <net/if.h>
@@ -64,8 +62,10 @@
 #include <wiringPiSPI.h>
 
 #include "BeeIoTWan.h"
-#include "beelora.h"
 #include "beeiot.h"
+#include "gwqueue.h"
+#include "beelora.h"
+#include "regslora.h"
 #include "radio.h"
 
 /*******************************************************************************
@@ -82,6 +82,7 @@ dataset	bhdb;					// central beeIoT data DB
 configuration * cfgini;			// ptr. to struct with initial parameters
 modemcfg_t	*	gwset;		// GateWay related config sets for Radio Instantiation
 
+#define MAXMSGLEN	1024		// length of univ. message buffer
 char	csv_notice[MAXMSGLEN];	// free notice field for *.csv file
 	
 // to retrieve local LAN Port MAC address
@@ -92,7 +93,6 @@ struct ifreq ifr;
 extern struct timeval now;		// current tstamp used each time a time check is done
 extern char	  TimeString[128];	// contains formatted Timestamp string of each loop(in main())
 
-#define MAXMSGLEN	1024		// length of univ. message buffer
 
 //******************************************************************************
 //  Function prototypes
@@ -248,10 +248,16 @@ char	sbuf[MAXMSGLEN];
 	for(int i = 0; i < cfgini->loranumchn; i++){
 		gwset[i].modemid	= i;
 		gwset[i].gwid		= GWIDx - i;
-		gwset[i].chncfg		= 0;
+		gwset[i].chncfgid	= 0;
 		setmodemcfg(&gwset[i]);
 		gwset[i].modem		= (Radio *) NULL;
 		gwset[i].gwq		= (MsgQueue*) NULL;
+		// Statistic: to be initialized/updated by radio layer during rx/tx package handling
+        gwset[i].cp_nb_rx_rcv	= 0;	// # received packages / modem
+        gwset[i].cp_nb_rx_ok	= 0;	// # of correct received packages
+        gwset[i].cp_up_pkt_fwd	= 0;	// # of sent status packages to REST/WEb service
+        gwset[i].cp_nb_rx_bad	= 0;	// # of invalid RX packages
+        gwset[i].cp_nb_rx_crc	= 0;	// # of RX packages /w CRC error
 	}
 	
 	return(0);
@@ -280,7 +286,7 @@ int setmodemcfg(modemcfg_t * modem){
 			modem->iopins.sxdio3	= cfgini->lora0dio3;
 			modem->iopins.sxdio4	= cfgini->lora0dio4;
 			modem->iopins.sxdio5	= cfgini->lora0dio5;
-			modem->chncfg			= cfgini->lora0channel;
+			modem->chncfgid			= cfgini->lora0channel;
 			break;
 		case 1:
 			modem->iopins.sxcs		= cfgini->lora_cs1;
@@ -291,7 +297,7 @@ int setmodemcfg(modemcfg_t * modem){
 			modem->iopins.sxdio3	= cfgini->lora1dio3;
 			modem->iopins.sxdio4	= cfgini->lora1dio4;
 			modem->iopins.sxdio5	= cfgini->lora1dio5;
-			modem->chncfg			= cfgini->lora1channel;
+			modem->chncfgid			= cfgini->lora1channel;
 			break;
 		default: // don't know what to do  
 			return(-3);
