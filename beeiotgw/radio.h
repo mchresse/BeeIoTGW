@@ -26,48 +26,6 @@
 class Radio;	// forward declaration for typedef
 typedef void (Radio::*IrqHandler )( void );	// prototype of DIOx-IRQ handler routines
 
-// Global modem HW IO configuration settings (per instance)
-typedef struct {
-		byte	sxcs;		// Chip Select
-		byte	sxrst;		// Reset line
-		byte	sxdio0;		// DIOx IRQ line
-		byte	sxdio1;		// DIOx IRQ line
-		byte	sxdio2;		// DIOx IRQ line
-		byte	sxdio3;		// DIOx IRQ line
-		byte	sxdio4;		// DIOx IRQ line		
-		byte	sxdio5;		// DIOx IRQ line		
-}iopins_t;
-
-// Global Modem descriptor
-typedef struct{
-	byte		modemid;	// index of modem instance	-> set by main() cfgini
-	byte		gwid;		// modem corresponding Pkg GWIDx
-	byte		chncfgid;	// ID of channel configuration set
-	iopins_t	iopins;		// GPIO port definition	-> set by main() cfgini
-	Radio *		modem;		// ptr to modem instance -> set by constructor
-	MsgQueue *	gwq;		// ptr to modem Msg Queue for all GW channels
-
-    // Statistic: to be initialize/updated by radio layer during rx/tx package handling
-    uint32_t cp_nb_rx_rcv;	// # received packages
-    uint32_t cp_nb_rx_ok;	// # of correct received packages
-    uint32_t cp_up_pkt_fwd;	// # of sent status packages to REST/WEb service
-    uint32_t cp_nb_rx_bad;	// # of invalid RX packages
-    uint32_t cp_nb_rx_crc;	// # of RX packages /w CRC error
-}modemcfg_t;
-
-// Radio-Modem internal used config channel set
-typedef struct{ 
-	long freq;				// =EU868_F1..9,DN (EU868_F1: 868.1MHz)
-	s1_t pw;				// =2-16  TX PA Mode (14)
-	sf_t sf;				// =0..8 Spreading factor FSK,7..12,SFrFu (1:SF7)
-	bw_t bw;				// =0..3 RFU Bandwidth 125-500 (0:125kHz)
-	cr_t cr;				// =0..3 Coding mode 4/5..4/8 (0:4/5)
-	byte ih;				// =1 implicite Header Mode (0)
-	u1_t ihlen;				// =0..n if IH -> header length (0)
-	u1_t nocrc;				// =0/1 no CRC check used for Pkg (0)
-	u1_t noRXIQinv;			// =0/1 flag to switch RX+TX IQinv. on/off (1)
-}chncfg_t;
-
 // Radio internal housekeeping
 typedef struct {
 	byte	 modemid;		// Modem ID: 0.. cfgini->loranumchn;
@@ -156,7 +114,7 @@ public:
 	// MyIRQx ISR function ptr table for dyn. GPIO-DIOx assignment used in isr_init();
 	IrqHandler *dioISR;		// Ptr table root allocated by Radio()
 
-		//******************************************************************************
+//******************************************************************************
 protected:
 
 	

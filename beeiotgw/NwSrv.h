@@ -18,31 +18,29 @@
 #ifndef NWSRV_H
 #define NWSRV_H
 
-/*******************************************************************************
- *
- * BIoTWAN LoRA protocol Constants: Please customize for your new network:
- * (see also settings in beelora.h)
- *
- *******************************************************************************/
-
-#define NWSSCANDELAY	100			// [ms[ frequence of MsgQueue polling / modem
-									// finally defines min. reaction time per pkg
+// frequence of MsgQueue polling / modem; finally defines min. reaction time on pkg IRQ
+// set to 0 for multichannel mode with many nodes
+#define NWSSCANDELAY	100		// [ms]
 
 class NwSrv {
 public:
-	NwSrv(modemcfg_t *gwcfg, int nmodem); // Constructor
-	~NwSrv(void);							// Destructor
+	NwSrv(modemcfg_t *gwtab, int nmodem); // Constructor
+	~NwSrv(void);						  // Destructor
 	
 	// Start scanning of all discovered Modems -> endless (!)
 	// detected LoRa Pkgs from ISR are forwarded to BeeIoTParse()
 	// Finally Lora Modems reset to RXCont mode again
 	int NwNodeScan(void);
+	
+	// get number of activated and served modems by NwSrv
+	int	NwSrvModems(void);
+
 protected:
 
 private:
 	modemcfg_t *gwhwset;
-	int		mactive = 0;		// Max. number of detected active modems for RX/TX
-	struct  timeval	 now;		// current tstamp used each time a time check is done
+	int			mactive;		// Max. number of detected active modems for RX/TX
+	struct timeval now;			// current tstamp used each time a time check is done
 	char	TimeString[128];	// contains formatted Timestamp string
 
 	// Parsing of retrieved raw Lora pkg data for BIotWAN conformity

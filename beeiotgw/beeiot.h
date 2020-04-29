@@ -61,6 +61,55 @@
 //*******************************************************************
 // Global data declarations
 //*******************************************************************
+// Global modem HW IO configuration settings (per instance)
+typedef struct {
+		uint8_t	sxcs;		// Chip Select
+		uint8_t	sxrst;		// Reset line
+		uint8_t	sxdio0;		// DIOx IRQ line
+		uint8_t	sxdio1;		// DIOx IRQ line
+		uint8_t	sxdio2;		// DIOx IRQ line
+		uint8_t	sxdio3;		// DIOx IRQ line
+		uint8_t	sxdio4;		// DIOx IRQ line		
+		uint8_t	sxdio5;		// DIOx IRQ line		
+}iopins_t;
+
+// forward declaration for  modemcfg_t
+class Radio;
+class MsgQueue;
+class NwSrv;
+class JoinSrv;
+
+// Global Modem descriptor
+typedef struct{
+	uint8_t		modemid;	// index of modem instance	-> set by main() cfgini
+	uint8_t		gwid;		// modem corresponding Pkg GWIDx
+	uint8_t		chncfgid;	// ID of channel configuration set
+	iopins_t	iopins;		// GPIO port definition	-> set by main() cfgini
+	Radio		* modem;	// ptr to modem instance -> set by constructor
+	MsgQueue	* gwq;		// ptr to modem Msg Queue for all GW channels
+	NwSrv		* nws;		// ptr to the one and only Network service instance
+	JoinSrv		* jsrv;		// ptr to the one and only Join Service instance
+
+    // Statistic: to be initialize/updated by radio layer during rx/tx package handling
+    uint32_t cp_nb_rx_rcv;	// # received packages
+    uint32_t cp_nb_rx_ok;	// # of correct received packages
+    uint32_t cp_up_pkt_fwd;	// # of sent status packages to REST/WEb service
+    uint32_t cp_nb_rx_bad;	// # of invalid RX packages
+    uint32_t cp_nb_rx_crc;	// # of RX packages /w CRC error
+}modemcfg_t;
+
+// Radio-Modem internal used config channel set
+typedef struct{ 
+	uint64_t freq;			// =EU868_F1..9,DN (EU868_F1: 868.1MHz)
+	uint8_t pw;				// =2-16  TX PA Mode (14)
+	sf_t	sf;				// =0..8 Spreading factor FSK,7..12,SFrFu (1:SF7)
+	bw_t	bw;				// =0..3 RFU Bandwidth 125-500 (0:125kHz)
+	cr_t	cr;				// =0..3 Coding mode 4/5..4/8 (0:4/5)
+	uint8_t	ih;				// =1 implicite Header Mode (0)
+	uint8_t ihlen;			// =0..n if IH -> header length (0)
+	uint8_t nocrc;			// =0/1 no CRC check used for Pkg (0)
+	uint8_t noRXIQinv;		// =0/1 flag to switch RX+TX IQinv. on/off (1)
+}chncfg_t;
 
 #define DROWNOTELEN	129
 #define LENTMSTAMP	20
@@ -76,7 +125,7 @@ typedef struct {			// data elements of one log line entry
 	float	Board5V;		// Board 5000 mV Power line voltage level
 	float	BattCharge;		// Battery Charge voltage input >0 ... 5000mV 
 	float	BattLoad;		// Battery voltage level (typ. 3700 mV)
-	int	BattLevel;		// Battery Level in % (3200mV (0%) - 4150mV (100%))
+	int		BattLevel;		// Battery Level in % (3200mV (0%) - 4150mV (100%))
 	char	comment[DROWNOTELEN];
 } datrow;
 

@@ -52,7 +52,7 @@
 #include "beelora.h"
 #include "radio.h"
 #include "NwSrv.h"
-
+#include "JoinSrv.h"
 
 extern unsigned int		lflags;		// BeeIoT log flag field
 
@@ -61,13 +61,6 @@ extern configuration	*cfgini;	// ptr. to struct with initial user params
 // Global NodeDB[] for Node registration via JOIN command
 // -> typeset see beelora.h; instance in JoinSrv.cpp
 extern nodedb_t	NDB[];		// if 'NDB[x].nodeinfo.version == 0' => empty entry	
-
-// API to JoinSrv:
-extern int	JS_RegisterNode	(beeiotpkg_t * joinpkg, int async);
-extern int	JS_ValidatePkg	(beeiotpkg_t* mystatus);
-extern int	ByteStreamCmp	(byte * bina, byte * binb, int binlen);
-extern int	JS_AppProxy	(int ndid, char * framedata, byte framelen, int mid);
-
 
 
 //******************************************************************************
@@ -80,7 +73,7 @@ extern int	JS_AppProxy	(int ndid, char * framedata, byte framelen, int mid);
 //   0			all channel sessions finished successfully (never happens)
 //  throw(EX_NWSRV_INIT)	Constructor failed
 //
-NwSrv::NwSrv(modemcfg_t *modemcfg, int nmodem): gwhwset(modemcfg){	
+NwSrv::NwSrv(modemcfg_t *gwtab, int nmodem): gwhwset(gwtab){	
 
 	// get current timestamp
 	gettimeofday(&now, 0);
@@ -100,45 +93,15 @@ NwSrv::NwSrv(modemcfg_t *modemcfg, int nmodem): gwhwset(modemcfg){
 		BHLOG(LOGBH) printf("NwS: WiringPiSPISetup() failed: %s\n", errno);
 		throw(EX_NWSRV_INIT2);		// Gateway can not start		
 	}
-
-	// Init NodeDB[] for new node registrations:
-	// t.d.b.: to be moved to JOIN Srv Constructor
-	for(int i=0; i<MAXNODES; i++){
-		nodedb_t * pndb = &NDB[i];
-		//		BHLOG(LOGBH) printf("  NwS: NDB:%p - NDB[%i]:%p - pndb:%p\n", &NDB, i, &NDB[i], pndb);
-		NDB[i].nodeinfo.vmajor =0; // free entry if 'NDB[x].nodeinfo.vmajor == 0'
-		NDB[i].nodeinfo.vminor =0;
-		NDB[i].nodeinfo.devEUI[0] =0;
-		NDB[i].nodeinfo.devEUI[1] =0;
-		NDB[i].nodeinfo.devEUI[2] =0;
-		NDB[i].nodeinfo.devEUI[3] =0;
-		pndb->nodecfg.gwid		= GWIDx;
-		pndb->nodecfg.nodeid	= NODEIDBASE + i;	// a bit critical here: NODEIDx is defined statically
-		pndb->nodecfg.vmajor	= BIoT_VMAJOR;	// Major + Minor version: V01.00
-		pndb->nodecfg.vminor	= BIoT_VMINOR;
-		pndb->nodecfg.verbose	= 0;
-		pndb->nodecfg.channelidx =0;
-		pndb->nodecfg.freqsensor = (int) 60;	// [min] reporting frequence of status pkg.
-		NDB[i].msg.ack = 0;
-		NDB[i].msg.idx = 0;
-		NDB[i].msg.retries = 0;
-		NDB[i].msg.rssi = 0;
-		NDB[i].msg.snr = 0;	
-		NDB[i].msg.pkg = (beeiotpkg_t*)NULL;
-	}
 	
 	// Preset LoRa Modem Configuration	
 	// Modem Setting for RX Mode: 
 	int mid = 0;	// start with modem id = 0
 	
-	// 1. Create LoRa modem object
-	// 2. Create MSG Queue
-	// 3. Assign MsgQueue to LoRa Modem
+	// Create LoRa modem objects
 	for(mid; mid < nmodem; mid++){	// Min. 1 channel -> for JOIN needed
 		try{
 			gwhwset[mid].modem = new Radio(&gwhwset[mid]);		// instantiate LoRa Port 
-			// create new MsgQueue and assign to new Modem session
-			gwhwset[mid].gwq = new MsgQueue;		// create & store global Msg Queue ptr
 		} catch (int excode){
 				switch(excode){
 				case EX_RADIO_INIT:
@@ -151,16 +114,7 @@ NwSrv::NwSrv(modemcfg_t *modemcfg, int nmodem): gwhwset(modemcfg){
 
 					}
 					break;	// we have at least 1 modem, but stop scanning for more
-				case EX_MSGQU_INIT:
-					printf("  NwS: MsgQueue Exception (0x%04X) received\n", (unsigned int)excode); 
-					gwhwset[mid].gwq = (MsgQueue *)NULL;
-					if(mid==0){
-						printf("  NwS: Could not create MsgQueue for first Modem -> STOP BIoT Service\n");
-						delete gwhwset[mid].modem;	// release modem instance
-					//	exit(0);	// no modem found at all -> give up
-						throw(EX_NWSRV_INIT3);	// no modem found at all -> give up		
-					}
-					break;
+
 				default: 
 					printf("  NwS: Unknown exception received 0x%04X\n",(unsigned int)excode);
 					std::exception();
@@ -168,30 +122,34 @@ NwSrv::NwSrv(modemcfg_t *modemcfg, int nmodem): gwhwset(modemcfg){
 					break;// ???
 				}
 		} // end of try()
+	} // end of mid loop
 
-		// Modem & empty Queue instantiated: link Queue to Modem together
-		gwhwset[mid].modem->assign_gwqueue(*gwhwset[mid].gwq); // assign Queue to Modem
-		BHLOG(LOGQUE) gwhwset[mid].gwq->PrintStatus();	// show Queue status
-	}
+	mactive = mid;	// remember max. # of active/instantiated  modems now served by NwS
 
-	mactive = mid+1;	// remember max. # of active/instantiated  modems now served by NwS
+	BHLOG(LOGLORAW) printf("NwS: LoRa Gateway Setup Done for %i modem\n", mactive);
+} // end of NwSrv Constructor
 
-	BHLOG(LOGLORAW) printf("NwS: LoRa Gateway Setup Done for %i modems\n", mactive);
-}; // end of NwSrv Constructor
-
-
+//*****************************************************************************
+// ~NwSrv() - Destructor
+// Release of all instantiated (= active) modems
 NwSrv::~NwSrv(void){
 	for(int mid=0; mid < mactive; mid++){	// Min. 1 channel -> for JOIN needed
-		delete gwhwset[mid].gwq;		// release Msg Queue ptr
 		delete gwhwset[mid].modem;	// remove LoRa Modem
 		// create new MsgQueue and assign to new Modem session
 	}		
-};	// end of NwSrv Destructor
+}	// end of NwSrv Destructor
+
+
+//******************************************************************************
+// get number of activated and served modems by NwSrv
+int	NwSrv::NwSrvModems(void){
+	return(mactive);
+}
 	
 //******************************************************************************
 // NwNodeScan()
 // Start each Modem in RXCont Mode -> waiting for LoRa Packages.
-// Retrieved pkgs. by ISR ar fetched from MsgQueue and forwarded to BIoTParse()
+// Retrieved pkgs. by ISR are fetched from MsgQueue and forwarded to BIoTParse()
 // Finally RXCont mode is entered again for affected modem.
 // This routine serves endless searching for LoRa packages !
 //
@@ -245,9 +203,6 @@ int NwSrv::NwNodeScan(void) {
 			gwhwset[mid].modem->startrx(RXMODE_SCAN, 0);	// RX in RX_CONT Mode (Beacon Mode)
 			
 			// ISR now waiting for rising DIO0 level -> starting receivepacket() directly
-			gettimeofday(&now, 0);
-			strftime(TimeString, 80, "%d-%m-%y %H:%M:%S", localtime(&now.tv_sec));
-			BHLOG(LOGBH) printf("\nNwS: %s: *************** Waiting for a new LoRa package **************\n", TimeString);
 		}
 		
 		// Check RX Queue Status (len>0) and process package accordingly
@@ -278,6 +233,10 @@ int NwSrv::NwNodeScan(void) {
 			BHLOG(LOGBH) printf("  NwSrv: LoraStatistic - Rcv:%u, Bad:%u, CRC:%u, O.K:%u, Fwd:%u\n",
 				gwhwset[mid].cp_nb_rx_rcv, gwhwset[mid].cp_nb_rx_bad, gwhwset[mid].cp_nb_rx_crc, 
 				gwhwset[mid].cp_nb_rx_ok, gwhwset[mid].cp_up_pkt_fwd);
+
+			gettimeofday(&now, 0);
+			strftime(TimeString, 80, "%d-%m-%y %H:%M:%S", localtime(&now.tv_sec));
+			BHLOG(LOGBH) printf("\nNwS: %s: *************** Waiting for a new BIoTWAN package **************\n", TimeString);
 		}
 		
 	} // end of Modem-Loop
@@ -337,7 +296,7 @@ beeiotpkg_t mystatus;		// raw lora package buffer
 	pkglen =  (byte) mystatus.hd.frmlen + (byte)BIoT_HDRLEN + (byte)BIoT_MICLEN;
 
 	// now check real data: MIC & Header first -> JOIN server
-	rc = JS_ValidatePkg(&mystatus);
+	rc = gwhwset[mid].jsrv->JS_ValidatePkg(&mystatus);
 	if(rc < 0){
 	// no valid Node packet header -> Header IDs unknown or Node not joined yet
 		if (rc == -1 || rc == -2){ // -1: -> GWID;  -2: -> NodeID
@@ -380,7 +339,7 @@ beeiotpkg_t mystatus;		// raw lora package buffer
 	// Validate NwServer process flow:
 	// - If we already know this BeeIoT Package: check the msgid
 	if(ndid != 0){ // to be skipped during (RE-)JOIN request
-		if(mystatus.hd.pkgid == NDB[ndid].msg.idx){	// do we have already received this pkgid from this node ?
+		if(mystatus.hd.pkgid == gwhwset[mid].jsrv->NDB[ndid].msg.idx){	// do we have already received this pkgid from this node ?
 			BHLOG(LOGLORAW) printf("  BeeIoTParse: package (%d) duplicated -> package dropped ->send ACK\n\n", (unsigned char) mystatus.hd.pkgid); // yes	
 			// may be last ACK got lost, do it once again
 			needaction = CMD_ACK;	// already known, but o.k.
@@ -409,7 +368,7 @@ beeiotpkg_t mystatus;		// raw lora package buffer
 				(unsigned char)mystatus.hd.pkgid, TimeString);
 		BHLOG(LOGLORAR) hexdump((unsigned char*) &mystatus, pkglen);
 
-		rc = JS_RegisterNode(&mystatus, 0);	// evaluate WLTable and create NDB[] entry
+		rc = gwhwset[mid].jsrv->JS_RegisterNode(&mystatus);	// evaluate by WLTable and create NDB[] entry
 		if(rc >= 0){
 			ndid = rc;	// get index of new NDB-entry 
 			BHLOG(LOGLORAW) printf("  BeeIoTParse: New Node%i Send CONFIG (with new channel data) as ACK\n",ndid);
@@ -431,7 +390,7 @@ beeiotpkg_t mystatus;		// raw lora package buffer
 				(unsigned char) mystatus.hd.pkgid, TimeString);
 		BHLOG(LOGLORAR) hexdump((unsigned char*) &mystatus, pkglen);
 
-		rc = JS_RegisterNode(&mystatus, 0);	// evaluate WLTable and NDB[] entry
+		rc = gwhwset[mid].jsrv->JS_RegisterNode(&mystatus);	// evaluate by WLTable and existing NDB[] entry
 		if(rc >= 0){	// successfully reactivated
 			ndid = rc;	// get idx of known NDB-entry 
 			BHLOG(LOGLORAW) printf("  BeeIoTParse: Node Reactivated: Just Send CONFIG (with new channel data) as ACK\n");
@@ -451,7 +410,7 @@ beeiotpkg_t mystatus;		// raw lora package buffer
 		BHLOG(LOGLORAW) printf("  BeeIoTParse: AppPkg -> Sensor-Status received\n");	
 
 		// Forward Frame Payload to the assigned AppServer
-		rc = JS_AppProxy( (int) ndid, (char*) mystatus.data, (byte) mystatus.hd.frmlen, mid);
+		rc = gwhwset[mid].jsrv->JS_AppProxy( (int) ndid, (char*) mystatus.data, (byte) mystatus.hd.frmlen, mid);
 
 		// Was FramePayload complete ?
 		if(rc == -1){   // wrong parameter set => request a resend of same message: RETRY
@@ -531,11 +490,13 @@ beeiot_cfg_t	*pcfg;	// CONFIG has HD + CData	-> reuse of pkg message field
 nodedb_t		*pndb;	// ptr to NDB[ndid]
 byte			pkglen;	// length of raw TX pkg data (incl. MIC)
 struct tm		*tval;	// values of current timestamp
-int				mid;	// Modem ID (derived from GW id of pkg-header)
+int				mid=0;	// Modem ID (derived from GW id of pkg-header)
 Radio *			Modem;	// Ptr on Modem used for transmission 
 
 	BHLOG(LOGLORAR) printf("  BeeIoTFlow: New Action(async=%i): Send %s to Node:0x%02X\n", 
 					async, beeiot_ActString[action], NODEIDBASE+(byte)ndid);
+	pndb = &(gwhwset[0].jsrv->NDB[ndid]);	// get Cfg init data from NDB entry of this node
+
 	switch (action){
 	case CMD_NOP:	// fall thru by intention ==> like CMD_ACK
 	case CMD_RETRY: // fall thru by intention ==> like CMD_ACK
@@ -544,40 +505,38 @@ Radio *			Modem;	// Ptr on Modem used for transmission
 		delay(RXACKGRACETIME);
 
 		pack = (beeiot_header_t*) & actionpkg;
-		pndb = &NDB[ndid];	// get Cfg init data from NDB entry of this node
 		// lets acknowledge action cmd related to received package to sender
-		pack->destID = pkg->hd.sendID;	// The BeeIoT node is the messenger
-		pack->sendID = (u1_t) pndb->nodecfg.gwid; // New sender: its me
-		pack->cmd = action;				// get our action command
-		pack->pkgid = pkg->hd.pkgid;	// get last pkg msgid
-		pack->frmlen = 0;				// send BeeIoT header for ACK only
-		pkglen = BIoT_HDRLEN+BIoT_MICLEN; // just the BeeIoT header + MIC
+		pack->destID= pkg->hd.sendID;	 // The BeeIoT node is the messenger
+		pack->sendID= (u1_t) pndb->nodecfg.gwid; // New sender: its me
+		pack->cmd	= action;			 // get our action command
+		pack->pkgid = pkg->hd.pkgid;	 // get last pkg msgid
+		pack->frmlen= 0;				 // send BeeIoT header for ACK only
+		pkglen = BIoT_HDRLEN+BIoT_MICLEN;// just the BeeIoT header + MIC
 		break;
 
 	case CMD_REJOIN:	// Send  a simple REJOIN request (reuse ACK Format buffer)
 		pack = (beeiot_header_t*) & actionpkg;
-		pndb = &NDB[ndid];	// get Cfg init data from NDB entry of this node
 		// lets acknowledge action cmd related to received package to sender
-		pack->destID = pkg->hd.sendID;	// The BeeIoT node is the messenger
+		pack->destID = pkg->hd.sendID;	 // The BeeIoT node is the messenger
 		pack->sendID = (u1_t) (GWIDx-cfgini->loradefchn);	// New sender: its me on Def.JOIN channel
-		pack->cmd = action;				// get our action command
-		pack->pkgid = pkg->hd.pkgid;	// get last pkgid
-		pack->frmlen = 0;				// send BeeIoT header for ACK only
-		pkglen = BIoT_HDRLEN+BIoT_MICLEN; // just the BeeIoT header + MIC
+		pack->cmd	 = action;			 // get our action command
+		pack->pkgid  = pkg->hd.pkgid;	 // get last pkgid
+		pack->frmlen = 0;				 // send BeeIoT header for ACK only
+		pkglen = BIoT_HDRLEN+BIoT_MICLEN;// just the BeeIoT header + MIC
 		break;
 
 	case CMD_CONFIG: // Send runtime config params as assiged to node
 		// give node some time to recover from SendMsg before 
 		delay(RXACKGRACETIME);
 		pcfg = (beeiot_cfg_t*) & actionpkg;	// use generic pkg space for CONFIG pkg
+
 		// setup pkg header
 		pcfg->hd.destID = pkg->hd.sendID;	// The BeeIoT node is the messenger
 		pcfg->hd.sendID = (u1_t) (GWIDx-cfgini->loradefchn);	// New sender: its me on Def.JOIN channel
-		pcfg->hd.cmd = action;			// get our action command
-		pcfg->hd.pkgid = pkg->hd.pkgid;	// get last pkgid
+		pcfg->hd.cmd	= action;			// get our action command
+		pcfg->hd.pkgid	= pkg->hd.pkgid;	// get last pkgid
 		pcfg->hd.frmlen = sizeof(devcfg_t); // 
 
-		pndb = &NDB[ndid];	// get Cfg init data from NDB entry of this node
 		pcfg->cfg.channelidx= pndb->nodecfg.channelidx;	// we start with assigned Channel IDX
 		pcfg->cfg.gwid		= pndb->nodecfg.gwid;		// store predefined GW
 		pcfg->cfg.nodeid	= pndb->nodecfg.nodeid;
@@ -606,8 +565,13 @@ Radio *			Modem;	// Ptr on Modem used for transmission
 	
 	// Do final TX for all CMD cases: Select assigned modem handle
 	mid = pndb->mid;					// get node assigned ModemID
-	if(mid > mactive) mid = mactive;	// limit modemid to max. # of discovered modems.
-	Modem = gwhwset[mid].modem;			// get corresponding modem object for TX
+	if(mid >= mactive){ 
+		BHLOG(LOGLORAR) printf("\n  BIoTFlow: ################# Force mid:%i to limit-mid:%i ###################\n\n", mid, mactive-1);
+		mid = 0;			// error recovery: limit modemid to JOIN default.
+		pndb->mid = mid;	// safe state for next time
+		// t.b.d.: there must be a wrong ID handling with NDB->mid
+	}
+	Modem = gwhwset[mid].modem;	// get corresponding modem object for TX
 	
 	BHLOG(LOGLORAR) printf("  BIoTFlow: TX[%i] GWID:0x%02X -> NodeID:0x%02X, CMD:0x%02X len:%i via Modem%i\n", 
 			(int)actionpkg.hd.pkgid, (int)actionpkg.hd.sendID, (int)actionpkg.hd.destID, 

@@ -68,6 +68,7 @@
 #include "regslora.h"
 #include "radio.h"
 #include "NwSrv.h"
+#include "JoinSrv.h"
 
 //******************************************************************************
 // BIoTWAN global variables
@@ -85,6 +86,7 @@ char	csv_notice[MAXMSGLEN];	// free notice field for *.csv file
 	
 //******************************************************************************
 // BIoTWAN local variables
+static int		nmodemsrv =0;			// number of served modems after activated NwService
 
 // to retrieve local LAN Port MAC address -> also used by BIoTApp.cpp
 struct sockaddr_in si_other;
@@ -104,8 +106,9 @@ int beelog(char * comment);
 
 //******************************************************************************
 //  Local Function prototypes
-int initall();
-int setmodemcfg(modemcfg_t * modem);
+int  initall();
+int  setmodemcfg(modemcfg_t * modem);
+void BIoT_die(int rc);
 
 /******************************************************************************
  * MAIN()
@@ -166,40 +169,13 @@ int main () {
 		 strncpy(bhdb.macaddr, ifr.ifr_hwaddr.sa_data, LENMACADDR);
 	}
 
-	NwSrv * NwS;
-	try{
-		// Get Gateway/Modem instances
-		NwS = new NwSrv(gwset, cfgini->loranumchn);
-	} catch (int excode){
-		switch(excode){
-			case EX_NWSRV_INIT1:{	// wrong NwSrv parameters
-				delete[] gwset;
-				exit(0);
-			}
-			case EX_NWSRV_INIT2:{	// WiringPiSPISetup() failed
-				delete[] gwset;
-				exit(0);
-			}
-			case EX_NWSRV_INIT3:{	// no active modem
-				delete[] gwset;
-				exit(0);
-			}
-			default:{
-				std::exception();
-				delete[] gwset;
-				exit(-1);
-			}
-		}
-	}// end of try()
-
 	// Run NwNodeScan(): BIoT WAN Node scan routine forever: 
 	// Now Scan for incoming packages via radio_irq_handler()
-	NwS->NwNodeScan();
+	gwset[0].nws->NwNodeScan();
 
 	// this point will be never reached
 	// clean up NwS & gwset[] objects
-	delete NwS;
-	delete[] gwset;
+	BIoT_die(0);
 } // end of main ()
 
 
@@ -239,7 +215,8 @@ char	sbuf[MAXMSGLEN];
 
 	printf("============== BeeIoT WAN Gateway v%i.%i (%s: v%i.%i) ===============\n\n",
 			BIoT_VMAJOR, BIoT_VMINOR, (char *) CONFIGINI, cfgini->vmajor, cfgini->vminor);
-	sprintf(sbuf, "##### BeeIoT WAN Server v%i.%i - started (Cfg. v%s) #####", cfgini->vmajor, cfgini->vminor, cfgini->version);  
+	snprintf(sbuf, MAXMSGLEN, "##### BeeIoT WAN Server v%i.%i - started (Cfg. v%s) #####", 
+			(int)cfgini->vmajor, (int)cfgini->vminor, cfgini->version);  
 	beelog(sbuf);	// log init of program log file
 
 
@@ -266,29 +243,112 @@ char	sbuf[MAXMSGLEN];
 	bhdb.packid		= -1;
 	
 
-// init housekeeping stuff
+// Initialize Gateway Services by layer binding order:
+//	0. get GPIO settings from config.ini
+//	1.	NwSrv()		-> Radio() (for all modems)
+//	2.  MsgQueue()	-> MsgBuffer()
+//	2.	JoinSrv()
+//	3.	AppSrv()
+
 	sprintf(csv_notice, "started");	// prepare "Start" notice of new value series	
 
-	//initialize GateWay config sets by cfgini
-	if (cfgini->loranumchn > MAXGW) {	// limit user channel ID to MAX support in code
+	// 0. initialize GateWay config sets by cfgini
+	if (cfgini->loranumchn > MAXGW) {	// limit user channel ID to MAX supported in code
 		cfgini->loranumchn = MAXGW;
 	}
 	
 	gwset = new modemcfg_t[cfgini->loranumchn];	// get space for # of supported Gateway cfg sets
+	
+	// Initialize GW Config table for max. # of GW (=modem) slots (virtual)
 	for(int i = 0; i < cfgini->loranumchn; i++){
-		gwset[i].modemid	= i;
-		gwset[i].gwid		= GWIDx - i;
-		gwset[i].chncfgid	= 0;
-		setmodemcfg(&gwset[i]);
-		gwset[i].modem		= (Radio *) NULL;
-		gwset[i].gwq		= (MsgQueue*) NULL;
-		// Statistic: to be initialized/updated by radio layer during rx/tx package handling
+		gwset[i].modemid	= i;			// for i==0: single Modem mode: but multi GWids assigned
+		gwset[i].gwid		= GWIDx - i;			// set default GWID (for multi mode only)
+		gwset[i].modem		= (Radio *) NULL;		// set by NwSrv()
+		gwset[i].gwq		= (MsgQueue*) NULL;		// set by NwSrv()
+		gwset[i].nws		= (NwSrv *) NULL;		// see below...
+		gwset[i].jsrv		= (JoinSrv *) NULL;		
+
+		setmodemcfg(&gwset[i]);						// set iopins[] GPIO values
+
+		// Statistic: to be initialized/updated by radio layer 
+		// at NwSrv runtime during RX package handling (not TX)
         gwset[i].cp_nb_rx_rcv	= 0;	// # received packages / modem
         gwset[i].cp_nb_rx_ok	= 0;	// # of correct received packages
         gwset[i].cp_up_pkt_fwd	= 0;	// # of sent status packages to REST/WEb service
         gwset[i].cp_nb_rx_bad	= 0;	// # of invalid RX packages
         gwset[i].cp_nb_rx_crc	= 0;	// # of RX packages /w CRC error
-	}
+
+	} // end of gwset[] init loop	
+	
+	// 1. Create Network Service: NwSrv  (one for all modem instances)
+	try{ 
+		 // Get Gateway/Modem instances: NwSrv() -> MsgQueue() -> MsgBuffer()
+		 // gwset[].nws will be set for all modems implicit by NwSrv()
+		gwset[0].nws = new NwSrv(gwset, cfgini->loranumchn);
+	} catch (int excode){
+		switch(excode){
+			case EX_NWSRV_INIT1:	// wrong NwSrv parameters
+				BIoT_die(-2);
+			case EX_NWSRV_INIT2:	// WiringPiSPISetup() failed
+				BIoT_die(-3);			
+			case EX_NWSRV_INIT3:	// no active modem left
+				BIoT_die(-4);
+			default:{				// other unknown exception
+				std::exception();	// forward to system
+				BIoT_die(-1);
+			}
+		}
+	}// end of try()/catch()
+
+	nmodemsrv = gwset[0].nws->NwSrvModems();	// get # of active modems by NwSrv
+
+	// 2. Create MSG Queue: MsgQueue (one for all modem instances)
+	try {
+		gwset[0].gwq = new MsgQueue();
+	} catch (int excode){
+		switch(excode){
+			case EX_MSGQU_INIT:{
+				printf("  Main: MsgQueue Exception (0x%04X) received\n", (unsigned int)excode); 
+				if(nmodemsrv==0){
+					printf("  Main: Could not create MsgQueue for first Modem -> STOP BIoT Service\n");
+					BIoT_die(-5);	// no MsgQueue -> give up
+				}
+				break;
+			}
+			default:{				// other unknown exception
+				std::exception();	// forward to system
+				BIoT_die(-1);
+			}
+		}
+	}// end of try()/catch()
+
+	// 3. Create Join Service: JoinSrv (one for all modem instances)
+	try{ 
+		gwset[0].jsrv =	new JoinSrv(gwset, nmodemsrv);
+	} catch (int excode){
+		switch(excode){
+			case EX_JSRV_INIT:{		// wrong JoinSrv() parameters
+				BIoT_die(-6);
+			}
+			default:{				// other unknown exception
+				std::exception();	// forward to system
+				BIoT_die(-1);
+			}
+		}
+	}// end of try()/catch()
+
+	// 4. Bind all Services together: into gwset[]
+	// - unique service ptr comes from entry 0 (as help storage)
+	for(int i = 0; i < nmodemsrv; i++){
+		if(i>0){	// for mid=0: already done above
+			gwset[i].gwq  = gwset[0].gwq;	// one queue for all
+			gwset[i].nws  = gwset[0].nws;	// one NwSrv for all
+			gwset[i].jsrv = gwset[0].jsrv;	// one JoinSrv for all
+		}
+		// - Assign MsgQueue to LoRa Modem
+		gwset[i].modem->assign_gwqueue(*gwset[i].gwq);// assign Queue ref. to Modem	
+		BHLOG(LOGQUE) gwset[i].gwq->PrintStatus();	  // show initial Queue status
+	}		
 	
 	return(0);
 } // end of InitAll()
@@ -344,4 +404,18 @@ int setmodemcfg(modemcfg_t * modem){
 
 	return(0);
 }
+
+// Central Exit routine for BIoT
+// INPUT:
+//  rc		Exit code
+//  maxmid	# of activated modems
+void BIoT_die(int rc){
+	delete gwset[0].jsrv;
+	delete gwset[0].nws;
+	delete gwset[0].modem;	// all modem are deleted implicit by ~NwSrv()
+	delete gwset[0].gwq;
+	delete[] gwset;
+	exit(rc);
+}
+
 // end of main.cpp

@@ -150,7 +150,7 @@ Radio::Radio(modemcfg_t * modemcfg) : modemp(modemcfg)
 
 	if( getchiptype() <= 0 ){	// expect supported chiptype  > 0
 		BHLOG(LOGLORAW) printf("  SetupLora(): no supported chiptype 0x%02X of Modem%i detected\nExit() -> Check GPIO# in config.ini\n", 
-					(int)mset.chiptype, (int)mset.modemid);
+				(uint8_t)mset.chiptype, (int)mset.modemid);
 		throw (int) EX_RADIO_INIT;		// Exc.ID: RADIO Init failed -> break;
 		// return;
 	}
@@ -307,14 +307,14 @@ chncfg_t * ccfg = &mset.chncfg;	// ptr to local modem cfg set for modem runtime
 	if(cfgidx > MAX_CHANNELS-1){ // unknown cfg. channel index
 		cfgidx = 0;				 // unknown channel cfg -> set to JOIN default
 	}
-	// Set Channel cfg by Channel Idx: 
+	// get user settings of Channel cfg by cfgidx: 
 	ccfg->freq		= cfgchntab[cfgidx].frq;	// =EU868_F1..9,DN (EU868_F1: 868.1MHz)
 	ccfg->pw		= cfgchntab[cfgidx].pwr;	// =2-16  TX PA Mode (14)
 	ccfg->sf		= cfgchntab[cfgidx].sfbegin;// =0..8 Spreading factor FSK,7..12,SFrFu (1:SF7)
 	ccfg->bw		= cfgchntab[cfgidx].band;	// =0..3 RFU Bandwidth 125-500 (0:125kHz)
 	ccfg->cr		= cfgchntab[cfgidx].cr;		// =0..3 Coding mode 4/5..4/8 (0:4/5)
 
-	// remaining settings are static from BIoTWAN.h (used as BIoT API default for GW & Node)
+	// static settings from BIoTWAN.h (used as BIoT API default for GW & Node)
 	ccfg->ih		= IHDMODE;				// =1 implicit header mode
 	ccfg->ihlen		= IHEADERLEN;			// =0..n if IH -> header length (0)
 	ccfg->nocrc		= NOCRC;				// =0/1 no CRC check used for Pkg (0)
@@ -831,21 +831,22 @@ int Radio::starttx (byte* frame, byte dataLen, bool async) {
 	
 	if (async) {// TX async: return immediately
 		// but spend some grace time for the radio to be save for next SPI access
-		delayMicroseconds(150);		// wait for  a while till SX 
+		delayMicroseconds(150);		// wait for  a while till SX is stable
 	} else {	// TX sync: lets wait till TXDone-ISR reports TX completion
 		int count = 0;
 		// the ISR will inform us about completion by TXDoneFlag = 1;
 		while (!TXDoneFlag){	// Poll TX compl. flag processed by ISR routine
 			// wait for max. # of sent bytes with Tsymb=1ms (SF7)
-			delay(dataLen+8);		// Give ISR also some time to validate TXDone
-									// length of payload + preamble bytes
+			delay(dataLen+8);	// Give ISR also some time to validate TXDone
+								// min.: length of HD+payload+preamble Bytes
 			// ToDO: timeout action if TX fails in a certain time -> retry ?
 			if(++count == MAXTXTO){
-				BHLOG(LOGLORAR) printf("  Radio: TX Time Out !\n");
+				BHLOG(LOGLORAR) printf("    Radio: TX Time Out !\n");
 				setopmode(OPMODE_SLEEP);	// reset Modem FIFO and go sleeping
 				return(-2);	// report TX TimeOut
 			}
 		}
+		BHLOG(LOGLORAR) printf("    Radio: TX Done (TO_count=%i) !\n", count);
 	}
     // the radio will go automatically to STANDBY mode as soon as TX has been finished
 	return(0);	// TX Data at least initiated
@@ -1037,8 +1038,9 @@ chncfg_t * ccfg = &mset.chncfg;
 	
 		modemp->cp_nb_rx_rcv++;		// statistics for BIoTApp(): incr. # received pkgs.
 		
-		// 1. TXDONE Check
-		if( ((mset.currentMode & OPMODE_TX)== OPMODE_TX) && (flags & IRQ_LORA_TXDONE_MASK))  {
+		// 1. IRQ in TX Mode: TX DONE assumed
+		if( (mset.currentMode & OPMODE_TX)== OPMODE_TX){	
+			//if(  flags & IRQ_LORA_TXDONE_MASK){
 				// TXDone expected -> save exact tx time
 				mset.txend = tstamp - mset.txstart - LORA_TXDONE_FIXUP; // TXDONE FIXUP
 				BHLOG(LOGLORAR) printf(" TXDONE <%u ticks = %.4fsec.>", (unsigned long)mset.txend, (float) (mset.txend / OSTICKS_PER_SEC));
@@ -1048,8 +1050,8 @@ chncfg_t * ccfg = &mset.chncfg;
 				writeReg(LORARegIrqFlags, IRQ_LORA_TXDONE_MASK);		// clear TXDone IRQ flag
 				BHLOG(LOGLORAW) printf("\n");
 				--modemp->cp_nb_rx_rcv;		// TXDone Pkgs not counted as Received pkg.-> only RX
-		
-		// 3. RXDONE -> Check for new received valid packet
+			// }
+		// 3. IRQ in RX Mode: RX DONE -> Check for new received valid packet
 		} else if((flags & IRQ_LORA_RXDONE_MASK) || flags==0) {  // receiving a LoRa package ?
 			// Save exact RXDone time (needed for start of RX1 window)
 			mset.rxtime = tstamp;
@@ -1066,7 +1068,7 @@ chncfg_t * ccfg = &mset.chncfg;
 					 readReg(LORARegPayloadLength) : readReg(LORARegRxNbBytes);
 			BHLOG(LOGLORAR) printf(" (0x%0.2X Byte) ", (unsigned char)mset.rxdlen);
 			
-			if((mset.currentMode & OPMODE_RX) == OPMODE_RX){ // not in RX_SINGLE
+			if((mset.currentMode & OPMODE_RX) == OPMODE_RX){ // in RX_Cont Mode ? 
 				// Workaround: In a RXCont session an RXDone has another meaning
 				// Have to wait for Payload RX complete status
 				// ToDO: Root cause analysis
@@ -1115,43 +1117,41 @@ chncfg_t * ccfg = &mset.chncfg;
 						PRSSI = RSSI_OFFSET_LF + rssi + ( rssi >> 4 );
 					}
 				}
-				BHLOG(LOGLORAW) printf(" Pkt-RSSI:%i, RSSI:%i, SNR: %i, OPMode(Reg:0x%02X) %s\n",  
-					(int) rssi, (int)PRSSI, (int)PSNR, readReg(RegOpMode), rxloraOMstring[mset.currentMode & OPMODE_MASK]);
+				BHLOG(LOGLORAW) printf(" Pkt-RSSI:%i, RSSI:%i, SNR: %i, Len: %iBy., OPMode(Reg:0x%02X) %s\n",  
+					(int) rssi, (int)PRSSI, (int)PSNR, (int)mset.rxdlen, readReg(RegOpMode), rxloraOMstring[mset.currentMode & OPMODE_MASK]);
 				mset.rssi = PRSSI;
 				mset.snr  = PSNR;
 
 				// 5b. SNR Check: SNR above threshold assures valid xfer packets of own clients in range -> ours
 				//     other values might be packets with different spreading factors -> not ours
-				if((PSNR >= RF_SNR_THRESH)||1){	// can we assume a valid payload in the queue ?
+				if(PSNR >= RF_SNR_THRESH){	// can we assume a valid payload in the queue ?
 					// - set FIFO read address pointer to pkg begin
 					writeReg(LORARegFifoAddrPtr, readReg(LORARegFifoRxCurrentAddr)); 
 
 					
 					// 6. Check Package size: in range of BeeIoT WAN protocol specification ?
 					if (mset.rxdlen < BIoT_HDRLEN || mset.rxdlen > MAX_PAYLOAD_LENGTH) {
-						// Non BeeIoT Package -> store for future use / test purpose
+						// Non BeeIoT Package -> store for future analysis / test purpose
 						readBuf(RegFifo, (byte *) mset.rxbuffer, mset.rxdlen);				
-						BHLOG(LOGLORAR) printf("  IRQ%d: New RXPkg size out of range: %iBy -> ignored\n", 
+						BHLOG(LOGLORAR) printf("  IRQ%d: New RXPkg size out of BIoTWAN range: %iBy -> ignored\n", 
 								(unsigned char)dio, (int) mset.rxdlen);
 						//	hexdump((byte *) & rxbuffer, (byte) mset.rxdlen);
-						mset.rxdlen = 0;	// got all data
+
 						// ToDO: further processing of this proprietary message ?
 						// by now ignored...
 						modemp->cp_nb_rx_bad++;	// bad pkg
-
 						
 					// 7. Finally: fetch the received payload from FiFo to given RX Queue buffer
-					}else{ // seems to be a valid BeeIoT package length, move pkg from SX-Queue to RXQueue
-//						BHLOG(LOGLORAR) printf("  IRQ%d: Get BeeIoT RXDataPkg[%i] - len=%iBy\n",
-//								(unsigned char)dio, (int)RXPkgIsrIdx, (int)mset.rxdlen);
-						BHLOG(LOGLORAR) printf("  IRQ%d: Get BeeIoT RXDataPkg[%i] - len=%iBy\n",
+					}else{ // seems to be a valid BeeIoT package by length, move pkg from SX-Queue to RXQueue
+
+						BHLOG(LOGLORAR) printf("  IRQ%d: Get BeeIoT RXDataPkg - len=%iBy\n",
 								(unsigned char)dio, (int)mset.rxdlen);
 						
 						// Create MsgBuffer & Copy Payload directly from RegFiFo to MsgBuffer->pkg (incl. MIC)
 						MsgBuffer mb(this->mset.modemid, mset.rssi, mset.snr);
 						mb.setpkgfifo(this, (byte)RegFifo, (int)mset.rxdlen);
 						
-						BHLOG(LOGQUE) printf("\n  IRQ%d: PkgHD: 0x");
+						BHLOG(LOGQUE) printf("\n  IRQ%d: PkgHD: 0x", (unsigned char)dio);
 						BHLOG(LOGQUE) mb.printpkg(BIoT_HDRLEN);		// Show Header field of package (only)
 						BHLOG(LOGQUE) printf("\n");
 

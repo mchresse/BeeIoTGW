@@ -91,7 +91,7 @@ MsgQueue::~MsgQueue(){
 void MsgQueue::PushMsg(MsgBuffer & mbuf){
 	int mid = mbuf.getmid();
 	byte pkgid = mbuf.getpkgid();
-	BHLOG(LOGQUE) printf("  MsgQueue: Push Msg[%i] ID:%i\n",mid, pkgid);
+	BHLOG(LOGQUE) printf("  MsgQueue: Push Msg from Modem%i, PkgID:%i\n",mid, pkgid);
 
 	mq->push(mbuf);	// add after last: FiFo
 }
@@ -106,7 +106,7 @@ void MsgQueue::PopMsg(){
 
 	int mid = mbuf.getmid();
 	byte pkgid = mbuf.getpkgid();
-	BHLOG(LOGQUE) printf("  MsgQueue: Pop Msg[%i] ID:%i from Queue\n", mid, pkgid);
+	BHLOG(LOGQUE) printf("  MsgQueue: Pop Msg of Modem%i, PkgID:%i\n", mid, pkgid);
 
 	mq->pop();	// remove first element: FiFo
 }
@@ -142,7 +142,7 @@ int MsgQueue::PrintStatus(){
 // Used as entity for PrioQueue-class
 
 // Constructor & Destructor:
-MsgBuffer::MsgBuffer(int modemid, int rssi, byte snr){
+MsgBuffer::MsgBuffer(int modemid, int rssi, byte snr){ 
 	msghd.mid		= modemid;
 	msghd.pkgid		= 0;
 	msghd.rssi		= rssi;

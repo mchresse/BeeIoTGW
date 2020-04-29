@@ -66,6 +66,7 @@
 #include "gwqueue.h"
 #include "beelora.h"
 #include "radio.h"
+#include "JoinSrv.h"
 
 //*****************************************************************
 // global variables from main.cpp
@@ -139,6 +140,8 @@ int AppBIoT	(int ndid, char* data, byte len, int mid){
     int idx;
     int nparam;
 
+	nodedb_t *pndb = &gwset[mid].jsrv->NDB[ndid]; // ptr to NDB[ndid]
+
     if(data && len == 0){    // prevent NULL ptr. and bitlen=0
         BHLOG(LOGBH) printf("  AppBIoT: Wrong input data (%p, %i)\n", data, (int)len);
         return(-99);        // wrong input data
@@ -148,7 +151,7 @@ int AppBIoT	(int ndid, char* data, byte len, int mid){
 	gettimeofday(&now, 0);
 	strftime(TimeString, 80, "%Y-%m-%d %H:%M:%S", localtime(&now.tv_sec));
     BHLOG(LOGBH) printf("  AppBIoT: %s -Processing new Sensor Status data (len:%i) from Node 0x%02X\n", 
-				TimeString, (int)len, (unsigned char) NDB[ndid].nodecfg.nodeid);
+				TimeString, (int)len, (unsigned char) pndb->nodecfg.nodeid);
 
     idx = 0; // start with first entry (by now the only one)
 
@@ -194,11 +197,11 @@ int AppBIoT	(int ndid, char* data, byte len, int mid){
 
     // We have received a complete sensor parameter Set => Store it !
         // complete DB datarow by Node information
-        bhdb.packid     = (int)0 + (short)NDB[ndid].nodeinfo.frmid[0]; // get sequential index of payload packages
+        bhdb.packid     = (int)0 + (short)pndb->nodeinfo.frmid[0]; // get sequential index of payload packages
         bhdb.loopid     = bhdb.dlog[idx].index;     // MsgID: sensor scan loop counter of sensor data set
         bhdb.ipaddr[0]  = 0;                        // no IP yet
-        memcpy((byte*)&bhdb.BoardID, (byte*) &NDB[ndid].nodeinfo.devEUI, sizeof(uint64_t));
-        bhdb.NodeID     = NDB[ndid].nodecfg.nodeid; // BIoT network identifier to expand CSV File name
+        memcpy((byte*)&bhdb.BoardID, (byte*) &pndb->nodeinfo.devEUI, sizeof(uint64_t));
+        bhdb.NodeID     = pndb->nodecfg.nodeid; // BIoT network identifier to expand CSV File name
 
         // 1. Forward Data to local Web Service 
 //        BHLOG(LOGBH) printf("  AppBIoT: Forward Data as CSV file to local WebPage\n");		

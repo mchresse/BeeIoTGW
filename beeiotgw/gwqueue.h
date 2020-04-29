@@ -116,8 +116,7 @@ class MsgQueue {
 	protected:
 	private:
 		std::queue<MsgBuffer> * mq;
-		int mid;		// current modem ID Queue was assigned to
-
+		
 		// RX Queue buffer & control -> obsolete
 //		byte    RXFlag;            // Semaphore for received message(s) 0 ... MAXRXPKG-1
 //		byte    IsrIdx;            // WR index on next RX Queue Package for ISR callback Write

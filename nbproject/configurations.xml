@@ -5,6 +5,7 @@
                    displayName="Header Files"
                    projectFiles="true">
       <itemPath>beeiotgw/BeeIoTWan.h</itemPath>
+      <itemPath>beeiotgw/JoinSrv.h</itemPath>
       <itemPath>beeiotgw/NwSrv.h</itemPath>
       <itemPath>beeiotgw/base64.h</itemPath>
       <itemPath>beeiotgw/beeiot.h</itemPath>
@@ -76,6 +77,8 @@
       </item>
       <item path="beeiotgw/JoinSrv.cpp" ex="false" tool="1" flavor2="0">
       </item>
+      <item path="beeiotgw/JoinSrv.h" ex="false" tool="3" flavor2="0">
+      </item>
       <item path="beeiotgw/NwSrv.cpp" ex="false" tool="1" flavor2="0">
       </item>
       <item path="beeiotgw/NwSrv.h" ex="false" tool="3" flavor2="0">
@@ -143,6 +146,8 @@
       <item path="beeiotgw/BeeIoTWan.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="beeiotgw/JoinSrv.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="beeiotgw/JoinSrv.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="beeiotgw/NwSrv.cpp" ex="false" tool="1" flavor2="0">
       </item>
