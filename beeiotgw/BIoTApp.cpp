@@ -67,6 +67,7 @@
 #include "beelora.h"
 #include "radio.h"
 
+//*****************************************************************
 // global variables from main.cpp
 extern unsigned int	lflags; // BeeIoT log flag field (main.cpp)
 extern nodedb_t NDB[];		// if 'NDB[x].nodeinfo.version == 0' => empty entry
@@ -78,12 +79,12 @@ extern configuration * cfgini;			// ptr. to struct with initial parameters
 // incl. ptr to  LoRa  modem objects
 extern modemcfg_t	*	gwset;		// GateWay related config sets for Radio Instantiation
 
-//******************************************************************
-// Set my GPS location (preset manually, if no GPS access
-float lat=0.0;
-float lon=0.0;
-int   alt=0;
+// to retrieve local LAN Port MAC address (defined in main ()
+extern struct sockaddr_in si_other;
+extern int		s, slen;
+extern struct ifreq ifr;
 
+//******************************************************************
 /* Informal status fields for TTN Upload JSON package*/
 // Upload buffer settings
 #define TX_BUFF_SIZE		2048
@@ -96,23 +97,22 @@ int   alt=0;
 #define PKT_PULL_RESP		3
 #define PKT_PULL_ACK		4
 
+// Set my GPS location (preset manually, if no GPS access
+static float lat=0.0;
+static float lon=0.0;
+static int   alt=0;
 
 static char platform[24]    = "Single Channel Gateway";  /* platform definition */
 static char email[40]       = "";                        /* used for contact email */
 static char description[64] = "";                        /* used for free form description */
 
-byte receivedbytes;			// generic RX msg data len
-byte message[256];			// generic RX msg buffer
-byte buf64[512];			// payload encoding buffer
-int	 curlcount;				// count curl-lib ftp xfer calls for debugging reasons
+static byte receivedbytes;			// generic RX msg data len
+static byte message[256];			// generic RX msg buffer
+static byte buf64[512];			// payload encoding buffer
+static int	curlcount;				// count curl-lib ftp xfer calls for debugging reasons
 
-// to retrieve local LAN Port MAC address (defined in main ()
-extern struct sockaddr_in si_other;
-extern int		s, slen;
-extern struct ifreq ifr;
-
-extern struct	timeval now; // current tstamp used each time a time check is done
-extern char	TimeString[128]; // contains formatted Timestamp string of each loop(in main())
+static struct	timeval now; // current tstamp used each time a time check is done
+static char	TimeString[128]; // contains formatted Timestamp string of each loop(in main())
 
 //******************************************************************************
 // local Function prototypes

@@ -1,10 +1,20 @@
-/* 
- * File:   gwqueue.h
- * Author: mchresse - Randolph Esser
- *
- * Created on 21. April 2020, 11:42
- */
-
+//*******************************************************************
+// File:	gwqueue.h  
+// Project: https://github.com/mchresse/BeeIoTGW
+// Author:	MCHREsse
+// Created on 21. April 2020, 11:42
+//
+// Description:
+// BeeIoT-Gateway Message Queue and Message Buffer class definitions
+//
+//----------------------------------------------------------
+// Copyright (c) 2020-present, Randolph Esser
+// All rights reserved.
+// This file is distributed under the BSD-3-Clause License
+// The complete license agreement can be obtained at: 
+//     https://github.com/mchresse/BeeIoTGW/license
+// For used 3rd party open source see also Readme_OpenSource.txt
+//*******************************************************************
 #ifndef GWQUEUE_H
 #define GWQUEUE_H
 

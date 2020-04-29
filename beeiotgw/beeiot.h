@@ -1,20 +1,20 @@
 //*******************************************************************
-// Beeiot.h  
-// from Project https://github.com/mchresse/BeeIoT
-// Author: MCHREsse
+// File:	Beeiot.h  
+// Project: https://github.com/mchresse/BeeIoTGW
+// Author:	MCHREsse
+// Created on 04. Dec 2019
 //
 // Description:
-// BeeIoT-WAN - Lora package flow definitions
+// BeeIoT-GateWay - Main program logging & data warehouse definitionS
 //
 //----------------------------------------------------------
 // Copyright (c) 2019-present, Randolph Esser
 // All rights reserved.
 // This file is distributed under the BSD-3-Clause License
 // The complete license agreement can be obtained at: 
-//     https://github.com/mchresse/BeeIoT/license
+//     https://github.com/mchresse/BeeIoTGW/license
 // For used 3rd party open source see also Readme_OpenSource.txt
 //*******************************************************************
-
 #ifndef BEEIOT_H
 #define BEEIOT_H
 
@@ -44,7 +44,9 @@
 // LSB declares Except. Type	(like 0x01: Constructor failed
 #define	EX_RADIO_INIT	0x0101		// Radio Constructor failed -> del. instance
 #define	EX_MSGQU_INIT	0x0201		// MsgQueue Constructor failed -> del. instance
-#define	EX_NWSRV_INIT	0x0301		// NwSrv Constructor failed -> del. instance
+#define	EX_NWSRV_INIT1	0x0301		// NwSrv Constructor failed -> wrong Input values
+#define	EX_NWSRV_INIT2	0x0302		// NwSrv Constructor failed -> WiringPiSPI failed
+#define	EX_NWSRV_INIT3	0x0303		// NwSrv Constructor failed -> No active modem left
 #define	EX_JSRV_INIT	0x0401		// JoinSrv Constructor failed -> del. instance
 #define	EX_APPBIOT_INIT	0x1001		// App: BIoT Srv Constructor failed -> del. instance
 #define	EX_APPGH_INIT	0x1101		// App: GH Srv Constructor failed -> del. instance

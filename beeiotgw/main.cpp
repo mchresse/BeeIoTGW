@@ -67,38 +67,43 @@
 #include "beelora.h"
 #include "regslora.h"
 #include "radio.h"
+#include "NwSrv.h"
 
-/*******************************************************************************
- * BIoTWAN global variables
- * 
- *******************************************************************************/
-
+//******************************************************************************
+// BIoTWAN global variables
 unsigned int	lflags;			// BeeIoT log flag field
 
 // Central Database of all measured values and runtime parameters
-dataset	bhdb;					// central beeIoT data DB
+dataset			bhdb;			// central beeIoT data DB
 
 // The one and only global init parameter set buffer parsed from config.ini file
 configuration * cfgini;			// ptr. to struct with initial parameters
-modemcfg_t	*	gwset;		// GateWay related config sets for Radio Instantiation
+modemcfg_t	*	gwset;			// GateWay related config sets for Radio Instantiation
 
 #define MAXMSGLEN	1024		// length of univ. message buffer
 char	csv_notice[MAXMSGLEN];	// free notice field for *.csv file
 	
-// to retrieve local LAN Port MAC address
+//******************************************************************************
+// BIoTWAN local variables
+
+// to retrieve local LAN Port MAC address -> also used by BIoTApp.cpp
 struct sockaddr_in si_other;
 int s, slen = sizeof(si_other);
 struct ifreq ifr;
 
-extern struct timeval now;		// current tstamp used each time a time check is done
-extern char	  TimeString[128];	// contains formatted Timestamp string of each loop(in main())
+static struct timeval now;		// current tstamp used each time a time check is done
+static char	  TimeString[128];	// contains formatted Timestamp string of each loop(in main())
 
 
 //******************************************************************************
-//  Function prototypes
-
+//  Global Function prototypes
+// API to NwSrv:
 extern int  NwNodeScan (modemcfg_t * gwset, int nmodem, int defchannel);
+// API to BeeLog:
 int beelog(char * comment);
+
+//******************************************************************************
+//  Local Function prototypes
 int initall();
 int setmodemcfg(modemcfg_t * modem);
 
@@ -106,8 +111,6 @@ int setmodemcfg(modemcfg_t * modem);
  * MAIN()
  ******************************************************************************/
 int main () {
-    struct timeval nowtime;
-    uint32_t lasttime;
 	char	msg[MAXMSGLEN];		// universals string buffer for log line creation	
 	char *	notice;				// notice buffer for logfile and csv comment fields
 	int		rc;
@@ -162,14 +165,41 @@ int main () {
 		 
 		 strncpy(bhdb.macaddr, ifr.ifr_hwaddr.sa_data, LENMACADDR);
 	}
-	
+
+	NwSrv * NwS;
+	try{
+		// Get Gateway/Modem instances
+		NwS = new NwSrv(gwset, cfgini->loranumchn);
+	} catch (int excode){
+		switch(excode){
+			case EX_NWSRV_INIT1:{	// wrong NwSrv parameters
+				delete[] gwset;
+				exit(0);
+			}
+			case EX_NWSRV_INIT2:{	// WiringPiSPISetup() failed
+				delete[] gwset;
+				exit(0);
+			}
+			case EX_NWSRV_INIT3:{	// no active modem
+				delete[] gwset;
+				exit(0);
+			}
+			default:{
+				std::exception();
+				delete[] gwset;
+				exit(-1);
+			}
+		}
+	}// end of try()
+
 	// Run NwNodeScan(): BIoT WAN Node scan routine forever: 
-	// Wait for incoming packages via radio_irq_handler()
-	rc = NwNodeScan(gwset, cfgini->loranumchn, cfgini->loradefchn);
+	// Now Scan for incoming packages via radio_irq_handler()
+	NwS->NwNodeScan();
 
 	// this point will be never reached
-	delete gwset;
-    exit(0);
+	// clean up NwS & gwset[] objects
+	delete NwS;
+	delete[] gwset;
 } // end of main ()
 
 

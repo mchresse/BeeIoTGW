@@ -193,7 +193,7 @@ typedef struct {
 	byte	vminor;			// minor version of used/comitted BeeIoTWAN protocol
 	byte	freqsensor;		// =1..n Sensor report frequency in [minutes]
 	// LoRa Modem settings
-	byte	channelidx;		// channelidx of channeltable_t	txchntab[MAX_CHANNELS]
+	byte	channelidx;		// used channelidx of channeltable_t	txchntab[MAX_CHANNELS]
 	byte	nonce;			// pkg counter init value
 	byte	reserved;		// fill byte for word boundary
 

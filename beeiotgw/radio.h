@@ -1,10 +1,21 @@
-/* 
- * File:   radio.h
- * Author: mchresse - Randolph Esser
- *
- * Created on 11. April 2020, 15:28
- */
-
+//*******************************************************************
+// File:	radio.h  
+// Project: https://github.com/mchresse/BeeIoTGW
+// Author:	MCHREsse
+// Created on 11. April 2020, 15:28
+//
+// Description:
+// BeeIoT-GateWay - BIoTWAN LoRa Radio class definition
+// + global Modem & channel data structs: modemcfg_t + chncfg_t
+//
+//----------------------------------------------------------
+// Copyright (c) 2020-present, Randolph Esser
+// All rights reserved.
+// This file is distributed under the BSD-3-Clause License
+// The complete license agreement can be obtained at: 
+//     https://github.com/mchresse/BeeIoTGW/license
+// For used 3rd party open source see also Readme_OpenSource.txt
+//*******************************************************************
 #ifndef _RADIO_H
 #define _RADIO_H
 

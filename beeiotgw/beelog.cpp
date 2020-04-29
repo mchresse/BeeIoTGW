@@ -38,18 +38,17 @@
 #include "regslora.h"
 #include "beeiot.h"
 
-extern unsigned int	lflags;               // BeeIoT log flag field
-/*******************************************************************************
- * Global data reference section
- *******************************************************************************
-*/
-extern struct timeval	now;		// my current local time buffer
-extern char	TimeString[128];		// Timestamp object of current action
-									// loop common for all Log files -> beelog()
+//******************************************************************************
+// Global data reference section
+extern unsigned int		lflags;		// BeeIoT log flag field
 extern dataset			bhdb;
-extern configuration * cfgini;			// ptr. to struct with initial parameters
+extern configuration	*cfgini;	// ptr. to struct with initial parameters
 
-
+//******************************************************************************
+// Local data declarations
+static struct timeval	now;		// my current local time buffer
+static char	TimeString[128];		// Timestamp object of current action
+									// loop common for all Log files -> beelog()
 
 /*******************************************************************************
 * Function: beelog()

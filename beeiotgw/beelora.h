@@ -1,16 +1,18 @@
 //*******************************************************************
-// BeeLora.h  
-// from Project https://github.com/mchresse/BeeIoT
+// File:	beelora.h  
+// Project: https://github.com/mchresse/BeeIoTGW
+// Author:	MCHREsse
+// Created on 28. Dec 2019
 //
 // Description:
-// BeeIoT-WAN - Lora package flow definitions
+// Semtech SX127x chip register & Lora package flow definitions
 //
 //----------------------------------------------------------
 // Copyright (c) 2019-present, Randolph Esser
 // All rights reserved.
 // This file is distributed under the BSD-3-Clause License
 // The complete license agreement can be obtained at: 
-//     https://github.com/mchresse/BeeIoT/license
+//     https://github.com/mchresse/BeeIoTGW/license
 // For used 3rd party open source see also Readme_OpenSource.txt
 //*******************************************************************
 

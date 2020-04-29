@@ -1,4 +1,5 @@
 /*******************************************************************************
+* Sub Module: NwSrv.cpp
 * The "NwSrv" Module is distributed under the New BSD license:
 *
 * Copyright (c) 2020, Randolph Esser
@@ -32,11 +33,6 @@
 * home page for more info: https://github.com/beeiot
 ********************************************************************************
 */
-/*******************************************************************************
- * Sub Module NwSrv.cpp
- *
- *******************************************************************************
- */
 
 #include <iostream>
 #include <cstdint>
@@ -55,82 +51,61 @@
 #include "regslora.h"
 #include "beelora.h"
 #include "radio.h"
+#include "NwSrv.h"
 
 
-extern unsigned int	lflags;               // BeeIoT log flag field
+extern unsigned int		lflags;		// BeeIoT log flag field
 
-/*******************************************************************************
- *
- * BIoTWAN LoRA protocol Constants: Please customize for your new network:
- * (see also settings in beelora.h)
- *
- *******************************************************************************/
-
-#define NWSSCANDELAY	100			// [ms[ frequence of MsgQueue polling / modem
-									// finally defines min. reaction time per pkg
-
-// Central Database of all measured values and runtime parameters
-extern dataset			bhdb;       // central beeIoT data DB
-extern configuration *	cfgini;		// ptr. to struct with initial user params
-extern modemcfg_t	*	gwset;		// GateWay related config sets for Radio Instantiation
-int	   mactive = 0;					// Max. number of detected active modems for RX/TX
+extern configuration	*cfgini;	// ptr. to struct with initial user params
 
 // Global NodeDB[] for Node registration via JOIN command
 // -> typeset see beelora.h; instance in JoinSrv.cpp
-extern nodedb_t NDB[];				// if 'NDB[x].nodeinfo.version == 0' => empty entry
+extern nodedb_t	NDB[];		// if 'NDB[x].nodeinfo.version == 0' => empty entry	
 
-
-//******************************************************************************
-// local Data prototypes
-
-struct timeval	 now;				// current tstamp used each time a time check is done
-char			 TimeString[128];   // contains formatted Timestamp string of each loop(in main())
-	
-
-//******************************************************************************
-// local Function prototypes
-int  NwNodeScan		(modemcfg_t *gwhwset, int nmodem, int defchannel);
-int  BeeIoTParse	(MsgBuffer * msg);
-int  BeeIoTFlow		(u1_t action, beeiotpkg_t * pkg, int ndid, bool async);
-
-// in JoinSrv.cpp:
+// API to JoinSrv:
 extern int	JS_RegisterNode	(beeiotpkg_t * joinpkg, int async);
 extern int	JS_ValidatePkg	(beeiotpkg_t* mystatus);
 extern int	ByteStreamCmp	(byte * bina, byte * binb, int binlen);
 extern int	JS_AppProxy	(int ndid, char * framedata, byte framelen, int mid);
 
 
-/******************************************************************************
- * NwNodeScan()
- * INPUT:
- *	ghwset		Array of LoRa Modem HW cfg settings
- *  nmodem		# of Modem instances in gwset[] (assumed: limited to MAXGW in main() )
- *  midjoin		Default ModemID for JOIN requests using CfgSet ID: JOINCFGIDX (>BIoTWAN.h)
- * RETURN:
- *   0			all channel sessions finished successfully (never happens)
- *  -1			wrong input param values
- ******************************************************************************/
-int NwNodeScan (modemcfg_t *gwhwset, int nmodem, int midjoin) {
-    uint32_t lasttime;
-	int rc;
 
-	if(!gwhwset || !nmodem)	// check input
-		return(-1);
-	
-	printf("NwService: BeeIoT-WAN Gateway: Start Node Scan Setup\n");
+//******************************************************************************
+// NwSrv() - Constructor
+// INPUT:
+//	ghwset		Array of LoRa Modem HW cfg settings
+//  nmodem		# of Modem instances supp. in gwset[] (assumed: limited to MAXGW in main() )
+// 
+// RETURN:
+//   0			all channel sessions finished successfully (never happens)
+//  throw(EX_NWSRV_INIT)	Constructor failed
+//
+NwSrv::NwSrv(modemcfg_t *modemcfg, int nmodem): gwhwset(modemcfg){	
 
 	// get current timestamp
 	gettimeofday(&now, 0);
 	strftime(TimeString, 80, "%d-%m-%y %H:%M:%S", localtime(&now.tv_sec));
-	 BHLOG(LOGBH) printf("  NwS<%s>: Setup started for BIoTWAN v%d.%d\n", 
-		TimeString,  (int)BIoT_VMAJOR, (int)BIoT_VMINOR);
 
-	wiringPiSPISetup(SPI0, SPIFRQ);	// initialize common SPI0 channel: MISO/MOSI/SCK
-	 
+	// check on valid input parameters
+	if(!gwhwset || !nmodem){
+		BHLOG(LOGBH) printf("NwS:%s  Start of BeeIoT-WAN Gateway Setup failed. wrong parameter (%p-%i)\n",
+				TimeString, gwhwset, nmodem);
+		throw(EX_NWSRV_INIT1);		// Gateway can not start
+	}
+	BHLOG(LOGBH) printf("NwS:%s  Start BeeIoT-WAN (v%d.%d) Gateway Setup\n",
+			TimeString,  (int)BIoT_VMAJOR, (int)BIoT_VMINOR);
+
+	int rc = wiringPiSPISetup(SPI0, SPIFRQ);	// initialize common SPI0 channel: MISO/MOSI/SCK
+	if(rc == -1){
+		BHLOG(LOGBH) printf("NwS: WiringPiSPISetup() failed: %s\n", errno);
+		throw(EX_NWSRV_INIT2);		// Gateway can not start		
+	}
+
 	// Init NodeDB[] for new node registrations:
+	// t.d.b.: to be moved to JOIN Srv Constructor
 	for(int i=0; i<MAXNODES; i++){
 		nodedb_t * pndb = &NDB[i];
-//		BHLOG(LOGBH) printf("  NwS: NDB:%p - NDB[%i]:%p - pndb:%p\n", &NDB, i, &NDB[i], pndb);
+		//		BHLOG(LOGBH) printf("  NwS: NDB:%p - NDB[%i]:%p - pndb:%p\n", &NDB, i, &NDB[i], pndb);
 		NDB[i].nodeinfo.vmajor =0; // free entry if 'NDB[x].nodeinfo.vmajor == 0'
 		NDB[i].nodeinfo.vminor =0;
 		NDB[i].nodeinfo.devEUI[0] =0;
@@ -154,16 +129,16 @@ int NwNodeScan (modemcfg_t *gwhwset, int nmodem, int midjoin) {
 	
 	// Preset LoRa Modem Configuration	
 	// Modem Setting for RX Mode: 
+	int mid = 0;	// start with modem id = 0
 	
 	// 1. Create LoRa modem object
 	// 2. Create MSG Queue
 	// 3. Assign MsgQueue to LoRa Modem
-	int mid = 0;
 	for(mid; mid < nmodem; mid++){	// Min. 1 channel -> for JOIN needed
 		try{
 			gwhwset[mid].modem = new Radio(&gwhwset[mid]);		// instantiate LoRa Port 
 			// create new MsgQueue and assign to new Modem session
-			gwset[mid].gwq = new MsgQueue;		// create & store global Msg Queue ptr
+			gwhwset[mid].gwq = new MsgQueue;		// create & store global Msg Queue ptr
 		} catch (int excode){
 				switch(excode){
 				case EX_RADIO_INIT:
@@ -171,109 +146,89 @@ int NwNodeScan (modemcfg_t *gwhwset, int nmodem, int midjoin) {
 					gwhwset[mid].modem = (Radio *)NULL;	// no modem instance for this mid available
 					if(mid==0){
 						printf("  NwS: No LoRa Modem detected -> STOP BIoT Service\n"); 
-						exit(0);	// no modem found at all -> give up
+					//	exit(0);	// no modem found at all -> give up
+						throw(EX_NWSRV_INIT3);	// no modem found at all -> give up		
+
 					}
 					break;	// we have at least 1 modem, but stop scanning for more
 				case EX_MSGQU_INIT:
 					printf("  NwS: MsgQueue Exception (0x%04X) received\n", (unsigned int)excode); 
-					gwset[mid].gwq = (MsgQueue *)NULL;
+					gwhwset[mid].gwq = (MsgQueue *)NULL;
 					if(mid==0){
 						printf("  NwS: Could not create MsgQueue for first Modem -> STOP BIoT Service\n");
 						delete gwhwset[mid].modem;	// release modem instance
-						exit(0);	// no modem Queue  -> give up
+					//	exit(0);	// no modem found at all -> give up
+						throw(EX_NWSRV_INIT3);	// no modem found at all -> give up		
 					}
 					break;
 				default: 
 					printf("  NwS: Unknown exception received 0x%04X\n",(unsigned int)excode);
 					std::exception();
+					//	throw(EX_NWSRV_INIT3);	// no modem found at all -> give up		
 					break;// ???
 				}
 		} // end of try()
 
 		// Modem & empty Queue instantiated: link Queue to Modem together
-		gwhwset[mid].modem->assign_gwqueue(*gwset[mid].gwq); // assign Queue to Modem
-		BHLOG(LOGQUE) gwset[mid].gwq->PrintStatus();	// show Queue status
+		gwhwset[mid].modem->assign_gwqueue(*gwhwset[mid].gwq); // assign Queue to Modem
+		BHLOG(LOGQUE) gwhwset[mid].gwq->PrintStatus();	// show Queue status
 	}
-	mactive = mid;	// remember max. # of active/instantiated  modems
 
-	BHLOG(LOGLORAW) printf("  NwS: LoRa Modem Setup finished; Start Channel scanning...\n");
-	
-	// Activate modem wise in order
+	mactive = mid+1;	// remember max. # of active/instantiated  modems now served by NwS
+
+	BHLOG(LOGLORAW) printf("NwS: LoRa Gateway Setup Done for %i modems\n", mactive);
+}; // end of NwSrv Constructor
+
+
+NwSrv::~NwSrv(void){
 	for(int mid=0; mid < mactive; mid++){	// Min. 1 channel -> for JOIN needed
-		// get current timestamp
-		gettimeofday(&now, 0);
-		strftime(TimeString, 80, "%d-%m-%y %H:%M:%S", localtime(&now.tv_sec));
+		delete gwhwset[mid].gwq;		// release Msg Queue ptr
+		delete gwhwset[mid].modem;	// remove LoRa Modem
+		// create new MsgQueue and assign to new Modem session
+	}		
+};	// end of NwSrv Destructor
+	
+//******************************************************************************
+// NwNodeScan()
+// Start each Modem in RXCont Mode -> waiting for LoRa Packages.
+// Retrieved pkgs. by ISR ar fetched from MsgQueue and forwarded to BIoTParse()
+// Finally RXCont mode is entered again for affected modem.
+// This routine serves endless searching for LoRa packages !
+//
+// INPUT:
+//	None
+// RETURN:
+//   0			all channel sessions finished successfully (never happens)
+//  throw(EX_NWSRV_INIT)	Constructor failed
+//******************************************************************************
+int NwSrv::NwNodeScan(void) {
+			
+	/* Working Example for PrintLoraStatus() Diagnostic Output
+	LoRa Modem Register Status:     Version: 0x12  LoRa Modem OpMode : 0x80
+	  MODEM_CONFIG1     : 0x72  DIO 0-3 Mapping   : 0x00  SYNC_WORD         : 0x12
+	  MODEM_CONFIG2     : 0x74  DIO 4-5 Mapping   : 0x00  PREAMBLE_LENGTH   : 0x0008
+	  MODEM_CONFIG3     : 0x04  LNA GAIN          : 0x23  PA_CONFIG         : 0x4F
+	  PLL Bandwidth     : 0xD0  HOP_PERIOD        : 0xFF  PA_RAMP           : 0x09  
+	  LoRa Modem Status : 0x10  FIFO_RX_BASE_ADDR : 0x00  IRQ_FLAGS_MASK    : 0x00
+	  FIFO_RX_CURR_ADDR : 0x00  FIFO_TX_BASE_ADDR : 0x80  IRQ_FLAGS         : 0x00
+	  FIFO_ADDR_PTR     : 0x00  FIFO_LAST_BYTE_WR : 0x00  RX_NB_BYTES       : 0x00
+	  MAX_PAYLOAD_LENGTH: 0x80  Last PACKET_SNR   : 0x00  #of valid Headers : 0x0000
+	  PAYLOAD_LENGTH    : 0x40  Last PACKET_RSSI  : 0x00  #of valid Packets : 0x0000
+	  Current_RSSI      : 0x00  IRQ Level         : 0  
+	*/
 
-		if(gwhwset[mid].modem){
-			BHLOG(LOGLORAR) printf("  NwS: Modem%i Register Configuration:\n", (int)gwhwset[mid].modemid);
-			BHLOG(LOGLORAR)gwhwset[mid].modem->PrintLoraStatus(LOGALL);
-			// Start LoRa Read Loop in  "continuous read" Mode
-			gwhwset[mid].modem->startrx(RXMODE_SCAN, 0);	// RX in RX_CONT Mode 
-		}else{
-			if (mid == 0){	// was it the first LoRa modem which failed ?
-				return(-2);	// we need minimum 1 Modem -> break program.
-			}else{ // no 2. modem detected
-				--nmodem;
-				BHLOG(LOGLORAR) printf("NwS: FallBack Multi -> Single CHannel Mode");
-				break;
-			}
-		}			
-	}
-		
-/* Working Example Output right from here:
-LoRa Modem Register Status:     Version: 0x12  LoRa Modem OpMode : 0x80
-  MODEM_CONFIG1     : 0x72  DIO 0-3 Mapping   : 0x00  SYNC_WORD         : 0x12
-  MODEM_CONFIG2     : 0x74  DIO 4-5 Mapping   : 0x00  PREAMBLE_LENGTH   : 0x0008
-  MODEM_CONFIG3     : 0x04  LNA GAIN          : 0x23  PA_CONFIG         : 0x4F
-  PLL Bandwidth     : 0xD0  HOP_PERIOD        : 0xFF  PA_RAMP           : 0x09  
-  LoRa Modem Status : 0x10  FIFO_RX_BASE_ADDR : 0x00  IRQ_FLAGS_MASK    : 0x00
-  FIFO_RX_CURR_ADDR : 0x00  FIFO_TX_BASE_ADDR : 0x80  IRQ_FLAGS         : 0x00
-  FIFO_ADDR_PTR     : 0x00  FIFO_LAST_BYTE_WR : 0x00  RX_NB_BYTES       : 0x00
-  MAX_PAYLOAD_LENGTH: 0x80  Last PACKET_SNR   : 0x00  #of valid Headers : 0x0000
-  PAYLOAD_LENGTH    : 0x40  Last PACKET_RSSI  : 0x00  #of valid Packets : 0x0000
-  Current_RSSI      : 0x00  IRQ Level         : 0  
-*/
-
+	gettimeofday(&now, 0);
+	strftime(TimeString, 80, "%d-%m-%y %H:%M:%S", localtime(&now.tv_sec));
 	BHLOG(LOGBH) printf("NwS:********************************************************************\n");
-    BHLOG(LOGLORAW) printf("  NwS<%s>:  Start waiting for LoRa Node Packets in Contiguous Mode by all channels\n",
+    BHLOG(LOGLORAW) printf("  NwS<%s>:  Start waiting for LoRa Node Packets in Contiguous Mode on all channels\n",
 		TimeString);
 
   // run forever: wait for incoming packages via radio_irq_handler()
   while(1) {
-	
-		
-	for(int mid=0; mid < mactive; mid++){
-		// ISR waiting for rising DIO0 level -> starting receivepacket() directly
-		while(gwset[mid].gwq->MsgQueueSize() > 0){	// Do we have a package in the RX Queue ?
-			// check RX Queue BeeIoT WAN Status and process package accordingly
-			// get current timestamp
-			gettimeofday(&now, 0);
-			strftime(TimeString, 80, "%d-%m-%y %H:%M:%S", localtime(&now.tv_sec));
-			int qlen = gwset[mid].gwq->MsgQueueSize();
-			BHLOG(LOGLORAR) printf("  NwS<%s>: New RX Packet: Parsing MsgQueue[0] (Size:%i)\n", 
-					TimeString, qlen);
-			BHLOG(LOGLORAW) gwset[mid].gwq->PrintStatus();
+	for(int mid=0; mid < mactive; mid++){	// ... for all discovered modems
 
-			MsgBuffer * msg = &(gwset[mid].gwq->GetMsg());	// get queued MsgBuffer
-
-			rc = BeeIoTParse(msg);	// Start parsing payload data	
-
-			if(rc < 0){
-				BHLOG(LOGLORAR) printf("  NwS: Parsing of MsgQueue[0] failed rc=%i\n", rc);
-				// ToDo: Exit/Recover Code here ???
-				// BHLOG(LOGLORAR) gwhwset[mid].gwq->PrintStatus();		
-				// BHLOG(LOGLORAR) gwhwset[mid].modem->PrintLoraStatus(LOGALL);		
-			}
-
-			// Remove parsed package from Queue
-			gwset[mid].gwq->PopMsg();
-			BHLOG(LOGLORAW) gwset[mid].gwq->PrintStatus();
-			BHLOG(LOGBH) printf("  NwSrv: LoraStatistic - Rcv:%i, Bad:%i, CRC:%i, O.K:%i, Fwd:%i\n",
-				gwset[mid].cp_nb_rx_rcv, gwset[mid].cp_nb_rx_bad, gwset[mid].cp_nb_rx_crc, 
-				gwset[mid].cp_nb_rx_ok, gwset[mid].cp_up_pkt_fwd);
-		}
-		
-		if((gwhwset[mid].modem->getopmode() & OPMODE_RX)!= OPMODE_RX){
+		// activate modem to RXCont mode
+		if((gwhwset[mid].modem->getopmode() & OPMODE_RX)!= OPMODE_RX){	
 			if(mid==0){ // get new config only by status change of def. JOIN modem
 				//re-read config.ini file again (could have been changed in between) 
 				cfgini = getini((char*)CONFIGINI);
@@ -282,18 +237,49 @@ LoRa Modem Register Status:     Version: 0x12  LoRa Modem OpMode : 0x80
 					// continue with already buffered config struct data till we have access again
 				}
 				lflags	= (unsigned int) cfgini->biot_verbose;	// get the custom verbose mode again
-				cfgini->loranumchn = nmodem;	// limit # of supp. modems to what have been told by main()
+				cfgini->loranumchn = mactive;	// limit # of supp. modems to what have been discovered
 			}
 
-			// Start LoRa Mode: continuous read loop - again
+			// Start LoRa Modem: in continuous read mode
 			BHLOG(LOGLORAR) printf("  NwS: Enter RX_Cont Mode for Lora Modem%i\n", mid);
 			gwhwset[mid].modem->startrx(RXMODE_SCAN, 0);	// RX in RX_CONT Mode (Beacon Mode)
 			
+			// ISR now waiting for rising DIO0 level -> starting receivepacket() directly
 			gettimeofday(&now, 0);
 			strftime(TimeString, 80, "%d-%m-%y %H:%M:%S", localtime(&now.tv_sec));
-			BHLOG(LOGBH) printf("\nNwS: %s: *************** Wait for New Packet **************\n", TimeString);
-			//	gwhwset[mid].modem->PrintLoraStatus(LOGALL);			
+			BHLOG(LOGBH) printf("\nNwS: %s: *************** Waiting for a new LoRa package **************\n", TimeString);
 		}
+		
+		// Check RX Queue Status (len>0) and process package accordingly
+		while(gwhwset[mid].gwq->MsgQueueSize() > 0){	// Do we have a package in the RX Queue ?
+
+			gettimeofday(&now, 0);		// get current timestamp
+			strftime(TimeString, 80, "%d-%m-%y %H:%M:%S", localtime(&now.tv_sec));
+
+			int qlen = gwhwset[mid].gwq->MsgQueueSize();
+			BHLOG(LOGLORAR) printf("  NwS<%s>: New RX Packet: Parsing MsgQueue[0] (Size:%i)\n", 
+					TimeString, qlen);
+			BHLOG(LOGLORAW) gwhwset[mid].gwq->PrintStatus();	// get MsgQueue STatus
+
+			MsgBuffer * msg = &(gwhwset[mid].gwq->GetMsg());	// get ptr on queued MsgBuffer
+
+			int rc = BeeIoTParse(msg);	// Start parsing payload data of msg	
+			if( rc < 0){
+				BHLOG(LOGLORAR) printf("  NwS: Parsing of MsgQueue[0] failed rc=%i\n", rc);
+				// ToDo: Exit/Recover Code here ???
+				// BHLOG(LOGLORAR) gwhwset[mid].gwq->PrintStatus();		
+				// BHLOG(LOGLORAR) gwhwset[mid].modem->PrintLoraStatus(LOGALL);		
+			}
+
+			// Remove parsed package from Queue
+			gwhwset[mid].gwq->PopMsg();
+			BHLOG(LOGLORAW) gwhwset[mid].gwq->PrintStatus();
+
+			BHLOG(LOGBH) printf("  NwSrv: LoraStatistic - Rcv:%u, Bad:%u, CRC:%u, O.K:%u, Fwd:%u\n",
+				gwhwset[mid].cp_nb_rx_rcv, gwhwset[mid].cp_nb_rx_bad, gwhwset[mid].cp_nb_rx_crc, 
+				gwhwset[mid].cp_nb_rx_ok, gwhwset[mid].cp_up_pkt_fwd);
+		}
+		
 	} // end of Modem-Loop
 
 	delay(NWSSCANDELAY);					// wait per loop in ms -> no time to loose.
@@ -331,7 +317,7 @@ LoRa Modem Register Status:     Version: 0x12  LoRa Modem OpMode : 0x80
 // -7	JOIN request rejected
 // -99   unknown CMD code -> ignored
 //*********************************************
-int BeeIoTParse(MsgBuffer * msg){
+int NwSrv::BeeIoTParse(MsgBuffer * msg){
 byte pkglen;
 int rc=0; 
 int ndid =0;
@@ -361,7 +347,7 @@ beeiotpkg_t mystatus;		// raw lora package buffer
 			BHLOG(LOGLORAR) hexdump((unsigned char*) &mystatus, MAX_PAYLOAD_LENGTH);
 			BHLOG(LOGLORAR) printf("\n");
 			// ignore this package: no action
-			gwset[mid].cp_nb_rx_bad++;	// bad pkg
+			gwhwset[mid].cp_nb_rx_bad++;	// bad pkg
 			return(rc);
 		}else if (rc == -3) {
 			BHLOG(LOGLORAW) printf("  BeeIoTParse: Node registered but not joined yet (NodeID:0x%02X) -> Request a RE-JOIN\n", 
@@ -370,26 +356,26 @@ beeiotpkg_t mystatus;		// raw lora package buffer
 			// but we return a positive ack
 			BeeIoTFlow(needaction, &mystatus, mystatus.hd.sendID-NODEIDBASE, 0);
 			rc=-3;
-			gwset[mid].cp_nb_rx_ok++;		// incr. # of correct received packages	
+			gwhwset[mid].cp_nb_rx_ok++;		// incr. # of correct received packages	
 			return(rc);
 		}else if(rc == -4){
 			BHLOG(LOGLORAW) printf("  BeeIoTParse: Node joined but not using assigned GWID 0x%02X -> should rejoin\n", 
 				(unsigned char)mystatus.hd.destID);					
-			gwset[mid].cp_nb_rx_ok++;		// incr. # of correct received packages	
+			gwhwset[mid].cp_nb_rx_ok++;		// incr. # of correct received packages	
 			return(rc);			
 		}else if (rc == -5){
 			// wrong Framelen detected -> request RETRY
 			BHLOG(LOGLORAW) printf("  BeeIoTParse: Wrong Framelen 0x%02X -> requesting a RETRY\n", 
 				(unsigned char)mystatus.hd.frmlen);					
 			BeeIoTFlow(CMD_RETRY, &mystatus, mystatus.hd.sendID-NODEIDBASE, 0);
-			gwset[mid].cp_nb_rx_bad++;	// bad pkg
+			gwhwset[mid].cp_nb_rx_bad++;	// bad pkg
 			return(rc);
 		}
 	}
 	ndid = rc;	// we received Node-ID of curr. Pkg from JS
 	// For (RE-)JOIN Request ndid is set to 0 by JS !
 
-	gwset[mid].cp_nb_rx_ok++;			// incr. # of correct received packages	
+	gwhwset[mid].cp_nb_rx_ok++;			// incr. # of correct received packages	
 	
 	// Validate NwServer process flow:
 	// - If we already know this BeeIoT Package: check the msgid
@@ -538,7 +524,7 @@ beeiotpkg_t mystatus;		// raw lora package buffer
 // -1	unsupported CMD code
 // -2	TX timeout occured
 //
-int BeeIoTFlow(u1_t action, beeiotpkg_t * pkg, int ndid, bool async){
+int NwSrv::BeeIoTFlow(u1_t action, beeiotpkg_t * pkg, int ndid, bool async){
 beeiotpkg_t		actionpkg;	// new TX package buffer for creation
 beeiot_header_t	*pack;	// ACK requires header only	-> reuse of pkg message field
 beeiot_cfg_t	*pcfg;	// CONFIG has HD + CData	-> reuse of pkg message field
@@ -621,15 +607,16 @@ Radio *			Modem;	// Ptr on Modem used for transmission
 	// Do final TX for all CMD cases: Select assigned modem handle
 	mid = pndb->mid;					// get node assigned ModemID
 	if(mid > mactive) mid = mactive;	// limit modemid to max. # of discovered modems.
-	Modem = gwset[mid].modem;			// get corresponding modem object for TX
+	Modem = gwhwset[mid].modem;			// get corresponding modem object for TX
 	
-	BHLOG(LOGLORAR) printf("  BIoTFlow: TX[%i] GWID:0x%02x -> NodeID:0x%02X, CMD:0x%02x len:%i via Modem%d\n", 
-			actionpkg.hd.pkgid, actionpkg.hd.sendID, actionpkg.hd.destID, actionpkg.hd.cmd, actionpkg.hd.frmlen, mid);
+	BHLOG(LOGLORAR) printf("  BIoTFlow: TX[%i] GWID:0x%02X -> NodeID:0x%02X, CMD:0x%02X len:%i via Modem%i\n", 
+			(int)actionpkg.hd.pkgid, (int)actionpkg.hd.sendID, (int)actionpkg.hd.destID, 
+			(int)actionpkg.hd.cmd, (int)actionpkg.hd.frmlen, (int)mid);
 
 	int rc = Modem->starttx((byte *)&actionpkg, pkglen, async );	// send LoRa pkg	
 
 	if(rc<0){
-		BHLOG(LOGLORAW) printf("  BIoTFlow: TX[%i] failed (RC%i) via Modem%d\n", actionpkg.hd.pkgid, rc, mid); 
+		BHLOG(LOGLORAW) printf("  BIoTFlow: TX[%i] failed (RC%i) via Modem%i\n", (int)actionpkg.hd.pkgid, (int)rc, (int)mid); 
 		return(-2);	// can be only TX TO
 	}
 	return(0);

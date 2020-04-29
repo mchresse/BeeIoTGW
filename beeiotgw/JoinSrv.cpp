@@ -68,12 +68,12 @@ nodewltable_t WLTab[MAXNODES+1]={ // +1 for dummy JOIN line ID=0
 	NODEIDBASE, GWIDx, 0,  0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0,  1,0,0,
 //---------------------------------------------------
 // 1: BeeIoT ESP32-WROOM32:	DC8AD5286F24
-	NODEID1, GWID1,	0, BIoT_EUID,					// AppEUI: BIoT
+	NODEID1, GWID1,	0, BIoT_EUID,					// nid, gwid, mid, AppEUI: BIoT
 	0xDC, 0x8A, 0xD5, 0xFF, 0xFE, 0x28, 0x6F, 0x24, // DevEUI 
 	10, 0, 0,										// reportfrq, joinflag, chncfg
 //---------------------------------------------------
 // 2: ESP32-WROVERB: AC0DF0286F24
-	NODEID2, GWID1,	0, BIoT_EUID,					// AppEUI: BIoT
+	NODEID2, GWID1,	0, BIoT_EUID,					// nid, gwid, mid, AppEUI: BIoT
 	0xAC, 0x0D, 0xF0, 0xFF, 0xFE, 0x28, 0x6F, 0x24, // DevEUI
 	1, 0, 0,										// reportfrq, joinflag, chncfg
 //---------------------------------------------------
