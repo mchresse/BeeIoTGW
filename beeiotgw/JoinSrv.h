@@ -37,7 +37,6 @@ public:
 	// 
 	int		JS_RegisterNode	(beeiotpkg_t * joinpkg);
 	int		JS_ValidatePkg	(beeiotpkg_t* mystatus);
-	int		JS_AppProxy		(int ndid, char * framedata, byte framelen, int mid);
 
 //******************************************************************************
 protected:
@@ -51,12 +50,20 @@ private:
 	
 
 
-	//*****************************************
-	// JOINSrv local member function prototypes
+//*****************************************
+// JOINSrv local member function prototypes
 
-	// Compares 2 binary streams with given length "binlen".
+	//******************************************************************************
+	// compare 2 binary streams with given length "binlen".
 	// rc=0 if equal: if not equal, rc provides # of equal bytes found in stream
-	int	JS_ByteStreamCmp	(byte * bina, byte * binb, int binlen);
+	inline int JS_ByteStreamCmp(byte * bina, byte * binb, int binlen){
+		int i;
+		for (i=0; i<binlen; i++){
+			if(bina[i]!= binb[i])
+				return(i+1);
+		}
+		return(0);
+	}
 
 }; // end of class JoinSrv
 #endif /* JOINSRV_H */

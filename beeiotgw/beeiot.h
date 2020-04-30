@@ -48,6 +48,7 @@
 #define	EX_NWSRV_INIT2	0x0302		// NwSrv Constructor failed -> WiringPiSPI failed
 #define	EX_NWSRV_INIT3	0x0303		// NwSrv Constructor failed -> No active modem left
 #define	EX_JSRV_INIT	0x0401		// JoinSrv Constructor failed -> del. instance
+#define	EX_APPS_INIT	0x1000		// App: BIoTApp proxy Constructor failed -> del. instance
 #define	EX_APPBIOT_INIT	0x1001		// App: BIoT Srv Constructor failed -> del. instance
 #define	EX_APPGH_INIT	0x1101		// App: GH Srv Constructor failed -> del. instance
 #define	EX_APPTURTLE_INIT 0x1201	// App: Turtle Srv Constructor failed -> del. instance
@@ -78,6 +79,7 @@ class Radio;
 class MsgQueue;
 class NwSrv;
 class JoinSrv;
+class AppSrv;
 
 // Global Modem descriptor
 typedef struct{
@@ -89,6 +91,7 @@ typedef struct{
 	MsgQueue	* gwq;		// ptr to modem Msg Queue for all GW channels
 	NwSrv		* nws;		// ptr to the one and only Network service instance
 	JoinSrv		* jsrv;		// ptr to the one and only Join Service instance
+	AppSrv		* apps;		// ptr to the one and only App-Services instance
 
     // Statistic: to be initialize/updated by radio layer during rx/tx package handling
     uint32_t cp_nb_rx_rcv;	// # received packages
@@ -156,8 +159,10 @@ typedef struct {
 #define WEBIDXMAXLLEN	512
 #define WEBNOTICEMARKER "//NoticeAddHere"
 	
-int	beelog(char *   comment);
-int beecsv(dataset  * data);
+// Some helper functions residing in main()
+void hexdump(unsigned char * msg, int len);
+void Printhex(unsigned char * pbin, int bytelen, const char * s = "0x", int format=1, int dir=0);
+void Printbit(unsigned char * pbin, int bitlen,  const char * s = "0b", int format=1, int dir=0);
 
 
 #endif /* BEEIOT_H */

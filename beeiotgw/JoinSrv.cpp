@@ -56,6 +56,7 @@
 #include "beelora.h"
 #include "radio.h"
 #include "JoinSrv.h"
+#include "BIoTApp.h"
 
 //******************************************************************************
 // Global Logging flags + User runtime settings
@@ -77,7 +78,7 @@ extern int AppGH		(int ndid, char* data, byte len, int mid);	// GreenHouse Contr
 // => The hit index position in this table results to NodeID = NODEIDBASE + idx !
 // NODEIDBASE+0 to be used by new node for JOIN communication -> else rejected !
 
-static nodewltable_t WLTab[MAXNODES+1]={			// +1 for dummy JOIN line ID=0
+static nodewltable_t WLTab[MAXNODES+2]={			// +2 for dummy JOIN lines ID=0,n
 
 	// 0: Dummy start marker of table (NODEID == 0x00 -> used for JOIN requests => don't change)
 	NODEIDBASE, GWIDx, 0,  0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0,  1,0,0,
@@ -175,7 +176,7 @@ int  rc =0;
 		BHLOG(LOGLORAW) Printhex((byte*)& pjoin->info.devEUI,  8, "  Pkg-DEVEUI: 0x-"); 
 		BHLOG(LOGLORAW) Printhex((byte*)& pwltab->DevEUI,  8, "  WL-DEVEUI: 0x-"); 
 		BHLOG(LOGLORAW) printf("\n");
-		if(JS_ByteStreamCmp((byte*)& pjoin->info.devEUI, (byte*)& pwltab->DevEUI,8) == 0){
+		if(JS_ByteStreamCmp((byte *) &pjoin->info.devEUI, (byte *) &pwltab->DevEUI,8) == 0){
 			rc = ndid;
 			break; // we have a hit -> known DevEUI found
 		}
@@ -347,77 +348,5 @@ int JoinSrv::JS_ValidatePkg(beeiotpkg_t* mystatus){
 		BHLOG(LOGLORAR) Printhex((unsigned char*)mystatus->data, mystatus->hd.frmlen);
 
 	return(ndid);	// everything fine with this PKG -> forward to AppServer
-}
-
-
-
-//******************************************************************************
-// AppProxy()
-// Gets JOIN EUI from NDB by given Node id and search for assigned APP-function 
-// in the App proxy table. 
-// in case of a hit -> assigned function pointer is called and return code is 
-// forwarded to caller.
-//
-// INPUT:
-//	ndid refers to valid WLTab entry
-//	framedata
-//	framelen
-//	mid
-// RETURN:
-//  -98		wrong NDB index as input value
-//	-99		wrong/unsupported APP JOINEUI
-//	 rc		return code of App
-//
-
-// JOIN-EUI reference table & App jump table for JS_AppProxy()
-#define MAXAPPNUM	3	// number of defined JoinEUIDs and correspnding AppServer Functions
-static char TJoinEUI[MAXAPPNUM][8] = {
-		BIoT_EUID, 
-		TURTLE_EUID, 
-		GH_EUID,
-	};
-	// Jump table for node assigned App Server functions
-static int (* const fapp[])(int, char *, byte, int) ={
-		AppBIoT,	// 0: Bee weight cell App
-		AppTurtle,	// 1: Turtle House control App
-		AppGH,		// 2: GreenHouse Control App
-	};
-	
-int JoinSrv::JS_AppProxy(int ndid, char * framedata, byte framelen, int mid){
-int idx;
-
-	if(ndid > MAXNODES){
-		BHLOG(LOGBIOT) printf("  JoinSrv: AppProxy() wrong NDB[] index %i\n", ndid);
-		return(-98);
-	}	
-	nodedb_t *pndb = &NDB[ndid];
-	for( idx=0; idx< MAXAPPNUM; idx++){
-		// compare JoinEUI from NDB with local TJoimEUI reference table entry (by 8 byte len)
-		if(JS_ByteStreamCmp( (byte*)& TJoinEUI[idx][0], (byte*)& pndb->nodeinfo.joinEUI, 8) == 0)
-			break;		// we have a hit -> known DevEUI found		
-	}
-	// end of TJoinEUI[] reached ?
-	if(idx==MAXAPPNUM){	// no match in APP function EUID table found
-		BHLOG(LOGBIOT) printf("  JS_AppProxy: wrong App JOIN EUI idx %i\n", idx);
-		return(-99);
-	}
-
-	// call assigned APP Server function with given Frame-payload
-	int rc = fapp[idx](ndid, framedata, framelen, mid);
-
-	return(rc);
-}
-
-
-//******************************************************************************
-// compare 2 binary streams with given length "binlen".
-// rc=0 if equal: if not equal, rc provides # of equal bytes found in stream
-int JoinSrv::JS_ByteStreamCmp(byte * bina, byte * binb, int binlen){
-	int i;
-	for (i=0; i<binlen; i++){
-		if(bina[i]!= binb[i])
-			return(i+1);
-	}
-	return(0);
 }
 

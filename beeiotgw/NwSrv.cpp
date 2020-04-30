@@ -53,6 +53,7 @@
 #include "radio.h"
 #include "NwSrv.h"
 #include "JoinSrv.h"
+#include "BIoTApp.h"
 
 extern unsigned int		lflags;		// BeeIoT log flag field
 
@@ -410,7 +411,7 @@ beeiotpkg_t mystatus;		// raw lora package buffer
 		BHLOG(LOGLORAW) printf("  BeeIoTParse: AppPkg -> Sensor-Status received\n");	
 
 		// Forward Frame Payload to the assigned AppServer
-		rc = gwhwset[mid].jsrv->JS_AppProxy( (int) ndid, (char*) mystatus.data, (byte) mystatus.hd.frmlen, mid);
+		rc = gwhwset[mid].apps->AppProxy( (int) ndid, (char*) mystatus.data, (byte) mystatus.hd.frmlen, mid);
 
 		// Was FramePayload complete ?
 		if(rc == -1){   // wrong parameter set => request a resend of same message: RETRY
@@ -566,7 +567,7 @@ Radio *			Modem;	// Ptr on Modem used for transmission
 	// Do final TX for all CMD cases: Select assigned modem handle
 	mid = pndb->mid;					// get node assigned ModemID
 	if(mid >= mactive){ 
-		BHLOG(LOGLORAR) printf("\n  BIoTFlow: ################# Force mid:%i to limit-mid:%i ###################\n\n", mid, mactive-1);
+		BHLOG(LOGLORAW) printf("\n  BIoTFlow: ################# Force mid:%i to limit-mid:%i ###################\n\n", mid, mactive-1);
 		mid = 0;			// error recovery: limit modemid to JOIN default.
 		pndb->mid = mid;	// safe state for next time
 		// t.b.d.: there must be a wrong ID handling with NDB->mid
@@ -585,138 +586,4 @@ Radio *			Modem;	// Ptr on Modem used for transmission
 	}
 	return(0);
 }
-
-//*************************************************************************
-// PrintHex()
-// Print bin field: pbin[0] <-> pbin[len-1] by given direction in hexadez.
-// dump format: '0x-xx-xx-xx-xx-xx....'
-// Print starts where cursor is and no EOL is used.
-// INPUT
-//    pbin    byte ptr on binary field[0]
-//    bytelen number of 2 digit bytes to be printed
-// (0)dir     =0 -> forward  [0...len-1],   =1 -> backward [len-1...0]
-// (1)format  =1: bytewise  =2: 2bytes(short)  =4bytes(word) =8bytes(long)...
-//*************************************************************************
-void Printhex(unsigned char * pbin, int bytelen, const char * prefix, int format, int dir ){
-// dir=0 > forward; dir=1 -> backward
-int c; int bytype;
-
-  if (pbin && bytelen) {   // prevent NULL ptr. and bitlen=0
-    bytype = format;
-    if(dir<0 || dir>1) {
-      printf("printHex(): 'dir' must be 0 or 1\n");
-      return;  // check dir-marker range
-    }
-    printf("%s",prefix);
-    for(c=(bytelen-1)*dir; c!=(bytelen*(1-dir)-dir); c=c+1-(2*dir)){
-      if(!bytype){
-        printf("-");
-        bytype = format;
-      }
-      printf("%02X", (unsigned char)pbin[c]);
-      bytype--;
-    }
-  }
-}
-
-//*************************************************************************
-// PrintBit()
-// Print binary field: pbin[0] <-> pbin[len-1] by given direction in 0/1 digits
-// dump format: '0b-bbbbbbbb-bbbbbbbb-...'  e.g.  0b-10010110-10101100 (dir=0)
-//                  76543210-76543210                 0x96      0xAC  (forward)
-// Print starts where cursor is and no EOL is used.
-// INPUT
-//    pbin    byte ptr on binary field[0]
-//    bitlen  number of bits (!) to be printed in bit stream format
-// (0)dir     =0 -> forward  [0...len-1],   =1 -> backward [len-1...0]
-// (1)format  =1: bytewise  =2: 2bytes(short)  =4bytes(word) =8bytes(long)...
-//*************************************************************************
-void Printbit(unsigned char * pbin, int bitlen, const char * prefix, int format, int dir){
-int c; int bit; int len;
-int bytype;
-
-  if (pbin && bitlen) {   // prevent NULL ptr. and bitlen=0
-    if(dir<0 || dir>1) {
-      printf("PrintBit(): 'dir' must be 0 or 1\n");
-      return;  // check dir-marker range
-    }
-    len = bitlen/8;     // get byte counter
-    if(len*8 < bitlen)  // remaining bits after last full byte ?
-      len++;            // we have to do byteloop one more time
-    bytype=format;
-    printf("%s",prefix);
-    for(c=(len-1)*dir; c!=(len*(1-dir)-dir); c=c+1-(2*dir)){      // byte loop forw./backw. 
-      if(!bytype){
-        printf("-");
-        bytype=format;
-      }
-      for(bit=7*dir; bit!=8*(1-dir)-dir; bit=bit+1-(2*dir)){      // bit loop forw./backw.
-        printf("%c", pbin[c] & (1u << bit) ? '1' : '0');
-        if(!(--bitlen))   // last requested bit printed ?
-          return;
-      }
-      bytype--;
-    }
-  }
-} // end of Printbit()
-
-
-
-//******************************************************************************
-// print hexdump of msg[len]  in the format:
-// 0xaaaa:  dddd dddd dddd dddd  dddd dddd dddd dddd  <cccccccc cccccccc>
-void hexdump(unsigned char * msg, int len){
-	int i, y, count;
-	unsigned char c;
-	
-	printf("Address:  0 1  2 3  4 5  6 7   8 9  A B  C D  E F  lenght=%iByte\n", len);
-	count = 0;
-	while(count < len){
-		// print len\16 lines each of 4 x 4 words
-		printf("  +%4X: ", (uint32_t)count);
-		for(y=0; y<16; y++){
-			printf("%02X", (unsigned char) msg[count++]);
-			if (count == len)
-				break;
-			printf("%02X ", (unsigned char) msg[count++]);
-			y++;
-			if (count == len)
-				break;
-			if(y==7)
-				printf(" ");
-		}
-
-		if(y<16){	// break condition reached: end of byte field
-			// at this point y-1 bytes already printed (0..15)
-			// we have to fill up the line with " "
-			i=y;				// remember # of already printed bytes-1
-			if((y+1)%2 ==1){	// do we have a split word ?
-				printf("   ");	// yes, fill up the gap
-				i++;			// one byte less
-			}
-			for( ; i<15; i++)	// fill up the rest bytes of the line
-				printf("  ");
-			if(y<7)				// already reached 2. half ?
-				printf(" ");	// no, fill up gap
-			for(i=0; i<((15-y)*2)/4; i++)	// fill up gap between each word
-				printf(" ");
-
-			y++;	// compensate break condition of 'for(; ;y++)'
-		}
-		// just line end reached -> wrap the line
-		// print text representation of each line		
-		printf(" <");
-		// start with regular letters
-		for (i=0; i<y; i++){
-			if(i==8) printf(" ");
-			c = msg[count-y+i];
-			if(c < 32 || c >= 127)
-				printf(".");
-			else
-				printf("%c", (char)c);
-		}
-		printf(">\n");	// end of full text field print
-	}
-  return;	
-} // end of hexdump()
 

@@ -20,6 +20,11 @@
 #define _RADIO_H
 
 #include "regslora.h"
+// LoRa Radio LogStatus() logging modes
+#define LOGDYN	1
+#define LOGSTAT 2
+#define LOGALL	3
+
 
 //***************************************************************
 // LoRa Modem Hardware IO & IRQ callback function declarations
@@ -182,9 +187,6 @@ private:
 	// get random seed from wideband noise rssi
 	void radio_init(void);
 	
-	// preset HW GPIO definitions for selected Modem of Radio-Instance
-//	int  setmodemcfg(byte channelidx);
-
 	// Set TX Power configuration
 	void configPower (void);	// easy way	(deprecated)
 	void configPower2 (void);	// by LMIC: negotiate power class policy by bandwidth

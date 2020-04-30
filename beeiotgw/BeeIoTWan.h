@@ -33,6 +33,11 @@
 //***********************************************
 // LoRa MAC Presets
 //***********************************************
+#define LENJOINEUI	8
+#define LENDEVEUI	8
+#define LENAPPSKEY	16
+#define LENNWSKEY	16
+
 // AppServer EUIDs:
 #define BIoT_EUID	0xBB, 0xEE, 0xEE, 0xBB, 0xEE, 0xEE, 0xCC, 0xEE
 #define TURTLE_EUID 0xBB, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF, 0xAA, 0xBB
@@ -164,11 +169,11 @@ typedef struct { // generic BeeIoT Package format
 //***************************
 // (RE-)JOIN-CMD Pkg:
 typedef struct {
-	uint8_t	devEUI[8];	// could be e.g. 0xFFFE + node board ID (extended from 6 -> 8Byte)
-	uint8_t	joinEUI[8];	// ==AppEUI to address the right App service behind GW+NWserver
+	uint8_t	devEUI[LENDEVEUI];	// could be e.g. 0xFFFE + node board ID (extended from 6 -> 8Byte)
+	uint8_t	joinEUI[LENJOINEUI];	// ==AppEUI to address the right App service behind GW+NWserver
 	uint8_t	frmid[2];	// Msg=Frame idx of next app session (typ.= 1); 1. join was done with frmid=0 !
 	uint8_t	vmajor;		// supported version of BeeIoTWAN protocol MSB: Major
-	uint8_t 	vminor;		// LSB: Minor
+	uint8_t vminor;		// LSB: Minor
 }joinpar_t;
 
 typedef struct {

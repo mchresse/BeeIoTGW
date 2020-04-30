@@ -67,27 +67,49 @@
 #include "beelora.h"
 #include "radio.h"
 #include "JoinSrv.h"
+#include "BIoTApp.h"
 
 //*****************************************************************
 // global variables from main.cpp
-extern unsigned int	lflags; // BeeIoT log flag field (main.cpp)
-extern nodedb_t NDB[];		// if 'NDB[x].nodeinfo.version == 0' => empty entry
-// -> typeset see beelora.h; instance in JoinSrv.cpp
+extern unsigned int	lflags;		// BeeIoT log flag field (main.cpp)
 
 // Central Database of all measured values and runtime parameters
-extern dataset	bhdb;		// central beeIoT data DB
-extern configuration * cfgini;			// ptr. to struct with initial parameters
-// incl. ptr to  LoRa  modem objects
-extern modemcfg_t	*	gwset;		// GateWay related config sets for Radio Instantiation
+extern dataset	bhdb;			// central beeIoT data DB
+extern configuration * cfgini;	// ptr. to struct with initial parameters
+
+
 
 // to retrieve local LAN Port MAC address (defined in main ()
 extern struct sockaddr_in si_other;
 extern int		s, slen;
 extern struct ifreq ifr;
 
+
+
+
+// value fields used by all App services
+static struct	timeval now; // current tstamp used each time a time check is done
+static char	TimeString[128]; // contains formatted Timestamp string of each loop(in main())
+
+// for generic FTP xfer via curl lib
+// further FTP addr. setting to be retrieved from config.ini
+static int	curlcount;		// count curl-lib ftp xfer calls for debugging reasons
+
+extern int beecsv(dataset * data);
+extern int beelog(char *comment);
+
 //******************************************************************
-/* Informal status fields for TTN Upload JSON package*/
-// Upload buffer settings
+// Settings for TTN Upload in JSON format via UDP:
+
+//*****************************************
+// TTN Connection: TTN servers
+// TODO: use host names and dns
+#define TTNSERVER1  "54.72.145.119"   // The Things Network: croft.thethings.girovito.nl
+#define TTNSERVER1b "54.229.214.112"  // The Things Network: croft.thethings.girovito.nl
+#define TTNSERVER2  "192.168.1.10"    // local
+#define TTNPORT		1700              // The port on which to send data
+
+// TTN Upload buffer settings
 #define TX_BUFF_SIZE		2048
 #define STATUS_SIZE			1024
 // ----------------------------------------
@@ -98,32 +120,87 @@ extern struct ifreq ifr;
 #define PKT_PULL_RESP		3
 #define PKT_PULL_ACK		4
 
-// Set my GPS location (preset manually, if no GPS access
+// Gateway GPS location (preset manually, if no GPS access is active)
 static float lat=0.0;
 static float lon=0.0;
 static int   alt=0;
 
-static char platform[24]    = "Single Channel Gateway";  /* platform definition */
-static char email[40]       = "";                        /* used for contact email */
-static char description[64] = "";                        /* used for free form description */
+// User Info SendStat() settings 
+// (todo: retrieved/upd. from user config.ini)
+static char platform[24]    = "Single Channel Gateway";	// platform definition
+static char email[40]       = "";                       // used for contact email
+static char description[64] = "BIoT WAN Gateway";		// used for free form description
 
-static byte receivedbytes;			// generic RX msg data len
-static byte message[256];			// generic RX msg buffer
-static byte buf64[512];			// payload encoding buffer
-static int	curlcount;				// count curl-lib ftp xfer calls for debugging reasons
 
-static struct	timeval now; // current tstamp used each time a time check is done
-static char	TimeString[128]; // contains formatted Timestamp string of each loop(in main())
+
+//***************************************************************************
+// AppSrv Constructor
+AppSrv::AppSrv(modemcfg_t *gwtab): gwhwset(gwtab) {
+// Init housekeeping status params -> upd. during runtime
+	nnodes = 0;
+	TimeString[0] = 0;
+} // end of AppSrv()
+
+// AppSrv Destructor
+AppSrv::~AppSrv(void){
+} // end of ~AppSrv()
+
 
 //******************************************************************************
-// local Function prototypes
-int AppBIoT		(int ndid, char* data, byte len, int mid);		// Bee Weight Scale App
-int AppTurtle   (int ndid, char* data, byte len, int mid);		// Turtle House Control App
-int AppGH		(int ndid, char* data, byte len, int mid);		// GreenHouse Control App
+// AppProxy()
+// Gets JOIN EUI from NDB by given Node id and search for assigned APP-function 
+// in the App proxy table. 
+// in case of a hit -> assigned function pointer is called and return code is 
+// forwarded to caller.
+//
+// INPUT:
+//	ndid refers to valid WLTab entry
+//	framedata
+//	framelen
+//	mid
+// RETURN:
+//  -98		wrong NDB index as input value
+//	-99		wrong/unsupported APP JOINEUI
+//	 rc		return code of App
+//	
+// 
 
-void UploadPkg( char * msg, int pkglen, int SNR, byte rssi, int mid);
-void sendudp(char *msg, int length);
-void sendstat(int mid);
+
+int AppSrv::AppProxy(int ndid, char * framedata, byte framelen, int mid){
+	int idx, rc;
+	
+	if(ndid > MAXNODES){
+		BHLOG(LOGBIOT) printf("  AppProxy: wrong NDB[] index %i\n", ndid);
+		return(-98);
+	}	
+	// get ptr. to NDB[] entry of current node via NwSrv
+	nodedb_t *pndb = & gwhwset[mid].jsrv->NDB[ndid];
+
+	for( idx=0; idx< MAXBIOTAPP; idx++){
+		// compare JoinEUI from NDB with local TJoimEUI reference table entry (by 8 byte len)
+		if(ByteStreamCmp( (byte*)& TJoinEUI[idx][0], (byte*)& pndb->nodeinfo.joinEUI, LENJOINEUI) == 0)
+			break;		// we have a hit -> known DevEUI found		
+	}
+
+	// call assigned APP Server function with given Frame-payload
+	switch(idx){
+		case 0:	// Bee weight cell App
+			rc = AppBIoT (ndid, framedata, framelen, mid);
+			break;
+		case 1:	// Turtle House control App
+			rc = AppTurtle (ndid, framedata, framelen, mid);
+			break;
+		case 2:	// GreenHouse Control App
+			rc = AppGH (ndid, framedata, framelen, mid);
+			break;
+		default:	// no match in APP function EUID table found
+			BHLOG(LOGBIOT) printf("  JS_AppProxy: wrong App JOIN EUI idx %i\n", idx);
+			return(-99);
+	}
+
+	return(rc);
+}
+
 
 
 //******************************************************************************
@@ -135,12 +212,12 @@ void sendstat(int mid);
 // -1       wrong number of parsed sensor parameters -> Retry needed
 // -2       problems with CSV file creation/concatenation
 // -99      Wrong input data ; call rejected
-int AppBIoT	(int ndid, char* data, byte len, int mid){
+int AppSrv::AppBIoT	(int ndid, char* data, byte len, int mid){
     int rc = 0;
     int idx;
     int nparam;
 
-	nodedb_t *pndb = &gwset[mid].jsrv->NDB[ndid]; // ptr to NDB[ndid]
+	nodedb_t *pndb = &gwhwset[mid].jsrv->NDB[ndid]; // ptr to NDB[ndid]
 
     if(data && len == 0){    // prevent NULL ptr. and bitlen=0
         BHLOG(LOGBH) printf("  AppBIoT: Wrong input data (%p, %i)\n", data, (int)len);
@@ -224,7 +301,7 @@ int AppBIoT	(int ndid, char* data, byte len, int mid){
             sendstat(mid);
         }
 */
-        gwset[mid].cp_up_pkt_fwd++;	// Statistic: incr. # of forwarded status packages
+        gwhwset[mid].cp_up_pkt_fwd++;	// Statistic: incr. # of forwarded status packages
 
 		// ToDo: if add. Message to Node: prepare in TXBUFFER
 		// rc = 1; / Let NwSrv send it back to Node
@@ -237,7 +314,7 @@ int AppBIoT	(int ndid, char* data, byte len, int mid){
 // AppTurtle()
 // Analyzing Turtle House Sensor data
 //
-int AppTurtle (int ndid, char* data, byte len, int mid){
+int AppSrv::AppTurtle (int ndid, char* data, byte len, int mid){
 	BHLOG(LOGBH) printf("  AppTurtle: Processing new Sensor Status data (len:%i)\n", (int)len);
 
 	return(0);
@@ -247,7 +324,7 @@ int AppTurtle (int ndid, char* data, byte len, int mid){
 // AppGH Main Function
 // Analyzing GH House Sensor data
 //
-int AppGH (int ndid, char* data, byte len, int mid){
+int AppSrv::AppGH (int ndid, char* data, byte len, int mid){
 	BHLOG(LOGBH) printf("  AppGH: Processing new Sensor Status data (len:%i)\n", (int)len);
 
 	return(0);
@@ -255,20 +332,28 @@ int AppGH (int ndid, char* data, byte len, int mid){
 
 
 
+//******************************************************************************
+// Prepare JSON formatted data field for TTN upload
+// INPUT:
+//  *msg	ptr on raw data field
+//	pkglen	length of data in msg field
+//	SNR		Signal-Noise-Ratio in dBm
+//	rssi	RSSI quality value of retrieved package
+//	mid		modem ID of retrieving message channel of this pkg
+void AppSrv::UploadPkg( char * msg, int pkglen, int SNR, byte rssi, int mid ) {
 
+	char buff_up[TX_BUFF_SIZE]; // buffer to compose the upstream packet
+	byte buf64[512];			// TTN payload encoding buffer
 
-void UploadPkg( char * msg, int pkglen, long int SNR, byte rssi, int mid ) {
-
-            BHLOG(LOGLORAW) printf("  UploadPkg to Server: Length: %i\n",(int)pkglen);
+            BHLOG(LOGLORAW) printf(" TTN Upload Pkg to Server: Length: %i\n",(int)pkglen);
             BHLOG(LOGLORAR) printf("RSSI: %d, ", (unsigned char) rssi);
             BHLOG(LOGLORAR) printf("SNR: %li, ",  SNR);
 			
 			// encode payload for network transfer
 			int j;
             j = bin_to_b64((uint8_t *)msg, pkglen, (char *)(buf64), 341);
-            //fwrite(b64, sizeof(char), j, stdout);
-
-            char buff_up[TX_BUFF_SIZE]; /* buffer to compose the upstream packet */
+            //fwrite(buf64, sizeof(char), j, stdout);
+            
             int buff_index=0;
 
             /* gateway <-> MAC protocol variables */
@@ -314,14 +399,14 @@ void UploadPkg( char * msg, int pkglen, long int SNR, byte rssi, int mid ) {
             j = snprintf((char *)(buff_up + buff_index), TX_BUFF_SIZE-buff_index, "\"tmst\":%u", tmst);
             buff_index += j;
             j = snprintf((char *)(buff_up + buff_index), TX_BUFF_SIZE-buff_index, 
-					",\"chan\":%1u,\"rfch\":%1u,\"freq\":%.6lf", 0, 0, (double)(gwset[0].modem->getchannelfrq()) / 1000000);
+					",\"chan\":%1u,\"rfch\":%1u,\"freq\":%.6lf", 0, 0, (double)(gwhwset[0].modem->getchannelfrq()) / 1000000);
             buff_index += j;
             memcpy((void *)(buff_up + buff_index), (void *)",\"stat\":1", 9);
             buff_index += 9;
             memcpy((void *)(buff_up + buff_index), (void *)",\"modu\":\"LORA\"", 14);
             buff_index += 14;
             /* Lora datarate & bandwidth, 16-19 useful chars */
-            switch (gwset[mid].modem->getspreading()) {
+            switch (gwhwset[mid].modem->getspreading()) {
             case SF7:
                 memcpy((void *)(buff_up + buff_index), (void *)",\"datr\":\"SF7", 12);
                 buff_index += 12;
@@ -350,7 +435,7 @@ void UploadPkg( char * msg, int pkglen, long int SNR, byte rssi, int mid ) {
                 memcpy((void *)(buff_up + buff_index), (void *)",\"datr\":\"SF?", 12);
                 buff_index += 12;
             }
-			switch (gwset[mid].modem->getband()){
+			switch (gwhwset[mid].modem->getband()){
 			case BW125:
 				memcpy((void *)(buff_up + buff_index), (void *)"BW125\"", 6);
 				break;
@@ -365,7 +450,7 @@ void UploadPkg( char * msg, int pkglen, long int SNR, byte rssi, int mid ) {
 			}
             buff_index += 6;
 
-			switch (gwset[mid].modem->getcoding()){
+			switch (gwhwset[mid].modem->getcoding()){
 			case CR_4_5:
 				memcpy((void *)(buff_up + buff_index), (void *)",\"codr\":\"4/5\"", 13);
 				break;
@@ -415,9 +500,10 @@ void UploadPkg( char * msg, int pkglen, long int SNR, byte rssi, int mid ) {
 } // received a message
 
 
-// Prepare  status update package in JSON format
-void sendstat(int mid) {
-    static char status_report[STATUS_SIZE]; /* status report as a JSON object */
+//*****************************************************************************
+// Prepare  status update package in Byte stream format
+void AppSrv::sendstat(int mid) {
+    static char status_report[STATUS_SIZE]; // status report buffer
     char stat_timestamp[24];
     time_t t;
 
@@ -448,20 +534,21 @@ void sendstat(int mid) {
     strftime(stat_timestamp, sizeof stat_timestamp, "%F %T %Z", gmtime(&t));
 
     int j = snprintf((char *)(status_report + stat_index), STATUS_SIZE-stat_index, "{\"stat\":{\"time\":\"%s\",\"lati\":%.5f,\"long\":%.5f,\"alti\":%i,\"rxnb\":%u,\"rxok\":%u,\"rxfw\":%u,\"ackr\":%.1f,\"dwnb\":%u,\"txnb\":%u,\"pfrm\":\"%s\",\"mail\":\"%s\",\"desc\":\"%s\"}}", 
-					stat_timestamp, lat, lon, (int)alt, gwset[mid].cp_nb_rx_rcv, gwset[mid].cp_nb_rx_ok, gwset[mid].cp_up_pkt_fwd, (float)0, 0, 0,
+					stat_timestamp, lat, lon, (int)alt, gwhwset[mid].cp_nb_rx_rcv, gwhwset[mid].cp_nb_rx_ok, gwhwset[mid].cp_up_pkt_fwd, (float)0, 0, 0,
 					platform,email,description);
     stat_index += j;
     status_report[stat_index] = 0; /* add string terminator, for safety */
 
-    BHLOG(LOGLORAW) printf("stat update: %s\n", (char *)(status_report+12)); /* DEBUG: display JSON stat */
+    BHLOG(LOGLORAW) printf("stat update: %s\n", (char *)(status_report+12)); /* DEBUG: display status */
 
     //send the update
     sendudp(status_report, stat_index);
 }
 
 
-// Send status update pack to TTN network in JSON format
-void sendudp(char *msg, int length) {
+//*****************************************************************************
+// Send message pack to TTN network 
+void AppSrv::sendudp(char *msg, int length) {
 
 	// shortcut for test purpose
 BHLOG(LOGLORAW) printf("sendudp(): len=%i <%s> (deactivated!)\n", length, msg);

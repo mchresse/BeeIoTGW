@@ -1,10 +1,10 @@
-# BeeIoT-WAN Gateway v1.0
+# BeeIoT-WAN Gateway v1.2
 ### Der Gateway zur [BeeIoT Bienenstockwaage](https://github.com/mchresse/BeeIoT/blob/master/BeeIoT_v20.md)
 ##### (based on Raspberry Pi)
 
 <img src="./images_v2/BIoTGW_LoraHat.jpg" width=250>
 
-**01.01.2020 by Randolph Esser**
+**29.04.2020 by Randolph Esser**
 
 ---
 #### Inhaltsverzeichnis:
@@ -21,10 +21,10 @@
 	* [BeeIoTWAN-JOIN](beeiotwan-join)
 	* [Client TX/RX Sessions](client-tx/rx-sessions)
 	* [Der Gateway/Server Empfangsstack](der-gateway-server-empfangsstack)
-		+ [Radio Service](radio-service)
-		+ [Network Service](network-service)
-		+ [JOIN Service](join-service)
-		+ [Application Services](application-services)
+		+ [Radio Service (class Radio)](radio-service-(class-radio))
+		+ [Network Service (class NwSrv)](network-service-(class-nwssrv))
+		+ [JOIN Service (class JoinSrv)](join-service-(class-joinsrv))
+		+ [Application Services (class AppSrv)](application-services-(class-appsrv))
 - [Logging](logging)
 - [BeeIoT ToDo Liste](beeiot-todo-liste)
 <!-- toc -->
@@ -322,10 +322,10 @@ Die folgende Tabelle führt die Bedeutung für den **Empfänger** (!) auf:
 |CMD_RETRY|Send same Pkg again (last pkg was corrupt)|	no action|
 |CMD_ACK| NOP: Ack. for last sent Pkg by GW (except JOIN -> Accept by CONFIG)| NOP: Ack. for last sent Pkg by Node|
 |CMD_CONFIG|set new CfgChn + Node/GW-ID for next sessions| no action|
-|CMD_RES6| reserved| reserved|
+|CMD_EVENT| no action| Analysiere Eventcode und erzeugte entspr. Aktionen/Meldungen|
 |CMD_RES7| reserved| reserved|
 |CMD_RES8| reserved| reserved|
-|CMD_TIME| no action| Send curr. Time Stamp to Node|
+|CMD_TIME| no action| Send curr. Server Time Stamp to Node|
 |CMD_NOP| no Action| send ACK to Node|
 
 Die Kommando-spezifischen Paketinterpretationen werden durch ein Cast der jew. CMD-Typedef Strukur auf beeiotpkg_t erreicht.
@@ -416,66 +416,118 @@ Da der Client als protokoll-Masetr auftriit bekommt der Gateway durch das nachfo
 so kann er auch "verweigern" -> GW läuft auf Timeout.
 
 ###Der Gateway/Server Empfangsstack
-Der Gateway/Server Stack ist dafür vorbereitet von verschiedenen Clients Pakete zu empfangen und diese, wie im JOIN Request definiert, an den gewünschten Application-Prozess zu übergeben.
+Der Gateway/Server Stack ist dafür vorbereitet von verschiedenen Clients(Nodes) Pakete zu empfangen. Abhängig von der vorhergehenden Registrierung des Nodes beim Gateway (via JOIN Request) werden ensprechende AppServices angerufen, die FrameDaten weiter zu prozessieren:
 
 <img src="./images_v2/BeeIoT_SrvModules.jpg">
 
-####Radio Service
+Die elementaren Grundfunktionen sowie alle Services wurden als separate Klassen deklariert und definitiert, die über ihre Zustände und Memberfunktionen interagieren:
+```cpp
+main()  -> init_all()               init gwset[mid]= mset[mid=0..cfgini->loranumchn]
+                                    Instanziierung aller ben. Klassen und Verwaltung in gwset[]
+		-> setmodemcfg()			cfgini -> gwset[mid].iopins
+		-> NwNodeScan()             call NwS scanning routine: forever) polling of all
+                                    modems for input pkg.
+Class Member Fkt.:
+==================
+Radio   -> setchannelcfg()          set mset.chncfg from cfgchntab[cfgidx]
+		-> resetModem()             activate RST line
+		-> getchiptype()            ident. Modem chip
+		-> setLoraMode()            set SX-LoraMode register flag
+		-> configChannelFreq()      set SX-Frequency register
+		-> configLoraModem()        set SX-LoraCfg register 1-3
+		-> radio_init()             Fill Random data field, set IRQ Flag Mask
+		-> isr_init()               assign ISR fucntion to IRQ line
+		-> myradio_irq_handler()
+			-> MsgBuffer()          create new MsgBuffer containing Lora Package data
+			-> PushMsg()			moves MsgBuffer to MsgQueue
+
+MsgQueue -> Size()/Push()/Pop()     provides FiFo queue (of MsgBuffer elements)
+                                    based on std:queue (from STL)
+		-> getMsg()                 Ptr. on Queue->MsgBuffer for Rd/Wr activities
+
+MsgBuffer-> setpkgfifo()            fill MsgContainer with LoRa FiFo raw data frame
+		-> setmsghd()               fill MsgBuffer header with RX/Node/Modem info:
+                                    rssi/snr/mid/...
+NwSrv   -> init NDB[]
+        -> set gwset[mid].modem     for mid=0..nmodem	mactive=final # of new modems
+		-> set gwset[mid].gwq
+		-> MsgQueue()               init empty MsgQueue::queue
+		-> NwNodeScan()             central Network Scan Service for all modems
+            -> poll 'MsgQueue for len>0'
+			-> JS_validatePkg()     validate new MsgBuffer
+			-> BeeIoTParse()        parse MsgBuffer for BIoT Commands
+				-> AppProxy()       call assigned BIoTApp for further/final Msg data processing
+			-> PopMsg()             removes first Msg in MsgQueue
+
+JoinSrv -> JS_ValidatePkg()         validate Node identity & pkg header values
+                                    for BIoT conformity
+		-> JS_RegisterNode()        new Node: setup NDB[ndid] by WLTab[ndid]
+                                    and gwset[mid] parameters
+
+AppSrv  -> AppProxy() -> AppBIoT()  call BeeHive Mon.-App-Function depending on
+                                    AppEUI assigned to node
+                      -> BeeCSV()   Forward LogData in CSV format to Web Space for WebApp
+                      -> AppGH()    call GreenHouse monitoring App-Function
+                      -> AppTurtle()call TurtleHouse monitoring App-Function
+```
+
+####Radio Service (class Radio)
 Der *Radio Service* empfängt die rohen LoRa-Pakete. Dabei werden in der ISR Routine myradio_irq_handler() verschiedene Checks des Paketheaders durchgeführt:
 1. Check LoRa Mode	-> BIOT use only LoRa Modem type
-    1. Check TXDone		-> set BeeIotTXFlag flag only
-    2. Check RX Queue full -> no RX-Queue buffer left => shortcut ISR, no action
-    3. Check RXDone
-    4. CRC Check	-> shortcut ISR, no action
-    5.	a)Get RSSI & SNR Status and 
+    1. Check TXMode	-> set BeeIotTXFlag flag only => done.
+    2. Check RXMode & IRQ-RXDone Flag
+    3. CRC Check	-> shortcut ISR, no action
+    4.	a)Get RSSI & SNR Status and
     	b) evaluate SNR threshold
 		-> if < SNR Threshold => shortcut ISR
-	6. Check Package size: must be in range of BeeIoT WAN protocol specification
-	7. RD Radio Queue -> fill RX Queue buffer + incr. BeeIotTXFlag Semaphore
-	8. RXTOUT-Check	  -> shortcut ISR, no action (BIoT uses RXCont Mode only)
-	9. Acknowledge all IRQ flags at once
+	5. Check Package size: must be in range of BeeIoT WAN protocol specification
+	6. Create new MsgQueue Buffer -> Copy LoRa FiFo data to RX Queue buffer
+	7. RXTOUT-Check	  -> shortcut ISR, no action (BIoT uses RXCont Mode only)
+	8. Acknowledge all IRQ flags at once
 2. FSK Mode IRQ => should never happen ! -> shortcut ISR, no action
 3. Set OPMode to Sleep Mode -> OM polled by BIoT Log Service
 
-Das Semaphor: BeeIotRXFlag hat den Zustand =0 wenn sich kein gefülltes Datenpaket in der MyRXData[] Queue befindet. Der Wert >0 gibt die Anzahl der eingetragenen Pakete an. Der Schreib-Index: RXPkgIsrIdx zeigt auf das nächste freie Queue Element.
+Das Semaphor der MsgQueue wird durch den Längenzähler der MsgQueue realisiert:
+Die Länge ist 0 wenn sich kein gefülltes Datenpaket in der MsgQueue befindet.
+Der Wert >0 gibt die Anzahl der eingetragenen MsgBuffer (Pakete) an.
+Da älteste Paket steht am Anfang -> FiFo Reihefolge der Paketbearbeitung. Neue Pakete werden hinten angehängt.
 
-####Network Service
+####Network Service (class NwSrv)
 Der *NetworkServer* koordiniert den BIoTWAN Protokollfluss.
-Dazu wird in NwNodeScan() dauerhaft eine Loop im RX-Contiguous Mode durchlaufen, während dieser der RX Queue MyRXData[] Status gepolled wird. Der Lese-Index: RXPkgSrvIdx zeigt auf das "älteste" nicht bearbeitete Queue Element.
-Hat BeeIotRXFlag den Wert =0 muss RXPkgSrvIdx == RXPkgISRIdx sein.
-Da die Queue als Ringpuffer organisiert ist, muss der RXPkgSrvIdx "hinter" dem RXPkgIsrIdx liegen.
+Dazu wird in NwNodeScan() dauerhaft eine Loop im RX-Contiguous Mode durchlaufen, während dieser die MsgQueue Länge auf >0  gepolled wird. GetMsg() liefert und PoPMsg() entfernt das "älteste" nicht bearbeitete Queue Element.
 
-Wurde ein Paket empfangen (BeeIotRXFlag > 0) wird das Queue Paket MyRXData[RXPkgSRVIdx] der Parsingroutine BeeIoTParse() übergeben.
+Wurde ein Paket empfangen (MsgQueue.Size > 0) wird das MsgBuffer Paketder Parsingroutine BeeIoTParse() übergeben.
 
-Dort wird als erstes der Paket-Sender durch eine  Anfrage an den JOIN Service validiert: JS_ValidatePkg().
+Dort wird zunächst der Paket-Sender (Node) sowie der Paket Header durch eine Anfrage an den JOIN Service validiert: JS_ValidatePkg().
 
 Bei Akzeptanz wird die aktuell zum Paket sendenden Clients gespeicherte MSG-ID mit der des Paketes verglichen. Ist er identisch wird das empfangene Paket als Duplikat verworfen (z.B. im Falle eines erfolgreich empfangenen Paketes mit anschliessend versendetem ACK Paketes, welches den Client aber nicht erreicht hat). Ist die empfangene MSG-ID kleiner als die gespeicherte, kann es sich um eine Man-In-the-middle Attack handeln. Ist die MSG-ID größer wird das Paket akzeptiert.
 Anschliessend wird der CMD-Code geprüft. Network-Service Commandos werden sofort in der NWS-Service BeeIoTFlow-Routine bearbeitet: NOP, (RE-)JOIN, ACK, CONFIG.
-Application Commands werden an den zugewiesenen Application-Service übergeben: z.B. LOGSTATUS, GETSDLOG, FWUPD.
+Application Commands werden an den zugewiesenen Application-Service via AppSrv.AppProxy() übergeben: z.B. LOGSTATUS, GETSDLOG, FWUPD.
 
-####JOIN Service
-Der *JOIN-Service* evaluiert die Client JOIN Request Angaben und im Erfolgsfall anschliessend alle weiteren session Oakete dieses CLients.
+####JOIN Service (class JoinSrv)
+Der *JOIN-Service* evaluiert die Client JOIN Request Anfragen, indem er alle Headerparameter auf ihre Werte konform zu BIoTWan.h prüft nd ob ein Knoten bekannt ist (via WLTab[]).
+Im JOIN Erfolgsfall erst werden alle weiteren Session Pakete dieses CLients zugelassen.
 
 Aus Security-Gründen kann nur ein serverseitig bekannter registrierter DevEUI Clientcode im JOIN Prozess akzeptiert werden. Dazu führt der JOIN Service eine interne Node-Referenztabelle: WLTab[] in der die zu vergleichende Referenz-DevEUI geführt wird. Diese WLTab[] wird in der Init-Phase aus der config.ini Datei mit User-Setup-Angaben gespeisst.
 
-Im Falle eines JOIN-Hits wird der entsprechende WLTab[]-Index auch gleichzeitig als Index für die, allen Services zugänglichen, Nodelist-Table: NDB[] hergenommen. AUs diesem NDB-index + der NODEIDBASE wird der neue Node-Index gebildet: NODEIDBASE+ndid, der im CONFIG-Answer-Paket an den Client zurückübermittelt wird.
-Fortwährend hat der Client diese NodeID zu verwenden, bis zu einem erneuten JOIN Request, der auch im Falle eines Roamingversuchs anfallen könnte.
+Im Falle eines JOIN-Hits wird der entsprechende WLTab[]-Index auch gleichzeitig als Index für die, allen Services zugänglichen, Nodelist-Table: JoinSrv.NDB[] hergenommen. AUs diesem NDB-index + der NODEIDBASE wird der neue Node-Index gebildet: NODEIDBASE+ndid, der im CONFIG-Answer-Paket an den Client zurückübermittelt wird.
+Fortwährend hat der Client diese NodeID zu verwenden, bis zu einem erneuten JOIN Request, der auch im Falle eines Roamingversuchs anfallen könnte, was eine neue NodeID zur Folge haben könnte (aber immer mit dergleichen DevEUI).
 
 Der JOIN Service füllt den NDB[ndid]-Eintrag des jeweilgen angemeldeten Clients mit allen bekannten Initialisierungsdaten zur weiteren Session-Bearbeitung durch den Network- und Application Service.
 
-Erkennt der Network Service ein Application Service Kommando so wird letzteres über den JS_AppProxy() übergeben:
-Diese Funktion verwaltet eine JOIN-EUI Referenztabelle: TJoinEUI[].
-Im Falle eines Hit der JOINEUI aus dem JOIN Request -> wird derselbe Index in einer weiteren Application Service Sprungtabelle fapp[] zur Weiterleitung des Paket-Frame-Payloads and die Application-Routine verwendet.
+Erkennt der Network Service ein Application Service Kommando so wird der dazugehörige MsgBuffer-Frame dem AppSrv.AppProxy() übergeben:
+Diese AppProxy() Funktion verwaltet eine interne JOIN-EUI Referenztabelle: TJoinEUI[].
+Im Falle eines Hits der JOINEUI aus dem Node-JOIN Request -> liefert derselbe Index in einer switch Struktur zum Applikationsaufruf und damit zur Weiterleitung des Paket-Frame-Payloads an die Application-Routine.
 
-####Application Services
-Über die Application-Service Sprungtabelle können verschiedenste Clienttypen zu ihren Applikationsdiensten angebunden werden (ähnlich einer TCP-Bind Funktion).
+####Application Services (class AppSrv)
+Über den Application-Proxy können somit verschiedenste Clienttypen zu ihren Applikationsdiensten dynamisch via JOIN request geroutet werden (ähnlich einer TCP-Bind Funktion). Dazu muss die Applikation nur mit ihrer AppEUI(=JOINEUI) in der TJoinEUI[] eingetragen sein.
 
-Für den BeeIoT Client einer Bienen-Stockwaage steht die Funktion: AppBIoT() bereit. Dort wird der Frame-Payload entschlüsselt und die Sensorlogdaten erneute geparsed. STimmen die daten udn deren Format, kann das LOGSTATUS Paket per ACK bestätigt werden. Ansonsten kann der Application Service einen ACK: RETRY anfordern.
+Für den BeeIoT Client einer Bienen-Stockwaage steht z.B. die Funktion: AppBIoT() bereit. Dort wird der Frame-Payload entschlüsselt und die Sensorlogdaten erneute geparsed. STimmen die Daten und deren Format, kann das LOGSTATUS Paket per ACK bestätigt werden. Ansonsten kann der Application Service anstelle des ACK ein RETRY anfordern.
 
-Erfolgreich validierte Daten werden über beecsv() in das Format einer CSV Datei gewandelt und der CSV-LogDatei übergeben. Diese kann zeitgleich von einem Webservice interpretiert und zur Graphendarstellung genutzt werden.
-Alternativ kann diese CSV dazei auch per curl()-FTP an einen externen (Web-) Service zur weiterverarbeitung übermittelt werden.
+Erfolgreich validierte Daten werden über AppSrv.beecsv() in das Format einer CSV Datei gewandelt und der CSV-LogDatei übergeben. Diese kann zeitgleich von einem Webservice interpretiert und zur Graphendarstellung genutzt werden.
+Alternativ kann diese CSV Datei auch per curl()-FTP an einen externen (Web-) Service zur Weiterverarbeitung (AppSrv.beelog()) übermittelt werden.
 
-Am Ende der Bearbeitung kann der Applikations-Service auch einen Vorschlag für ein RX1 Paket stellen, welches als 2. Antwort im RX1 Window an den Client zurückgesendet wird.
+Am Ende der Bearbeitung kann der Applikations-Service auch einen Vorschlag für ein RX1 Paket stellen (rc=1), welches als 2. Antwort im RX1 Window an den Client zurückgesendet wird.
 
 ## Logging
 Sowohl im CLient wie auf Server Seite ist derselbe Logging mechanismus über ein 16 Bit Flagfeld eingerichtet: **lflags**.
@@ -528,7 +580,7 @@ Wakeup caused by timer
   SD: File /logdata.txt found
   Setup: LoRa SPI device & Base layer
   LoRa: WakeUpMode:1 in Status: JOIN
-  LoRaCfg: Set Modem/Channel-Cfg[0]: 868100000Mhz, SF=7, TXPwr:14, BW:125000, CR:5, LPreamble:12     
+  LoRaCfg: Set Modem/Channel-Cfg[0]: 868100000Mhz, SF=7, TXPwr:14, BW:125000, CR:5, LPreamble:12 
     SW:0x12, CRC, noInvIQ  LoraCfg: StdBy Mode
   LoRa: assign ISR to DIO0  - default: GWID:0x98, NodeID:0x80
   Setup: OneWire Bus setup

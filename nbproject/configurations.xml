@@ -4,6 +4,7 @@
     <logicalFolder name="HeaderFiles"
                    displayName="Header Files"
                    projectFiles="true">
+      <itemPath>beeiotgw/BIoTApp.h</itemPath>
       <itemPath>beeiotgw/BeeIoTWan.h</itemPath>
       <itemPath>beeiotgw/JoinSrv.h</itemPath>
       <itemPath>beeiotgw/NwSrv.h</itemPath>
@@ -72,6 +73,8 @@
         </linkerTool>
       </compileType>
       <item path="beeiotgw/BIoTApp.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="beeiotgw/BIoTApp.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="beeiotgw/BeeIoTWan.h" ex="false" tool="3" flavor2="0">
       </item>
@@ -142,6 +145,8 @@
         </asmTool>
       </compileType>
       <item path="beeiotgw/BIoTApp.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="beeiotgw/BIoTApp.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="beeiotgw/BeeIoTWan.h" ex="false" tool="3" flavor2="0">
       </item>
