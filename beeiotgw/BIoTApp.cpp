@@ -135,8 +135,9 @@ static char description[64] = "BIoT WAN Gateway";		// used for free form descrip
 
 //***************************************************************************
 // AppSrv Constructor
-AppSrv::AppSrv(modemcfg_t *gwtab): gwhwset(gwtab) {
-// Init housekeeping status params -> upd. during runtime
+AppSrv::AppSrv(gwbind_t &gwtab): gwt(gwtab) {
+	gwhwset = gwt.gwset;
+	// Init housekeeping status params -> upd. during runtime
 	nnodes = 0;
 	TimeString[0] = 0;
 } // end of AppSrv()
@@ -174,7 +175,7 @@ int AppSrv::AppProxy(int ndid, char * framedata, byte framelen, int mid){
 		return(-98);
 	}	
 	// get ptr. to NDB[] entry of current node via NwSrv
-	nodedb_t *pndb = & gwhwset[mid].jsrv->NDB[ndid];
+	nodedb_t *pndb = & gwt.jsrv->NDB[ndid];
 
 	for( idx=0; idx< MAXBIOTAPP; idx++){
 		// compare JoinEUI from NDB with local TJoimEUI reference table entry (by 8 byte len)
@@ -217,7 +218,7 @@ int AppSrv::AppBIoT	(int ndid, char* data, byte len, int mid){
     int idx;
     int nparam;
 
-	nodedb_t *pndb = &gwhwset[mid].jsrv->NDB[ndid]; // ptr to NDB[ndid]
+	nodedb_t *pndb = &gwt.jsrv->NDB[ndid]; // ptr to NDB[ndid]
 
     if(data && len == 0){    // prevent NULL ptr. and bitlen=0
         BHLOG(LOGBH) printf("  AppBIoT: Wrong input data (%p, %i)\n", data, (int)len);
@@ -227,7 +228,7 @@ int AppSrv::AppBIoT	(int ndid, char* data, byte len, int mid){
 	// get current timestamp
 	gettimeofday(&now, 0);
 	strftime(TimeString, 80, "%Y-%m-%d %H:%M:%S", localtime(&now.tv_sec));
-    BHLOG(LOGBH) printf("  AppBIoT: %s -Processing new Sensor Status data (len:%i) from Node 0x%02X\n", 
+    BHLOG(LOGBH) printf("  AppBIoT: %s -Processing Sensor data (len:%i) of BIoT-Node: 0x%02X\n", 
 				TimeString, (int)len, (unsigned char) pndb->nodecfg.nodeid);
 
     idx = 0; // start with first entry (by now the only one)
@@ -301,7 +302,7 @@ int AppSrv::AppBIoT	(int ndid, char* data, byte len, int mid){
             sendstat(mid);
         }
 */
-        gwhwset[mid].cp_up_pkt_fwd++;	// Statistic: incr. # of forwarded status packages
+        gwt.cp_up_pkt_fwd++;	// Statistic: incr. # of forwarded status packages
 
 		// ToDo: if add. Message to Node: prepare in TXBUFFER
 		// rc = 1; / Let NwSrv send it back to Node
@@ -399,14 +400,14 @@ void AppSrv::UploadPkg( char * msg, int pkglen, int SNR, byte rssi, int mid ) {
             j = snprintf((char *)(buff_up + buff_index), TX_BUFF_SIZE-buff_index, "\"tmst\":%u", tmst);
             buff_index += j;
             j = snprintf((char *)(buff_up + buff_index), TX_BUFF_SIZE-buff_index, 
-					",\"chan\":%1u,\"rfch\":%1u,\"freq\":%.6lf", 0, 0, (double)(gwhwset[0].modem->getchannelfrq()) / 1000000);
+					",\"chan\":%1u,\"rfch\":%1u,\"freq\":%.6lf", 0, 0, (double)(gwt.modem[mid]->getchannelfrq()) / 1000000);
             buff_index += j;
             memcpy((void *)(buff_up + buff_index), (void *)",\"stat\":1", 9);
             buff_index += 9;
             memcpy((void *)(buff_up + buff_index), (void *)",\"modu\":\"LORA\"", 14);
             buff_index += 14;
             /* Lora datarate & bandwidth, 16-19 useful chars */
-            switch (gwhwset[mid].modem->getspreading()) {
+            switch (gwt.modem[mid]->getspreading()) {
             case SF7:
                 memcpy((void *)(buff_up + buff_index), (void *)",\"datr\":\"SF7", 12);
                 buff_index += 12;
@@ -435,7 +436,7 @@ void AppSrv::UploadPkg( char * msg, int pkglen, int SNR, byte rssi, int mid ) {
                 memcpy((void *)(buff_up + buff_index), (void *)",\"datr\":\"SF?", 12);
                 buff_index += 12;
             }
-			switch (gwhwset[mid].modem->getband()){
+			switch (gwt.modem[mid]->getband()){
 			case BW125:
 				memcpy((void *)(buff_up + buff_index), (void *)"BW125\"", 6);
 				break;
@@ -450,7 +451,7 @@ void AppSrv::UploadPkg( char * msg, int pkglen, int SNR, byte rssi, int mid ) {
 			}
             buff_index += 6;
 
-			switch (gwhwset[mid].modem->getcoding()){
+			switch (gwt.modem[mid]->getcoding()){
 			case CR_4_5:
 				memcpy((void *)(buff_up + buff_index), (void *)",\"codr\":\"4/5\"", 13);
 				break;
@@ -534,7 +535,7 @@ void AppSrv::sendstat(int mid) {
     strftime(stat_timestamp, sizeof stat_timestamp, "%F %T %Z", gmtime(&t));
 
     int j = snprintf((char *)(status_report + stat_index), STATUS_SIZE-stat_index, "{\"stat\":{\"time\":\"%s\",\"lati\":%.5f,\"long\":%.5f,\"alti\":%i,\"rxnb\":%u,\"rxok\":%u,\"rxfw\":%u,\"ackr\":%.1f,\"dwnb\":%u,\"txnb\":%u,\"pfrm\":\"%s\",\"mail\":\"%s\",\"desc\":\"%s\"}}", 
-					stat_timestamp, lat, lon, (int)alt, gwhwset[mid].cp_nb_rx_rcv, gwhwset[mid].cp_nb_rx_ok, gwhwset[mid].cp_up_pkt_fwd, (float)0, 0, 0,
+					stat_timestamp, lat, lon, (int)alt, gwt.cp_nb_rx_rcv, gwt.cp_nb_rx_ok, gwt.cp_up_pkt_fwd, (float)0, 0, 0,
 					platform,email,description);
     stat_index += j;
     status_report[stat_index] = 0; /* add string terminator, for safety */

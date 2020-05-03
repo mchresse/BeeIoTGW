@@ -19,7 +19,7 @@
 #ifndef BEELORA_H
 #define BEELORA_H
 
-
+using namespace std;
 
 // Target platform types
 typedef unsigned char      bit_t;
@@ -54,8 +54,6 @@ enum { RXMODE_SINGLE, RXMODE_SCAN, RXMODE_RSSI };
 // NODEIDBASE defined in BeeIoTWAN.h
 enum {	NODEID1=NODEIDBASE+1, NODEID2, NODEID3, NODEID4, NODEID5};	// Transfer ID of LoRa Client 5
 
-
-#define MAXGW		2			// max. # of serving gateways in this network
 // GWIDx defined in BeeIoTWAN.h
 #define GWID1		0x98		// Transfer ID of this gateway (backup srv., SDLog, FW upd.)
 
@@ -115,7 +113,7 @@ u4_t os_aes (u1_t mode, xref2u1_t buf, u2_t len);
 typedef struct{
 	byte	nodeid;		// Node ID (base: NODEIDBASE + 0...MAXNODES)
 	byte	gwid;		// GW ID   (base: GWIDx - 0...MAXGW) 
-	byte	mid;		// Modem ID(base: 0...mactive) -> NwSrv
+	byte	mid;		// Modem ID(base: 0...mactive) -> NwSrv (initial)
 	byte	AppEUI[LENJOINEUI];	// corresponding unique AppEUI of serving App
 	byte	DevEUI[LENDEVEUI];	// Node unique DevEUI
 	byte	reportfrq;	// [min] Frequency of Status data reports
@@ -125,14 +123,15 @@ typedef struct{
 
 // NodeDB[] typeset
 typedef struct{
-	beeiotmsg_t msg;		// root point of node message queue chain
+	msghd_t msg;		// runtime data of last received message of node -> use this mid for answer pkg
 	nodewltable_t * pwltab; // ptr to corresponding WL node table
 	joinpar_t	nodeinfo;	// Node info descriptor
 	devcfg_t	nodecfg;	// parameter set for node side runtime config.
 	byte		AppSKey[LENAPPSKEY];
 	byte		NwSKey[LENNWSKEY];
 	devaddr_t	DevAddr;
-	byte		mid;		// Modem ID corresponding to nodecfg.gwid
+	byte		middef;		// Default Modem ID from WLTab[] corresponding to nodecfg.gwid
+	// but GW is always in slave mode -> only pkg sent as answer pkg (see msg.mid above)
 } nodedb_t;
 
 

@@ -24,13 +24,15 @@
 #ifndef BIOTAPP_H
 #define BIOTAPP_H
 
+using namespace std;
+
 // number of defined JoinEUIDs and corresponding AppServer Functions
 #define MAXBIOTAPP	3	
 
 class AppSrv {
 //*************************************************************************
 public:
-	 AppSrv(modemcfg_t *gwtab); // Constructor
+	 AppSrv(gwbind_t &gwtab); // Constructor
 	~AppSrv(void);				 // Destructor
 	
 	// route App message to JoinEUI related App refernced by NDB[ndid]
@@ -64,7 +66,8 @@ private:
 	// BIoTApp private prototypes:
 
 	// private ptr to the global BIoT GW instances & settings
-	modemcfg_t	*gwhwset;
+	gwbind_t	&gwt;
+	modemcfg_t	* gwhwset;
 
 	// Status Housekeeping
 	int			nnodes;			// Number of detected active BIoT Nodes
@@ -76,8 +79,7 @@ private:
 			BIoT_EUID, 
 			TURTLE_EUID, 
 			GH_EUID,
-		};
-
+	};
 	
 	// BIoTApp Helper functions
 	//******************************************************************************

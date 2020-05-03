@@ -17,8 +17,11 @@
 //*******************************************************************
 #ifndef BEEIOT_H
 #define BEEIOT_H
+using namespace std;
 
 #include "getini.h"
+
+#define MAXGW		2			// max. # of serving gateways in this network
 
 // Definitions of LogLevel masks instead of verbose mode (for uint16_t bitfield)
 #define LOGBH		1		// 1:   Behive Setup & Loop program flow control
@@ -74,32 +77,40 @@ typedef struct {
 		uint8_t	sxdio5;		// DIOx IRQ line		
 }iopins_t;
 
-// forward declaration for  modemcfg_t
-class Radio;
-class MsgQueue;
-class NwSrv;
-class JoinSrv;
-class AppSrv;
-
 // Global Modem descriptor
 typedef struct{
 	uint8_t		modemid;	// index of modem instance	-> set by main() cfgini
 	uint8_t		gwid;		// modem corresponding Pkg GWIDx
 	uint8_t		chncfgid;	// ID of channel configuration set
 	iopins_t	iopins;		// GPIO port definition	-> set by main() cfgini
-	Radio		* modem;	// ptr to modem instance -> set by constructor
+}modemcfg_t;
+
+// forward declaration for  gwbind_t
+class Radio;
+class MsgQueue;
+class NwSrv;
+class JoinSrv;
+class AppSrv;
+
+// global Gateway bind list of attached services
+typedef struct {
+	int			nmodemsrv;	// number of served modems after activated NwService
+	int			joindef;	// default JOIN modem ID (init by cfgini.loradefchn)
+	Radio		* modem[MAXGW];	// ptr to modem-instance list -> set by main.initall()
 	MsgQueue	* gwq;		// ptr to modem Msg Queue for all GW channels
 	NwSrv		* nws;		// ptr to the one and only Network service instance
 	JoinSrv		* jsrv;		// ptr to the one and only Join Service instance
 	AppSrv		* apps;		// ptr to the one and only App-Services instance
+	modemcfg_t	* gwset;	// Table of GateWay/Modem related config sets for Radio Instantiation
 
-    // Statistic: to be initialize/updated by radio layer during rx/tx package handling
+	// Statistic: to be initialize/updated by radio layer during rx/tx package handling
     uint32_t cp_nb_rx_rcv;	// # received packages
     uint32_t cp_nb_rx_ok;	// # of correct received packages
     uint32_t cp_up_pkt_fwd;	// # of sent status packages to REST/WEb service
     uint32_t cp_nb_rx_bad;	// # of invalid RX packages
     uint32_t cp_nb_rx_crc;	// # of RX packages /w CRC error
-}modemcfg_t;
+}gwbind_t;
+
 
 // Radio-Modem internal used config channel set
 typedef struct{ 

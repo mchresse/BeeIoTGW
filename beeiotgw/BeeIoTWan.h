@@ -18,10 +18,12 @@
 #ifndef BEEIOTWAN_H
 #define BEEIOTWAN_H
 
+using namespace std;
+
 // BIoT Version Format: maj.min	>	starting with V1.0
 // - used for protocol backward compat. and pkg evaluation
 #define BIoT_VMAJOR		1		// Major version
-#define BIoT_VMINOR		2		// Minor
+#define BIoT_VMINOR		3		// Minor
 // History:
 // Version Date		Comment:
 // 1.0	01.01.2020	Initial setup
@@ -29,6 +31,7 @@
 // 1.2	24.04.2020	LoRaSW sync word switch; txchntab[] -> cfgchntab[]
 //					PkgHD: Framelen: 2 Byte -> for 16bit payload size
 //					Event CMD definition
+// 1.3	02.05.2020  Add Beacon CMD + Ack
 
 //***********************************************
 // LoRa MAC Presets
@@ -105,8 +108,8 @@ enum {
 	CMD_ACK,		// Received message complete
 	CMD_CONFIG,		// exchange new set of runtime configuration parameters
 	CMD_EVENT,		// Node Event, exceptional
-	CMD_RES7,		// reserved
-	CMD_RES8,		// reserved
+	CMD_BEACON,		// Send beacon e.g. for distance test
+	CMD_ACKBCN,		// Beacon Acknowledge -> delivers RSSI & SNR
 	CMD_TIME,		// Request curr. time values from partner side
 	CMD_NOP			// do nothing -> for xfer test purpose
 };
@@ -124,8 +127,8 @@ const char * beeiot_ActString[] = {
 	[CMD_ACK]		= "ACK",
 	[CMD_CONFIG]	= "CONFIG",
 	[CMD_EVENT]		= "EVENT",
-	[CMD_RES7]		= "NOP7",
-	[CMD_RES8]		= "NOP8",
+	[CMD_BEACON]	= "BEACON",
+	[CMD_ACKBCN]	= "ACKBEACON",
 	[CMD_TIME]		= "GETTIME",
 	[CMD_NOP]		= "NOP"
 };
@@ -288,18 +291,61 @@ typedef struct {
 
 //***************************
 // beacon frame format: not used yet: t.b.d.
-enum {
-    // Beacon frame format EU SF9
-    OFF_BCN_NETID    = 0,
-    OFF_BCN_TIME     = 3,
-    OFF_BCN_CRC1     = 7,
-    OFF_BCN_INFO     = 8,
-    OFF_BCN_LAT      = 9,
-    OFF_BCN_LON      = 12,
-    OFF_BCN_CRC2     = 15,
-    LEN_BCN          = 17
+// BEACON-CMD Pkg:
+// xfer of location Info only
+// useful for distance and transmission quality tests 
+typedef struct {
+	uint8_t	info;
+	uint8_t	crc1;
+	uint8_t	devEUI[LENDEVEUI];	// could be e.g. 0xFFFE + node board ID (extended from 6 -> 8Byte)
+	// RTC TIME input format: HH-MM-SS
+	uint8_t	hour;			// 0-23
+	uint8_t	min; 			// 0-59
+	uint8_t	sec;			// 0-59
+	uint8_t	crc2;
+	// GPS location
+	union{ // latitude
+		uint8_t	lat[sizeof(float)];	
+		float	latf;
+	};
+	union{ // longitude
+		uint8_t lon[sizeof(float)];	
+		float	lonf;
+	};
+	uint32_t	alt;	// altitude
+} beacon_t;
+
+typedef struct {
+	beeiot_header_t hd;		// BeeIoT common Pkg Header
+	beacon_t bcn;			// node config params (must be smaller than BEEIOT_DLEN!)
+	uint8_t	mic[BIoT_MICLEN]; // pkg integrity code for complete 'beeiot_beacon_t' (except MIC itself)
+							// cmacS = aes128_cmac(SNwkSIntKey, B1 | msg)
+							// MIC = cmacS[0..3]
+} beeiot_beacon_t;
+
+enum {    // Beacon frame format EU SF9
+    OFF_BCN_NETID    = 0,	// 4
+    OFF_BCN_TIME     = 3,	// 4
+    OFF_BCN_CRC1     = 7,	// 1
+    OFF_BCN_INFO     = 8,	// 1
+    OFF_BCN_LAT      = 9,	// 4
+    OFF_BCN_LON      = 12,	// 4
+    OFF_BCN_CRC2     = 15,	// 2
+    LEN_BCN          = 17	// 1
 };
 
+// CMD ACKBCN:
+typedef struct {
+	int		rssi;		// remaining status array
+	int		snr;
+} ackbcn_t;
+typedef struct {
+	beeiot_header_t hd;		// BeeIoT common Pkg Header
+	ackbcn_t bcn;			// node config params (must be smaller than BEEIOT_DLEN!)
+	uint8_t	mic[BIoT_MICLEN]; // pkg integrity code for complete 'beeiot_beacon_t' (except MIC itself)
+							// cmacS = aes128_cmac(SNwkSIntKey, B1 | msg)
+							// MIC = cmacS[0..3]
+} beeiot_ackbcn_t;
 
 //*****************************************************************************
 // ChannelTable[]:

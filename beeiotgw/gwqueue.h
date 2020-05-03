@@ -18,20 +18,12 @@
 #ifndef GWQUEUE_H
 #define GWQUEUE_H
 
+using namespace std;
 #include <queue>
 
 #define MAXRXPKG	10			// RX Queue Len: Max. number of parallel processed RX packages
 
 // Declaration of MsgBuffer Header
-typedef struct {
-	int			mid;		// modem ID of receiving gateway
-    byte		idx;		// index of sent message: 0..255 (round robin)
-    byte		retries;	// number of initiated retries
-	bool		ack;		// ack flag 1 = message received
-	int			rssi;		// RSSI value computed while receiving the frame [dBm]
-	byte		snr;		// Raw SNR value given by the radio hardware in dB
-    beeiotpkg_t *pkg;		// sent message struct -> BeeIotWAN.h
-} beeiotmsg_t;
 
 typedef struct {
 	int			mid;		// modem ID of receiving gateway
@@ -39,7 +31,7 @@ typedef struct {
     byte		retries;	// number of initiated retries
 	bool		ack;		// ack flag 1 = message received
 	int			rssi;		// RSSI value computed while receiving the frame [dBm]
-	byte		snr;		// Raw SNR value given by the radio hardware in dB
+	int			snr;		// Raw SNR value given by the radio hardware in dB
 } msghd_t;
 
 // forward declaration for friend function setpkgfifo()
@@ -104,8 +96,7 @@ class MsgQueue {
 		void PopMsg(void);
 
 		// get MsgBuffer from PrioQueue-start: FiFo
-		// ToDo: Copy Constructor
-		MsgBuffer & GetMsg(void);	
+		MsgBuffer & GetMsg(void);	// by reference
 
 		// deliver # of elements in queue
 		int MsgQueueSize(void);

@@ -18,7 +18,7 @@
 #ifndef JOINSRV_H
 #define JOINSRV_H
 
-
+using namespace std;
 
 class JoinSrv {
 //******************************************************************************
@@ -26,8 +26,8 @@ public:
 	nodedb_t NDB[MAXNODES];	// if 'NDB[x].nodeinfo.version == 0' => empty entry
 	// -> typeset see beelora.h
 
-	JoinSrv(modemcfg_t *gwtab, int nmodem); // Constructor
-	~JoinSrv(void);							// Destructor
+	JoinSrv(gwbind_t &gwtab, int nmodem); // Constructor
+	~JoinSrv(void);						  // Destructor
 	
 	//*****************************************
 	// JOINSrv API member function prototypes
@@ -43,7 +43,8 @@ protected:
 
 //******************************************************************************
 private:
-	modemcfg_t *gwhwset;
+	gwbind_t	& gwt;
+	modemcfg_t	* gwhwset;
 	int			mactive;		// Max. number of detected active modems for RX/TX
 	struct timeval now;			// current tstamp used each time a time check is done
 	char		TimeString[128];// contains formatted Timestamp string

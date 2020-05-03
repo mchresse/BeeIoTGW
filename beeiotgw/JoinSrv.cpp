@@ -102,22 +102,27 @@ static nodewltable_t WLTab[MAXNODES+2]={			// +2 for dummy JOIN lines ID=0,n
 
 //***************************************************************************
 // JoinSrv Constructor
-JoinSrv::JoinSrv(modemcfg_t *gwtab, int nmodem): gwhwset(gwtab), mactive(nmodem){
-nodedb_t * pndb;
+JoinSrv::JoinSrv(gwbind_t &gwtab, int nmodem): gwt(gwtab), mactive(nmodem){
+	gwhwset = gwt.gwset;
+	nodedb_t * pndb;
 
-	// Preset alle NDB[] entries
+	// Preset all NDB[] entries
 	// Init NodeDB[] for new node registrations:
 	for(int i=0; i<MAXNODES; i++){
 		pndb = &NDB[i];
 
 		// nodeinfo params will be set by data of JOIN request package of node
-		pndb->nodeinfo.vmajor		= 0; // free entry if 'NDB[x].nodeinfo.vmajor == 0'
+		pndb->nodeinfo.vmajor		= 0;	// free entry if 'NDB[x].nodeinfo.vmajor == 0'
 		pndb->nodeinfo.vminor		= 0;
 		pndb->nodeinfo.devEUI[0]	= 0;
 		pndb->nodeinfo.devEUI[1]	= 0;
 		pndb->nodeinfo.devEUI[2]	= 0;
 		pndb->nodeinfo.devEUI[3]	= 0;
-
+		pndb->nodeinfo.frmid[0]		= 0;
+		pndb->nodeinfo.frmid[1]		= 0;		
+											// Default MID: init by RegisterNode (from WL-Table)
+		pndb->middef				= 0;	// this mid is not used for communication /w node: use msg.mid
+											// because GW answers always in slave mode on received msg
 		pndb->nodecfg.gwid			= WLTab[i].gwid;
 		pndb->nodecfg.nodeid		= WLTab[i].nodeid;
 		pndb->nodecfg.vmajor		= BIoT_VMAJOR;		// Major + Minor version: Vx.y
@@ -125,16 +130,19 @@ nodedb_t * pndb;
 		pndb->nodecfg.verbose		= lflags;			// finally set by CONFIG command
 		pndb->nodecfg.channelidx	= WLTab[i].chncfg;	// start with channelid of modem 0
 		pndb->nodecfg.freqsensor	= WLTab[i].reportfrq; // [min] reporting frequence of status pkg.
+		pndb->nodecfg.nonce			= 0;
 
 		pndb->msg.ack				= 0;
-		pndb->msg.idx				= 0;
+		pndb->msg.pkgid				= 0;
 		pndb->msg.retries			= 0;
 		pndb->msg.rssi				= 0;
 		pndb->msg.snr				= 0;	
-		pndb->msg.pkg				= (beeiotpkg_t*)NULL;
-		pndb->mid					= 0;
+		pndb->msg.mid				= 0;	// mid of retrieved Pkg: to be used for any answer pkg
+
+		pndb->middef				= 0;	// preset default MID -> initialized finally by WLTab[]
 	}
 
+	NDB[0].middef = gwtab.joindef;	// set JOIN default modem for NDB-ID: 0 -> node ID = NODEIDBASE
 } // end of JoinSrv()
 
 // JoinSrv Destructor
@@ -189,12 +197,12 @@ int  rc =0;
 	if(pwltab->joined){		// already joined known node ?	-> was a rejoin ?
 		BHLOG(LOGLORAW) printf("  RegisterNode: Node found in WLTable[%d] -> and already joined\n", (int) ndid);
 		// assumed NDB[] was already initialized with this node till last session
-		pndb = & NDB[ndid];					// get pointer to already initialized NDB entry
-		pndb->nodecfg.channelidx= pwltab->chncfg; // but we start with default Channel IDX again
+		pndb = & NDB[ndid];							// get pointer to already initialized NDB entry
+		pndb->nodecfg.channelidx= pwltab->chncfg;	// but we start with default Channel IDX again
 		
 		// may be node wants to rejoin to another AppID
 		memcpy(&pndb->nodeinfo.joinEUI, &pjoin->info.joinEUI, 8);
-		
+
 		// may be FW was updated in between
 		pndb->nodeinfo.vmajor	= pjoin->info.vmajor;	// get Version of BIoT protocol of node
 		pndb->nodeinfo.vminor	= pjoin->info.vminor;
@@ -202,7 +210,7 @@ int  rc =0;
 		pndb->nodecfg.nonce		= pjoin->hd.pkgid;
 		// ToDo split FrameIdx and PkgIdx
 		pndb->nodeinfo.frmid[1]	= pjoin->hd.pkgid;		// by now FrameIdx and Pkg Idx are identical
-		pndb->msg.idx			= pjoin->hd.pkgid;		// keep using current counter status as devnonce;
+		pndb->msg.pkgid			= pjoin->hd.pkgid;		// keep using current counter status as devnonce;
 		pndb->nodecfg.freqsensor= cfgini->biot_loopwait;// [min] loop time of sensor status reports in Seconds (from config.ini)
 		return(ndid);	// return index to NDB[]
 	}
@@ -211,12 +219,11 @@ int  rc =0;
 	pndb = & NDB[ndid];
 	
 	// now we can update WLTable & NDB for new joined node:
-	BHLOG(LOGLORAW) printf("  RegisterNode: DevEUI registered -> update NodeDB[%i] with NodeID: 0x%02X, Modem%i\n",
+	BHLOG(LOGLORAW) printf("  RegisterNode: DevEUI registered -> update NodeDB[%i] with NodeID: 0x%02X, for Modem%i\n",
 			(unsigned char)ndid, (unsigned char)pwltab->nodeid, (unsigned char)pwltab->mid );
 
 	pwltab->joined = 1;				// mark WL Table entry as "joined"
 	// initialize NDB entry:
-	pndb->mid				= pwltab->mid;			// get Modem ID from WL Table
 	memcpy(&pndb->nodeinfo.devEUI, &pwltab->DevEUI,8);
 	memcpy(&pndb->nodeinfo.joinEUI, &pjoin->info.joinEUI, 8);
 	pndb->nodeinfo.frmid[0] = 0;			// MSB: init "last frame msg id"
@@ -235,10 +242,11 @@ int  rc =0;
 	// date and time will be defined dynamic at each JOIN ACK creation by BIoTFlow()
 	pndb->msg.ack			= 0;
 	pndb->msg.retries		= 0;
-	pndb->msg.idx			= 0;	// last msg idx => no msg received yet
+	pndb->msg.pkgid			= 0;	// last msg idx => no msg received yet
 	// FrmID & PkgID are handled/checked identical !
-	pndb->msg.pkg	= (beeiotpkg_t*) NULL;	// preset Queue root point
-	pndb->pwltab	= pwltab;	// back link to WL Table
+	pndb->msg.mid			= 0;	// pkg-mid: redefined by each new package on which channel it came in
+	pndb->middef			= pwltab->mid;	// get default Modem ID from WL Table; used by ???
+	pndb->pwltab			= pwltab;	// back link to WL Table
 
 	// T.b.d
 	pndb->DevAddr = 0;
@@ -333,7 +341,7 @@ int JoinSrv::JS_ValidatePkg(beeiotpkg_t* mystatus){
 	// This check normally to be done by AppServer:
 	// Check User Status data length
 	if(mystatus->hd.frmlen > BIoT_FRAMELEN){
-		BHLOG(LOGLORAW) printf("  BeeIoTParse: Wrong package size detected (%i) -> retry requested\n", (unsigned char) mystatus->hd.frmlen);		
+		BHLOG(LOGLORAW) printf("  JS_ValidateNode: Wrong package size detected (%i) -> retry requested\n", (unsigned char) mystatus->hd.frmlen);		
 		// for test purpose: dump payload in hex format
 		BHLOG(LOGLORAR) hexdump((unsigned char*) mystatus, MAX_PAYLOAD_LENGTH);
 		BHLOG(LOGLORAR) printf("\n");
@@ -343,10 +351,11 @@ int JoinSrv::JS_ValidatePkg(beeiotpkg_t* mystatus){
 	
 	// Now we have a valid BeeIoT Package header: check the "cmd" for next BeeIoTWAN action
 	// some debug output: assumed all is o.k.
-		BHLOG(LOGLORAR) printf("  BeeIoTParse(0x%02X>0x%02X)", (unsigned char)mystatus->hd.sendID, (unsigned char)mystatus->hd.destID);
+		BHLOG(LOGLORAR) printf("  JS_ValidateNode(0x%02X>0x%02X)", (unsigned char)mystatus->hd.sendID, (unsigned char)mystatus->hd.destID);
 		BHLOG(LOGLORAR) printf("[%2i]:(cmd:%02d) ", (unsigned char) mystatus->hd.pkgid, (unsigned char) mystatus->hd.cmd);
 		BHLOG(LOGLORAR) Printhex((unsigned char*)mystatus->data, mystatus->hd.frmlen);
+		BHLOG(LOGLORAR) printf("\n");
 
-	return(ndid);	// everything fine with this PKG -> forward to AppServer
+	return(ndid);	// everything fine with this PKG -> return assigned ndid 
 }
 

@@ -266,7 +266,7 @@
 // per datasheet 2.5.2 (but note that we ought to ask Semtech to confirm, because
 // datasheet is unclear).
 #define SX127X_RX_POWER_UP      us2osticks(500) // delay this long to let the receiver power up.
-#define RF_SNR_THRESH			-5				// min. SNR value in dB for a valid recepture
+#define RF_SNR_THRESH			-10				// min. SNR value in dB for a valid recepture
 
 // ---------------------------------------- 
 // Constants for radio registers

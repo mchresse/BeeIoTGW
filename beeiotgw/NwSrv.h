@@ -18,13 +18,15 @@
 #ifndef NWSRV_H
 #define NWSRV_H
 
+using namespace std;
+
 // frequence of MsgQueue polling / modem; finally defines min. reaction time on pkg IRQ
 // set to 0 for multichannel mode with many nodes
 #define NWSSCANDELAY	100		// [ms]
 
 class NwSrv {
 public:
-	NwSrv(modemcfg_t *gwtab, int nmodem); // Constructor
+	NwSrv(gwbind_t &gwtab, int nmodem); // Constructor
 	~NwSrv(void);						  // Destructor
 	
 	// Start scanning of all discovered Modems -> endless (!)
@@ -38,15 +40,21 @@ public:
 protected:
 
 private:
-	modemcfg_t *gwhwset;
+	gwbind_t	&gwt;
+	modemcfg_t	*gwhwset;
 	int			mactive;		// Max. number of detected active modems for RX/TX
 	struct timeval now;			// current tstamp used each time a time check is done
 	char	TimeString[128];	// contains formatted Timestamp string
+
+	// remember beacon id of last pkg as q-check
+	int last_beaconid;
 
 	// Parsing of retrieved raw Lora pkg data for BIotWAN conformity
 	int  BeeIoTParse(MsgBuffer * msg);
 	// Actor of final Parse-result -> serving BIoTWAN Pkg flow protocol
 	int  BeeIoTFlow(u1_t action, beeiotpkg_t * pkg, int ndid, bool async);	
+	// process beacon msg
+	int	NwSBeacon(u1_t mid, int ndid, MsgBuffer *msg);
 
 }; // end of class NwSrv
 #endif /* NWSRV_H */

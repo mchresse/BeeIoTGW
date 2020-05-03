@@ -70,7 +70,7 @@
 extern unsigned int		lflags;	// BeeIoT log flag field
 
 // Ptr. to global Lora Modem Configuration table (in NwSrv.cpp)
-extern modemcfg_t		*gwset;	// GateWay related config sets e.g. for isr_init()
+extern gwbind_t		gwtab;	// GateWay related config sets e.g. for isr_init()
 
 //******************************************************************************
 // local/static runtime Variables:
@@ -131,12 +131,19 @@ static const u2_t LORA_TXDONE_FIXUP = us2osticks(43);
 // - Set IRQ Flags Mask =0xFF -> Disable all IRQs by now. => redefined by TX/TX task
 // - Assign ISR to IRQ mapping table and activate ISR by ISR-level Semaphore=0
 //******************************************************************************
-Radio::Radio(modemcfg_t * modemcfg) : modemp(modemcfg)
-{
-	modemp->modem = this;				// save new Modem Instance Ptr. to Instance Index in global Modem Object Init table
-	mset.modemid = modemp->modemid;		// save mid per instance
+Radio::Radio(gwbind_t & gwtab, int mid) : gwt(gwtab) {
+	modemp = &gwtab.gwset[mid];		// get modem settings for this new instance
+	gwt.modem[mid] = this;			// save new Modem Instance Ptr. to Instance Index in global Binding table
+	mset.modemid = modemp->modemid;	// save mid per instance locally (should be identical as mid)
 
-	this->dioISR = NULL;				// init empty ISR jumptable ptr. 
+	if(modemp->modemid != mid){	// should never happen !
+		BHLOG(LOGLORAW) printf("  SetupLora(): gwset-ModemID:%i differs from mid: %i, (using %i)\n",
+				(int)modemp->modemid, mid, (int)mset.modemid);
+		throw (int) EX_RADIO_INIT;		// Exc.ID: RADIO Init failed -> break;
+		// return;
+	}
+	
+	this->dioISR = NULL;				// init empty ISR jumptable ptr. (not used yet)
 	this->mset.gwq = NULL;
 
 	setchannelconfig(modemp->chncfgid);	// Get modem channel cfg set "JOIN default" from user ini file
@@ -150,7 +157,7 @@ Radio::Radio(modemcfg_t * modemcfg) : modemp(modemcfg)
 
 	if( getchiptype() <= 0 ){	// expect supported chiptype  > 0
 		BHLOG(LOGLORAW) printf("  SetupLora(): no supported chiptype 0x%02X of Modem%i detected\nExit() -> Check GPIO# in config.ini\n", 
-				(uint8_t)mset.chiptype, (int)mset.modemid);
+				(unsigned char)mset.chiptype, (int)mset.modemid);
 		throw (int) EX_RADIO_INIT;		// Exc.ID: RADIO Init failed -> break;
 		// return;
 	}
@@ -1036,7 +1043,7 @@ chncfg_t * ccfg = &mset.chncfg;
 		//		if((flags & IRQ_LORA_HEADER_MASK) == IRQ_LORA_HEADER_MASK) printf(" ValidHeader");
 		//		if((flags & IRQ_LORA_FHSSCH_MASK) == IRQ_LORA_FHSSCH_MASK) printf(" FHSSChannel");
 	
-		modemp->cp_nb_rx_rcv++;		// statistics for BIoTApp(): incr. # received pkgs.
+		gwt.cp_nb_rx_rcv++;		// statistics for BIoTApp(): incr. # received pkgs.
 		
 		// 1. IRQ in TX Mode: TX DONE assumed
 		if( (mset.currentMode & OPMODE_TX)== OPMODE_TX){	
@@ -1049,7 +1056,7 @@ chncfg_t * ccfg = &mset.chncfg;
 				TXDoneFlag =1;		// tell the user land : TX Done
 				writeReg(LORARegIrqFlags, IRQ_LORA_TXDONE_MASK);		// clear TXDone IRQ flag
 				BHLOG(LOGLORAW) printf("\n");
-				--modemp->cp_nb_rx_rcv;		// TXDone Pkgs not counted as Received pkg.-> only RX
+				--gwt.cp_nb_rx_rcv;		// TXDone Pkgs not counted as Received pkg.-> only RX
 			// }
 		// 3. IRQ in RX Mode: RX DONE -> Check for new received valid packet
 		} else if((flags & IRQ_LORA_RXDONE_MASK) || flags==0) {  // receiving a LoRa package ?
@@ -1082,7 +1089,7 @@ chncfg_t * ccfg = &mset.chncfg;
 				writeReg(LORARegIrqFlags, IRQ_LORA_CRCERR_MASK); // clear CRCErr IRQ flag
 				BHLOG(LOGLORAW) printf(" CRCError -> ignore IRQ\n");
 				// ToDO How to tell user about this case ?
-				modemp->cp_nb_rx_crc++;
+				gwt.cp_nb_rx_crc++;
 //				setopmode(OPMODE_STANDBY); // Force Idle Mode -> results in recfg in main loop to RXCont
 
 				
@@ -1139,7 +1146,7 @@ chncfg_t * ccfg = &mset.chncfg;
 
 						// ToDO: further processing of this proprietary message ?
 						// by now ignored...
-						modemp->cp_nb_rx_bad++;	// bad pkg
+						gwt.cp_nb_rx_bad++;	// bad pkg
 						
 					// 7. Finally: fetch the received payload from FiFo to given RX Queue buffer
 					}else{ // seems to be a valid BeeIoT package by length, move pkg from SX-Queue to RXQueue
@@ -1171,7 +1178,7 @@ chncfg_t * ccfg = &mset.chncfg;
 			mset.rxtime = tstamp;
 			BHLOG(LOGLORAW) printf(" RXTout\n");
 			// ToDO How to tell user about this case ?
-			modemp->cp_nb_rx_bad++;	// bad pkg
+			gwt.cp_nb_rx_bad++;	// bad pkg
 		} 
 		// end of IRQ Flag validation chain
 
@@ -1255,29 +1262,36 @@ void Radio::Radio_AttachIRQ(uint8_t irq_pin, int irqtype, void (*ISR_callback)(v
     wiringPiISR(irq_pin, irqtype, ISR_callback);	// C-function call
 }
 
+void Radio::init(){
+	
+//	Radio_AttachIRQ(modemp->iopins.sxdio0, INT_EDGE_RISING, []{this->MyIRQ0(); } );
+//	Radio_AttachIRQ(modemp->iopins.sxdio0, INT_EDGE_RISING, reinterpret_cast<void(*)()>(MyIRQ0()) );
+	
+}
 
 // Assign interrupt handler to IRQ GPIO port
 // Using global gwset[x].modem allows final IRQ handler to run completely in private Modem object context (!)
 void isr_init(modemcfg_t * mod) {
-Radio *lora		= mod->modem;		// get Instance ptr.
-iopins_t *pins	= & mod->iopins;	// get GPIO Pin Structure of selected modem instance 
-byte mid		= mod->modemid;		// get current modem id (expected to be limited to MAXGW by caller !
+	iopins_t *pins	= & mod->iopins;	// get GPIO Pin Structure of selected modem instance 
+	byte mid		= mod->modemid;		// get current modem id (expected to be limited to MAXGW by caller !
+	Radio *lora		= gwtab.modem[mid];	// get Instance ptr.
 
 	// We need a ptr type: void (*ISR_callback)(void) from a member function to use C-Function: wiringPiISR();
 	// But Following Lambda function accepts only static modem expressions (like gwset[x].modem).
 	// Calculated references at runtime like 'mod->modem' or 'gwset[mid].modem' or combined with this
 	// results in compilation errors (=> {expression} not captured)
+
 	switch (mid){
 	case 0:
-		lora->Radio_AttachIRQ(pins->sxdio0, INT_EDGE_RISING, []{gwset[0].modem->MyIRQ0();} );
-		lora->Radio_AttachIRQ(pins->sxdio1, INT_EDGE_RISING, []{gwset[0].modem->MyIRQ1();} );
-		lora->Radio_AttachIRQ(pins->sxdio2, INT_EDGE_RISING, []{gwset[0].modem->MyIRQ2();} );
+		lora->Radio_AttachIRQ(pins->sxdio0, INT_EDGE_RISING, []{gwtab.modem[0]->MyIRQ0();} );
+		lora->Radio_AttachIRQ(pins->sxdio1, INT_EDGE_RISING, []{gwtab.modem[0]->MyIRQ1();} );
+		lora->Radio_AttachIRQ(pins->sxdio2, INT_EDGE_RISING, []{gwtab.modem[0]->MyIRQ2();} );
 		BHLOG(LOGLORAW) printf("  ISR_Init(%i): --- ISR on DIO0+1+2 assigned ---\n", (int) mid);
 		break;
 	case 1:
-		lora->Radio_AttachIRQ(pins->sxdio0, INT_EDGE_RISING, []{gwset[1].modem->MyIRQ0();} );
-		lora->Radio_AttachIRQ(pins->sxdio1, INT_EDGE_RISING, []{gwset[1].modem->MyIRQ1();} );
-		lora->Radio_AttachIRQ(pins->sxdio2, INT_EDGE_RISING, []{gwset[1].modem->MyIRQ2();} );
+		lora->Radio_AttachIRQ(pins->sxdio0, INT_EDGE_RISING, []{gwtab.modem[1]->MyIRQ0();} );
+		lora->Radio_AttachIRQ(pins->sxdio1, INT_EDGE_RISING, []{gwtab.modem[1]->MyIRQ1();} );
+		lora->Radio_AttachIRQ(pins->sxdio2, INT_EDGE_RISING, []{gwtab.modem[1]->MyIRQ2();} );
 		BHLOG(LOGLORAW) printf("  ISR_Init(%i): --- ISR on DIO0+1+2 assigned ---\n", (int) mid);
 		break;
 	// Unfortunately this case list must be expanded manually to keep  static expressions.
@@ -1291,7 +1305,7 @@ byte mid		= mod->modemid;		// get current modem id (expected to be limited to MA
 
 //*******************************************************************************
 // link GW Queue to modem session (one per modem)
-void Radio::assign_gwqueue(MsgQueue & gwq){
-	mset.gwq = &gwq;	// store reference to GW Message Queue
+void Radio::assign_gwqueue(MsgQueue * gwq){
+	mset.gwq = gwq;	// store reference to GW Message Queue
 };	
 	

@@ -19,6 +19,8 @@
 #ifndef _RADIO_H
 #define _RADIO_H
 
+using namespace std;
+
 #include "regslora.h"
 // LoRa Radio LogStatus() logging modes
 #define LOGDYN	1
@@ -42,9 +44,9 @@ typedef struct {
 	MsgQueue * gwq;				// local Ptr on Modem MsgQueue of LoRa Packages
 	
 	// used by ISR routine
-	int	 irqlevel;			// =0..n IRQ Enable semaphore: (0: IRQs allowed) 
-	byte snr;				// Signal/Noise Ratio level [db]
-	byte rssi;				// Received signal strength indication [dbm]
+	int	irqlevel;			// =0..n IRQ Enable semaphore: (0: IRQs allowed) 
+	int snr;				// Signal/Noise Ratio level [db]
+	int rssi;				// Received signal strength indication [dbm]
 	byte rxbuffer[256];		// generic frame buffer for unknown packages
 	byte rxdlen;			// length of generic/unknown package
 	byte txbuffer[256];		// universal TX buffer
@@ -81,8 +83,8 @@ public:
 // RADIO member function / API:
 
 	// RADIO Constructor: 
-	// default is modem index=0, ín Multi modem mode: used for JOIN requests only
-	Radio(modemcfg_t * modemcfg); // Detect SX lora chip and setup config channel
+	// default is ndid=0 and modem NDB[0].joindef, ín Multi modem mode: used for JOIN requests only
+	Radio(gwbind_t & gwtab, int mid);	// Detect SX lora chip and setup config channel
 	~Radio();					// reset SX Chip (Sleep)
 
 	int	 getmodemidx(void);		// deliver index of modem instance
@@ -105,7 +107,7 @@ public:
 	void startrx (u1_t rxmode, int rxtime);
 	
 	// link GW Queue to modem session async to instance creation
-	void assign_gwqueue(MsgQueue & gwq);
+	void assign_gwqueue(MsgQueue * gwq);
 
 	// Helper function from MsgBuffer: Direct SX FiFo read to MsgBuffer
 	friend int	MsgBuffer::setpkgfifo(Radio * Modem, byte sxreg, int dlen);
@@ -115,6 +117,7 @@ public:
 	void MyIRQ0(void);		// DIO0 IRQ member function wrapper
 	void MyIRQ1(void);		// DIO1 IRQ member function wrapper
 	void MyIRQ2(void);		// DIO2 IRQ member function wrapper
+	void init(void);		// IRQ init test fkt.
 
 	// MyIRQx ISR function ptr table for dyn. GPIO-DIOx assignment used in isr_init();
 	IrqHandler *dioISR;		// Ptr table root allocated by Radio()
@@ -129,6 +132,8 @@ private:
 	//**************************************************************************
 	// RADIO data: default cfg. struct
 	//
+	gwbind_t & gwt;	// reference to global Gateway Service binding table
+
 	// *ModemP: ptr to global modem core configuration table defined in main()-init_all()
 	modemcfg_t* modemp;		// major static input for Radio constructor
 	
