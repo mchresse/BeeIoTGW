@@ -10,17 +10,17 @@
 </head>
 <body class="markdown haroopad">
 <h1 id="beeiot-wan-gateway-v1.2"><a name="beeiot-wan-gateway-v1.2" href="#beeiot-wan-gateway-v1.2"></a>BeeIoT-WAN Gateway v1.2</h1><h3 id="der-gateway-zur-[beeiot-bienenstockwaage](https://github.com/mchresse/beeiot/blob/master/beeiot_v20.md)"><a name="der-gateway-zur-[beeiot-bienenstockwaage](https://github.com/mchresse/beeiot/blob/master/beeiot_v20.md)" href="#der-gateway-zur-[beeiot-bienenstockwaage](https://github.com/mchresse/beeiot/blob/master/beeiot_v20.md)"></a>Der Gateway zur <a href="https://github.com/mchresse/BeeIoT/blob/master/BeeIoT_v20.md">BeeIoT Bienenstockwaage</a></h3><h5 id="(based-on-raspberry-pi)"><a name="(based-on-raspberry-pi)" href="#(based-on-raspberry-pi)"></a>(based on Raspberry Pi)</h5><p><img src="images_v2/BIoTGW_LoraHat.jpg" width="250"></p><p><strong>29.04.2020 by Randolph Esser</strong></p><hr class="section"><h4 id="inhaltsverzeichnis:"><a name="inhaltsverzeichnis:" href="#inhaltsverzeichnis:"></a>Inhaltsverzeichnis:</h4><ul>
-<li><a href="#einführung">Einführung</a></li><li><a href="rpi-gateway-aufbau">RPi-Gateway Aufbau</a><ul>
-<li><a href="rpi-gateway-radiolayer">RPi-Gateway RadioLayer</a></li></ul>
-</li><li><a href="beeiot-client-aufbau">BeeIoT-Client Aufbau</a><ul>
-<li><a href="client-function-flow">Client Function Flow</a></li><li><a href="client-data-security">Client Data Security</a></li></ul>
-</li><li><a href="beeiot-lora-wan">BeeIoT LoRa WAN</a><ul>
-<li><a href="beeiot-channel-switch">BeeIoTWAN Channel Switch</a></li><li><a href="beeiotwan-communication-packets">BeeIoTWAN Communication packets</a><ul>
-<li><a href="beeiotwan-base-packet">BeeIoTWAN Base Packet</a></li></ul>
-</li><li><a href="beeiotwan-join">BeeIoTWAN-JOIN</a></li><li><a href="client-tx/rx-sessions">Client TX/RX Sessions</a></li><li><a href="der-gateway-server-empfangsstack">Der Gateway/Server Empfangsstack</a><ul>
-<li><a href="radio-service-(class-radio">Radio Service (class Radio)</a>)</li><li><a href="network-service-(class-nwssrv">Network Service (class NwSrv)</a>)</li><li><a href="join-service-(class-joinsrv">JOIN Service (class JoinSrv)</a>)</li><li><a href="application-services-(class-appsrv">Application Services (class AppSrv)</a>)</li></ul>
+<li><a href="#einführung">Einführung</a></li><li><a href="#rpi-gateway-aufbau">RPi-Gateway Aufbau</a><ul>
+<li><a href="#rpi-gateway-radiolayer">RPi-Gateway RadioLayer</a></li></ul>
+</li><li><a href="#beeiot-client-aufbau">BeeIoT-Client Aufbau</a><ul>
+<li><a href="#client-function-flow">Client Function Flow</a></li><li><a href="#client-data-security">Client Data Security</a></li></ul>
+</li><li><a href="#beeiot-lora-wan">BeeIoT LoRa WAN</a><ul>
+<li><a href="#beeiot-channel-switch">BeeIoTWAN Channel Switch</a></li><li><a href="#beeiotwan-communication-packets">BeeIoTWAN Communication packets</a><ul>
+<li><a href="#beeiotwan-base-packet">BeeIoTWAN Base Packet</a></li></ul>
+</li><li><a href="#beeiotwan-join">BeeIoTWAN-JOIN</a></li><li><a href="#client-tx/rx-sessions">Client TX/RX Sessions</a></li><li><a href="#der-gateway-server-empfangsstack">Der Gateway/Server Empfangsstack</a><ul>
+<li><a href="#radio-service-(class-radio)">Radio Service (class Radio)</a></li><li><a href="#network-service-(class-nwssrv)">Network Service (class NwSrv)</a></li><li><a href="#join-service-(class-joinsrv)">JOIN Service (class JoinSrv)</a></li><li><a href="#application-services-(class-appsrv)">Application Services (class AppSrv)</a></li></ul>
 </li></ul>
-</li><li><a href="logging">Logging</a></li><li><a href="beeiot-todo-liste">BeeIoT ToDo Liste</a><!-- toc -->
+</li><li><a href="#logging">Logging</a></li><li><a href="#beeiot-todo-liste">BeeIoT ToDo Liste</a><!-- toc -->
 </li></ul><hr class="section"><h2 id="einführung"><a name="einführung" href="#einführung"></a>Einführung</h2><p>Nach der Beschreibung der <a href="https://github.com/mchresse/BeeIoT/blob/master/BeeIoT_v20.md">BeeIot Sensor Knoten</a> auf Basis des ESP32 chipset (siehe <a href="https://Github.com/mchresse/BeeIoT">https://Github.com/mchresse/BeeIoT</a>), nun die passende Gegenstelle auf Raspberry Pi Basis.</p><p>Diese erfüllt (ähnlich wie bei LoRa-Wan) folgende Rollen/Services:</p><ul>
 <li>Gateway Server (inkl. RADIO Service)<ul>
 <li>Konfiguration der Transmit channels abhängig von der Knoten session</li><li>Entgegennahme der BIoT LoRa Pakete (Uplink) auf der vereinbarten Modem Channel configuration</li><li>Versenden von BIoT Antwort Paketen.</li></ul>
