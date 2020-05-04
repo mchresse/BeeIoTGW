@@ -135,7 +135,7 @@
         </cTool>
         <ccTool>
           <developmentMode>5</developmentMode>
-          <standard>4</standard>
+          <standard>11</standard>
         </ccTool>
         <fortranCompilerTool>
           <developmentMode>5</developmentMode>
@@ -143,6 +143,11 @@
         <asmTool>
           <developmentMode>5</developmentMode>
         </asmTool>
+        <linkerTool>
+          <linkerLibItems>
+            <linkerOptionItem> -lwiringPi</linkerOptionItem>
+          </linkerLibItems>
+        </linkerTool>
       </compileType>
       <item path="beeiotgw/BIoTApp.cpp" ex="false" tool="1" flavor2="0">
       </item>
