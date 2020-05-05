@@ -4,29 +4,29 @@
 
 <img src="./images_v2/BIoTGW_LoraHat.jpg" width=250>
 
-**29.04.2020 by Randolph Esser**
+**04.05.2020 by Randolph Esser**
 
 ---
 #### Inhaltsverzeichnis:
 - [Einführung](#einführung)
-- [RPi-Gateway Aufbau](rpi-gateway-aufbau)
-	* [RPi-Gateway RadioLayer](rpi-gateway-radiolayer)
-- [BeeIoT-Client Aufbau](beeiot-client-aufbau)
-	+ [Client Function Flow](client-function-flow)
-	+ [Client Data Security](client-data-security)
-- [BeeIoT LoRa WAN](beeiot-lora-wan)
-	* [BeeIoTWAN Channel Switch](beeiot-channel-switch)
-	* [BeeIoTWAN Communication packets](beeiotwan-communication-packets)
-		+ [BeeIoTWAN Base Packet](beeiotwan-base-packet)
-	* [BeeIoTWAN-JOIN](beeiotwan-join)
-	* [Client TX/RX Sessions](client-tx/rx-sessions)
-	* [Der Gateway/Server Empfangsstack](der-gateway-server-empfangsstack)
-		+ [Radio Service (class Radio)](radio-service-(class-radio))
-		+ [Network Service (class NwSrv)](network-service-(class-nwssrv))
-		+ [JOIN Service (class JoinSrv)](join-service-(class-joinsrv))
-		+ [Application Services (class AppSrv)](application-services-(class-appsrv))
-- [Logging](logging)
-- [BeeIoT ToDo Liste](beeiot-todo-liste)
+- [RPi-Gateway Aufbau](#rpi-gateway-aufbau)
+	* [RPi-Gateway RadioLayer](#rpi-gateway-radiolayer)
+- [BeeIoT-Client Aufbau](#beeiot-client-aufbau)
+	+ [Client Function Flow](#client-function-flow)
+	+ [Client Data Security](#client-data-security)
+- [BeeIoT LoRa WAN](#beeiot-lora-wan)
+	* [BeeIoTWAN Channel Switch](#beeiotwan-channel-switch)
+	* [BeeIoTWAN Communication packets](#beeiotwan-communication-packets)
+		+ [BeeIoTWAN Base Packet](#beeiotwan-base-packet)
+	* [BeeIoTWAN JOIN](#beeiotwan-join)
+	* [Client TX/RX Sessions](#client-tx/rx-sessions)
+	* [Der Gateway/Server Empfangsstack](#der-gateway/server-empfangsstack)
+		+ [Radio Service - class Radio](#radio-service---class-radio)
+		+ [Network Service - class NwSrv](#network-service---class-nwsrv)
+		+ [JOIN Service - class JoinSrv](#join-service---class-joinsrv)
+		+ [Application Services - class AppSrv](#application-services---class-appsrv)
+- [Logging](#logging)
+- [BeeIoT ToDo Liste](#beeiot-todo-liste)
 <!-- toc -->
 ---
 
@@ -330,7 +330,7 @@ Die folgende Tabelle führt die Bedeutung für den **Empfänger** (!) auf:
 
 Die Kommando-spezifischen Paketinterpretationen werden durch ein Cast der jew. CMD-Typedef Strukur auf beeiotpkg_t erreicht.
 
-###BeeIoT-JOIN
+###BeeIoTWAN-JOIN
 Ein JOIN request muss im Idealfall nur einmal zur Lebenszeit eines Clients abgesetzt werden, und zwar im Anschluss oder während der Setupphase eines Knoten. Ein erfolgreicher JOIN-request des Knotens wird durch ein JOIN Accept Paket: CONFIG durch den NwServer quittiert.
 
 Voraussetzungen des JOIN requests zur Massnahme folgender Störfalle:
@@ -372,7 +372,7 @@ Das JOIN Protokoll hat folgenden Verlauf:
 Jetzt ist das LoRa Modem bereit reguläre Datenpakete an den Server zu senden.
 Die Datenpakete werden gatewayseitig an den im Join Request angegebenen JOINEUI APP-Prozess weitergeleitet und prozessiert.
 
-### Client TX/RX Sessions
+###Client TX/RX Sessions
 Zu einer Standard TX session gehört folgendes Kommando: CMD_LOGSTATUS
 Das Flussprotokoll besteht aus 3 Hauptphasen:
 1. Senden des LoraLog Status an den Gateway
@@ -471,7 +471,7 @@ AppSrv  -> AppProxy() -> AppBIoT()  call BeeHive Mon.-App-Function depending on
                       -> AppTurtle()call TurtleHouse monitoring App-Function
 ```
 
-####Radio Service (class Radio)
+####Radio Service - class Radio
 Der *Radio Service* empfängt die rohen LoRa-Pakete. Dabei werden in der ISR Routine myradio_irq_handler() verschiedene Checks des Paketheaders durchgeführt:
 1. Check LoRa Mode	-> BIOT use only LoRa Modem type
     1. Check TXMode	-> set BeeIotTXFlag flag only => done.
@@ -492,7 +492,7 @@ Die Länge ist 0 wenn sich kein gefülltes Datenpaket in der MsgQueue befindet.
 Der Wert >0 gibt die Anzahl der eingetragenen MsgBuffer (Pakete) an.
 Da älteste Paket steht am Anfang -> FiFo Reihefolge der Paketbearbeitung. Neue Pakete werden hinten angehängt.
 
-####Network Service (class NwSrv)
+####Network Service - class NwSrv
 Der *NetworkServer* koordiniert den BIoTWAN Protokollfluss.
 Dazu wird in NwNodeScan() dauerhaft eine Loop im RX-Contiguous Mode durchlaufen, während dieser die MsgQueue Länge auf >0  gepolled wird. GetMsg() liefert und PoPMsg() entfernt das "älteste" nicht bearbeitete Queue Element.
 
@@ -504,7 +504,7 @@ Bei Akzeptanz wird die aktuell zum Paket sendenden Clients gespeicherte MSG-ID m
 Anschliessend wird der CMD-Code geprüft. Network-Service Commandos werden sofort in der NWS-Service BeeIoTFlow-Routine bearbeitet: NOP, (RE-)JOIN, ACK, CONFIG.
 Application Commands werden an den zugewiesenen Application-Service via AppSrv.AppProxy() übergeben: z.B. LOGSTATUS, GETSDLOG, FWUPD.
 
-####JOIN Service (class JoinSrv)
+####JOIN Service - class JoinSrv
 Der *JOIN-Service* evaluiert die Client JOIN Request Anfragen, indem er alle Headerparameter auf ihre Werte konform zu BIoTWan.h prüft nd ob ein Knoten bekannt ist (via WLTab[]).
 Im JOIN Erfolgsfall erst werden alle weiteren Session Pakete dieses CLients zugelassen.
 
@@ -519,7 +519,7 @@ Erkennt der Network Service ein Application Service Kommando so wird der dazugeh
 Diese AppProxy() Funktion verwaltet eine interne JOIN-EUI Referenztabelle: TJoinEUI[].
 Im Falle eines Hits der JOINEUI aus dem Node-JOIN Request -> liefert derselbe Index in einer switch Struktur zum Applikationsaufruf und damit zur Weiterleitung des Paket-Frame-Payloads an die Application-Routine.
 
-####Application Services (class AppSrv)
+####Application Services - class AppSrv
 Über den Application-Proxy können somit verschiedenste Clienttypen zu ihren Applikationsdiensten dynamisch via JOIN request geroutet werden (ähnlich einer TCP-Bind Funktion). Dazu muss die Applikation nur mit ihrer AppEUI(=JOINEUI) in der TJoinEUI[] eingetragen sein.
 
 Für den BeeIoT Client einer Bienen-Stockwaage steht z.B. die Funktion: AppBIoT() bereit. Dort wird der Frame-Payload entschlüsselt und die Sensorlogdaten erneute geparsed. STimmen die Daten und deren Format, kann das LOGSTATUS Paket per ACK bestätigt werden. Ansonsten kann der Application Service anstelle des ACK ein RETRY anfordern.
@@ -529,7 +529,7 @@ Alternativ kann diese CSV Datei auch per curl()-FTP an einen externen (Web-) Ser
 
 Am Ende der Bearbeitung kann der Applikations-Service auch einen Vorschlag für ein RX1 Paket stellen (rc=1), welches als 2. Antwort im RX1 Window an den Client zurückgesendet wird.
 
-## Logging
+##Logging
 Sowohl im CLient wie auf Server Seite ist derselbe Logging mechanismus über ein 16 Bit Flagfeld eingerichtet: **lflags**.
 Diese globale variable ist für alle Codebereiche gleichermaßen erreichbar und wird über ein inline Macro LOGBH evaluiert.
 
