@@ -286,7 +286,8 @@ char	sbuf[MAXMSGLEN];
 		 // Get Gateway/Modem instances: NwSrv() -> MsgQueue() -> MsgBuffer()
 		 // gwtab.modem[] will be set for all activated modems implicit by NwSrv()
 		gwtab.nws = new NwSrv(gwtab, cfgini->loranumchn);
-	} catch (int excode){
+	} 
+	catch (int & excode){
 		switch(excode){
 			case EX_NWSRV_INIT1:	// wrong NwSrv parameters
 				BIoT_die(-2);
@@ -299,8 +300,12 @@ char	sbuf[MAXMSGLEN];
 				BIoT_die(-1);
 			}
 		}
-	}// end of try()/catch()
-
+	}
+	catch (exception &e){
+		cout << e.what();
+		BIoT_die(-1);
+	}// end of try()/catch() list
+	
 	gwtab.nmodemsrv = gwtab.nws->NwSrvModems();	// get # of active modems by NwSrv
 	if(cfgini->loradefchn > gwtab.nmodemsrv) {   // User def.JOIN modem ID > out of range?
 		cfgini->loradefchn = 0;	// overrule it by internal default: 0
@@ -311,7 +316,7 @@ char	sbuf[MAXMSGLEN];
 	// 2. Create MSG Queue: MsgQueue (one for all modem instances)
 	try {
 		gwtab.gwq = new MsgQueue();
-	} catch (int excode){
+	} catch (int & excode){
 		switch(excode){
 			case EX_MSGQU_INIT:{
 				printf("  Main: MsgQueue Exception (0x%04X) received\n", (unsigned int)excode); 
@@ -331,7 +336,7 @@ char	sbuf[MAXMSGLEN];
 	// 3. Create Join Service: JoinSrv (one for all modem instances)
 	try{ 
 		gwtab.jsrv =	new JoinSrv(gwtab, gwtab.nmodemsrv);
-	} catch (int excode){
+	} catch (int & excode){
 		switch(excode){
 			case EX_JSRV_INIT:{		// wrong JoinSrv() parameters
 				BIoT_die(-6);
@@ -346,7 +351,7 @@ char	sbuf[MAXMSGLEN];
 	// 4. Create App Services: BIoTApp (one for all modem instances)
 	try{ 
 		gwtab.apps = new AppSrv(gwtab);
-	} catch (int excode){
+	} catch (int & excode){
 		switch(excode){
 			case EX_APPS_INIT:{		// BIoTApp() init failed
 				BIoT_die(-7);

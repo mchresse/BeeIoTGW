@@ -352,9 +352,16 @@ int JoinSrv::JS_ValidatePkg(beeiotpkg_t* mystatus){
 	// Now we have a valid BeeIoT Package header: check the "cmd" for next BeeIoTWAN action
 	// some debug output: assumed all is o.k.
 		BHLOG(LOGLORAR) printf("  JS_ValidateNode(0x%02X>0x%02X)", (unsigned char)mystatus->hd.sendID, (unsigned char)mystatus->hd.destID);
-		BHLOG(LOGLORAR) printf("[%2i]:(cmd:%02d) ", (unsigned char) mystatus->hd.pkgid, (unsigned char) mystatus->hd.cmd);
-		BHLOG(LOGLORAR) Printhex((unsigned char*)mystatus->data, mystatus->hd.frmlen);
-		BHLOG(LOGLORAR) printf("\n");
+		BHLOG(LOGLORAR) printf("[%2i]:(cmd:%02d)", (unsigned char) mystatus->hd.pkgid, (unsigned char) mystatus->hd.cmd);
+		int len = mystatus->hd.frmlen;
+		if(len >16) {
+			len=16;
+			BHLOG(LOGLORAR) Printhex((unsigned char*)mystatus->data, len, "<", 2);
+			BHLOG(LOGLORAR) printf(" ...> (len=%i)\n", mystatus->hd.frmlen);
+		}else{
+			BHLOG(LOGLORAR) Printhex((unsigned char*)mystatus->data, len,"<", 2);
+			BHLOG(LOGLORAR) printf(">\n");
+		}
 
 	return(ndid);	// everything fine with this PKG -> return assigned ndid 
 }

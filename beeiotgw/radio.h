@@ -121,6 +121,7 @@ public:
 
 	// MyIRQx ISR function ptr table for dyn. GPIO-DIOx assignment used in isr_init();
 	IrqHandler *dioISR;		// Ptr table root allocated by Radio()
+	void(*pf[3])(void);
 
 //******************************************************************************
 protected:

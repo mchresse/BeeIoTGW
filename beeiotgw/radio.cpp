@@ -139,7 +139,7 @@ Radio::Radio(gwbind_t & gwtab, int mid) : gwt(gwtab) {
 	if(modemp->modemid != mid){	// should never happen !
 		BHLOG(LOGLORAW) printf("  SetupLora(): gwset-ModemID:%i differs from mid: %i, (using %i)\n",
 				(int)modemp->modemid, mid, (int)mset.modemid);
-		throw (int) EX_RADIO_INIT;		// Exc.ID: RADIO Init failed -> break;
+		throw invalid_argument("Radio: GWTab[] Ptr is empty or modem ID is zero");
 		// return;
 	}
 	
@@ -1262,13 +1262,6 @@ void Radio::Radio_AttachIRQ(uint8_t irq_pin, int irqtype, void (*ISR_callback)(v
     wiringPiISR(irq_pin, irqtype, ISR_callback);	// C-function call
 }
 
-void Radio::init(){
-	
-//	Radio_AttachIRQ(modemp->iopins.sxdio0, INT_EDGE_RISING, []{this->MyIRQ0(); } );
-//	Radio_AttachIRQ(modemp->iopins.sxdio0, INT_EDGE_RISING, reinterpret_cast<void(*)()>(MyIRQ0()) );
-	
-}
-
 // Assign interrupt handler to IRQ GPIO port
 // Using global gwset[x].modem allows final IRQ handler to run completely in private Modem object context (!)
 void isr_init(modemcfg_t * mod) {
@@ -1279,7 +1272,8 @@ void isr_init(modemcfg_t * mod) {
 	// We need a ptr type: void (*ISR_callback)(void) from a member function to use C-Function: wiringPiISR();
 	// But Following Lambda function accepts only static modem expressions (like gwset[x].modem).
 	// Calculated references at runtime like 'mod->modem' or 'gwset[mid].modem' or combined with this
-	// results in compilation errors (=> {expression} not captured)
+	// results in compilation errors (=> {expression} not captured), like:
+	//		lora->Radio_AttachIRQ(pins->sxdio0, INT_EDGE_RISING, []{gwtab.modem[mid]->MyIRQ0();} );
 
 	switch (mid){
 	case 0:
