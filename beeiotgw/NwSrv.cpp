@@ -195,6 +195,9 @@ int NwSrv::NwNodeScan(void) {
 		if(count%1200 == 1199){	// each 2. minute
 			printf("\n");
 		}
+		if(count > 7000){		// each 12. minute
+			gwt.modem[mid]->PrintLoraStatus(LOGALL);
+		}
 		
 		// Check RX Queue Status (len>0) and process package accordingly
 		while(gwt.gwq->MsgQueueSize() > 0){	// Do we have a package in the RX Queue ?
