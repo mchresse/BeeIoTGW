@@ -74,6 +74,8 @@ extern gwbind_t		gwtab;	// GateWay related config sets e.g. for isr_init()
 
 //******************************************************************************
 // local/static runtime Variables:
+static struct timeval now;		// current tstamp used each time a time check is done
+static char	  TimeString[128];	// contains formatted Timestamp string of each loop(in main())
 
 // Assign ISR of lora instance to global IRQ table
 static void isr_init (modemcfg_t * mod);
@@ -1013,20 +1015,20 @@ void Radio::startrx (u1_t rxmode, int rxtime) {
 
 void Radio::myradio_irq_handler (byte dio) {
 unsigned long tstamp;
-struct timeval now;
 byte flags;
 byte mode;
 chncfg_t * ccfg = &mset.chncfg;
 
 // save current timestamp
 	gettimeofday(&now, NULL);	
+	strftime(TimeString, 80, "%H:%M:%S", localtime(&now.tv_sec));
 	mode = readReg(RegOpMode);	// get current Radio OpMode
 	
 	// Workaround: Spurious missing LoRa OPMode flag ... just wait some ms and read it again
     if( (mode & OPMODE_LORA) == 0) { // FSK Mode ? (not expected)
 		tstamp = (unsigned long)(now.tv_sec*1000000 + now.tv_usec);
-		BHLOG(LOGLORAR) printf("IRQ%i<%ul>: FSK-Mode - should never happen (1) (OPMode: 0x%0.2X)-> RD-OPMode Retry...\n", 
-				 (unsigned char)dio, (unsigned long)tstamp, (unsigned char) readReg(RegOpMode));
+		BHLOG(LOGLORAR) printf("IRQ%i<%s>: FSK-Mode - should never happen (1) (OPMode: 0x%0.2X)-> RD-OPMode Retry...\n", 
+				 (unsigned char)dio, TimeString, (unsigned char) readReg(RegOpMode));
 		delay(200);					// wait some tome till LoRa Mode has been established
 		mode = readReg(RegOpMode);	// read OpMode again;
 	}
@@ -1035,9 +1037,9 @@ chncfg_t * ccfg = &mset.chncfg;
 	if( (mode & OPMODE_LORA) != 0) {		// Really LORA modem Mode ?
 		flags = readReg(LORARegIrqFlags);
 
-		tstamp = (unsigned long)(now.tv_sec*1000000 + now.tv_usec); // get TimeStamp in seconds
-		BHLOG(LOGLORAW) printf("  IRQ[%i]-%i<%ul>: LoRa-IRQ flags: 0x%02X - Mask:0x%02X: ", 
-			(int)this->mset.modemid, (unsigned char)dio, (unsigned long)tstamp, (unsigned char)flags, (unsigned char)readReg(LORARegIrqFlagsMask));
+		tstamp = (unsigned long)(now.tv_sec*1000000 + now.tv_usec); // get TimeStamp in u_sec
+		BHLOG(LOGLORAW) printf("  IRQ[Mod%i]-DIO%i<%s>: LoRa-IRQ flags: 0x%02X - Mask:0x%02X: ", 
+			(int)this->mset.modemid, (unsigned char)dio, TimeString, (unsigned char)flags, (unsigned char)readReg(LORARegIrqFlagsMask));
 
 		// This flags are not really of interest for us here
 		//		if((flags & IRQ_LORA_HEADER_MASK) == IRQ_LORA_HEADER_MASK) printf(" ValidHeader");
@@ -1050,7 +1052,7 @@ chncfg_t * ccfg = &mset.chncfg;
 			//if(  flags & IRQ_LORA_TXDONE_MASK){
 				// TXDone expected -> save exact tx time
 				mset.txend = tstamp - mset.txstart - LORA_TXDONE_FIXUP; // TXDONE FIXUP
-				BHLOG(LOGLORAR) printf(" TXDONE <%u ticks = %.4fsec.>", (unsigned long)mset.txend, (float) (mset.txend / OSTICKS_PER_SEC));
+				BHLOG(LOGLORAR) printf(" TXDONE <%u ticks = %.4fsec.>", (unsigned long)mset.txend, ((float)mset.txend / 1000000));
 				fflush(stdout);
 
 				TXDoneFlag =1;		// tell the user land : TX Done
@@ -1191,7 +1193,6 @@ chncfg_t * ccfg = &mset.chncfg;
     } else { 
 		// Based on Semtech Errata: Observed in case of SPI line instability 
 		// -> full reset of modem helps
-        struct timeval now;
         gettimeofday(&now, 0);
         tstamp = (uint32_t)(now.tv_sec*1000000 + now.tv_usec);
 

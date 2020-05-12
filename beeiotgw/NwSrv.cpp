@@ -184,31 +184,21 @@ int NwSrv::NwNodeScan(void) {
 		TimeString);
 
   // run forever: wait for incoming packages via radio_irq_handler()
+	int maxmod = mactive;	// get # of active modems only once
+	int count =0;
   while(1) {
-	for(int mid=0; mid < mactive; mid++){	// ... for all discovered modems
-
-		// activate modem to RXCont mode
-		if((gwt.modem[mid]->getopmode() & OPMODE_RX)!= OPMODE_RX){	
-			if(mid==0){ // get new config only by status change of def. JOIN modem
-				//re-read config.ini file again (could have been changed in between) 
-				cfgini = getini((char*)CONFIGINI);
-				if( cfgini == NULL){
-					printf("    BeeIoT-Init: INI File not found at: %s\n", CONFIGINI);
-					// continue with already buffered config struct data till we have access again
-				}
-				lflags	= (unsigned int) cfgini->biot_verbose;	// get the custom verbose mode again
-				cfgini->loranumchn = mactive;	// limit # of supp. modems to what have been discovered
-			}
-
-			// Start LoRa Modem: in continuous read mode
-			BHLOG(LOGLORAR) printf("  NwS: Enter RX_Cont Mode for Lora Modem%i\n", mid);
-			gwt.modem[mid]->startrx(RXMODE_SCAN, 0);	// RX in RX_CONT Mode (Beacon Mode)
-			
-			// ISR now waiting for rising DIO0 level -> starting receivepacket() directly
+	for(int mid=0; mid < maxmod; mid++){	// ... for all discovered modems
+		count++;
+		if(count%100 == 99){	// all 10 sec.
+			printf("* ");
+		}
+		if(count%1200 == 1199){	// each 2. minute
+			printf("\n");
 		}
 		
 		// Check RX Queue Status (len>0) and process package accordingly
 		while(gwt.gwq->MsgQueueSize() > 0){	// Do we have a package in the RX Queue ?
+			count =0;
 
 			gettimeofday(&now, 0);		// get current timestamp
 			strftime(TimeString, 80, "%d-%m-%y %H:%M:%S", localtime(&now.tv_sec));
@@ -235,13 +225,45 @@ int NwSrv::NwNodeScan(void) {
 			BHLOG(LOGBH) printf("  NwSrv: LoraStatistic - Rcv:%u, Bad:%u, CRC:%u, O.K:%u, Fwd:%u\n",
 				gwt.cp_nb_rx_rcv, gwt.cp_nb_rx_bad, gwt.cp_nb_rx_crc, 
 				gwt.cp_nb_rx_ok, gwt.cp_up_pkt_fwd);
+		}
+		
+		// activate modem to RXCont mode
+		if((gwt.modem[mid]->getopmode() & OPMODE_RX)!= OPMODE_RX){	
+			if(mid==0){ // get new config only by status change of def. JOIN modem
+				
+				//re-read config.ini file again (could have been changed in between) 
+				configuration* pcfg;
+				pcfg = getini((char*)CONFIGINI);
+				if( pcfg == NULL){ // config file existing and parsed ?
+					printf("    BeeIoT-NwS: INI File not found at: %s\n", CONFIGINI);
+					if( cfgini == NULL){ 
+						// This should not happen: Cfgini should have been initiaized in initall() once!!!
+						printf("    BeeIoT-NwS: INI FIle not found at: %s\n", CONFIGINI);
+						exit(EXIT_FAILURE);	// so we have to give up: heavy FS problems...?!
+					}
+					// continue with already buffered cfgini struct data till we have access again
+				}else{
+					cfgini = pcfg;	// we have a new config parameter set
+					lflags	= (unsigned int) cfgini->biot_verbose;	// get the custom verbose mode again
+					cfgini->loranumchn = mactive;	// limit # of supp. modems to what have been discovered
+				} // (new) valid cfg-data available
+			}
 
+			// Start LoRa Modem: in continuous read mode again
+			BHLOG(LOGLORAR) printf("  NwS: Enter RX_Cont Mode for Lora Modem%i\n", mid);
+			gwt.modem[mid]->startrx(RXMODE_SCAN, 0);	// RX in RX_CONT Mode
+			
+			// ISR is now waiting for DIO0 port change
 			gettimeofday(&now, 0);
 			strftime(TimeString, 80, "%d-%m-%y %H:%M:%S", localtime(&now.tv_sec));
 			BHLOG(LOGBH) printf("\nNwS: %s: *************** Waiting for a new BIoTWAN package **************\n", TimeString);
 		}
-		
 	} // end of Modem-Loop
+	if(!mactive){
+		gettimeofday(&now, 0);
+		strftime(TimeString, 80, "%d-%m-%y %H:%M:%S", localtime(&now.tv_sec));
+		printf("\nNwS: %s: No active LoRa Modem left -> Stop Server Scan\n", TimeString);
+	}
 
 	delay(NWSSCANDELAY);					// wait per loop in ms -> no time to loose.
   } // while(run NwService forever)
