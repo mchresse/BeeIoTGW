@@ -248,12 +248,12 @@ int  rc =0;
 	pndb->middef			= pwltab->mid;	// get default Modem ID from WL Table; used by ???
 	pndb->pwltab			= pwltab;	// back link to WL Table
 
-	// T.b.d
-	pndb->DevAddr = 0;
+	// Values T.b.d
+	pndb->DevAddr = ndid;	// better than 0;
 	pndb->AppSKey[0] = 0;
 	pndb->NwSKey[0]  = 0;
 
-    BHLOG(LOGLORAW) printf("  Node Joined ! Assigned: GWID:0x%02X, NodeID:0x%02X, ", 
+    BHLOG(LOGLORAW) printf("  Node Joined now!  -> assigned: GWID:0x%02X, NodeID:0x%02X, ", 
 				(unsigned char) pwltab->gwid, (unsigned char)pwltab->nodeid);
 	BHLOG(LOGLORAW) Printhex((byte*)& pndb->DevAddr, 4,  "DevAddr: 0x", 4); 
 	BHLOG(LOGLORAW) printf("\n");
@@ -298,8 +298,8 @@ int JoinSrv::JS_ValidatePkg(beeiotpkg_t* mystatus){
 		rc=-1;
 		return(rc);
 	}
-	// Pkg GW ID in range: (GWIDx-MAXGW)...GWIDx ?
-	if((mystatus->hd.destID > GWIDx) && (mystatus->hd.destID < (GWIDx-MAXGW))){ 
+	// Pkg GW ID in range: (GWIDx-MAXGW-1)...GWIDx ?
+	if((mystatus->hd.destID >= GWIDx) && (mystatus->hd.destID < (GWIDx-MAXGW))){ 
 		// This is no packet for this current Nw server instance !
 		rc = -2;
 		return(rc);
@@ -319,18 +319,19 @@ int JoinSrv::JS_ValidatePkg(beeiotpkg_t* mystatus){
 	// Hint: A REJOIN PKG is bypassed as normal CMD package 
 	// -> will be parsed later by detected nodeid
 	if(mystatus->hd.cmd == CMD_REJOIN){
-		if(mystatus->hd.destID != (GWIDx-cfgini->loradefchn)){ // calculate user-default JOIN channel
+		if(mystatus->hd.destID != (GWIDx-gwt.joindef)){ // calculate user-default JOIN channel
 			// No negative GWID check for REJOIN: accept REJOIN request 
-			// via all GWIDs but serving is done by Default-GW only.
+			// allowed via all GWIDs but response is done by Default-GW only.
 			// for cleaner process: Node should always use GWIDx also for REJOIN
 			BHLOG(LOGLORAW) printf("  JS_ValidateNode: Warning: Wrong GWID used for REJOIN: 0x%02X\n", (unsigned char) mystatus->hd.destID);
 		}
 			// o.k. Node is already joined and requests reactivation -> lets do it...
 			return(0);	// forget ndid by now to bypass to the JOIN process by BIOTPARSE -> RegisterNode() will find it again
 	}
+	// No (RE-)JOIN package...then GW-ID must fit to NDB assignment
 	if(NDB[ndid].nodecfg.gwid != mystatus->hd.destID){
 		// this joined node is (still) not using the assigned GWID
-		// pkg rejected -> request rejoin
+		// pkg rejected -> request a rejoin
 		BHLOG(LOGLORAW) printf("  JS_ValidateNode: joined node is (still) not using the assigned GWID (0x%02X) -> should rejoin", (unsigned char) mystatus->hd.destID);
 		rc=-4;
 		return(rc);

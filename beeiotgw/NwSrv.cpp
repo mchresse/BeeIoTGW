@@ -159,6 +159,7 @@ int	NwSrv::NwSrvModems(void){
 //	None
 // RETURN:
 //   0			all channel sessions finished successfully (never happens)
+//	-1			no active Modem available (mactive==0)
 //  throw(EX_NWSRV_INIT)	Constructor failed
 //******************************************************************************
 int NwSrv::NwNodeScan(void) {
@@ -176,7 +177,10 @@ int NwSrv::NwNodeScan(void) {
 	  PAYLOAD_LENGTH    : 0x40  Last PACKET_RSSI  : 0x00  #of valid Packets : 0x0000
 	  Current_RSSI      : 0x00  IRQ Level         : 0  
 	*/
-
+	// print status of default Join Modem (typ. the first one used)
+	gwt.modem[gwt.joindef]->PrintModemStatus(LOGALL);
+	gwt.modem[gwt.joindef]->PrintLoraStatus(LOGALL);
+	
 	gettimeofday(&now, 0);
 	strftime(TimeString, 80, "%d-%m-%y %H:%M:%S", localtime(&now.tv_sec));
 	BHLOG(LOGBH) printf("NwS:********************************************************************\n");
@@ -187,16 +191,21 @@ int NwSrv::NwNodeScan(void) {
 	int maxmod = mactive;	// get # of active modems only once
 	int count =0;
   while(1) {
-	for(int mid=0; mid < maxmod; mid++){	// ... for all discovered modems
+	for(int mid=0; mid < maxmod; mid++){// ... for all discovered modems
 		count++;
-		if(count%100 == 99){	// all 10 sec.
+		if(count%(10*10) == (10*10-1)){	// all 10 sec.
 			printf("* ");
 		}
-		if(count%1200 == 1199){	// each 2. minute
+		if(count%(2*600) == (2*600-1)){	// each 2. minute
 			printf("\n");
 		}
-		if(count > 7000){		// each 12. minute
+		if(count >  (cfgini->biot_loopwait+2)*600){		// each loop + 2 minutes
+			gwt.modem[mid]->PrintModemStatus(LOGALL);
 			gwt.modem[mid]->PrintLoraStatus(LOGALL);
+			if(!gwt.modem[mid]->ChkLoraMode()){
+				gwt.modem[mid]->SetupRadio();	// FSK recovery needed: reset complete Modem
+			}
+			count=0;
 		}
 		
 		// Check RX Queue Status (len>0) and process package accordingly
@@ -266,6 +275,7 @@ int NwSrv::NwNodeScan(void) {
 		gettimeofday(&now, 0);
 		strftime(TimeString, 80, "%d-%m-%y %H:%M:%S", localtime(&now.tv_sec));
 		printf("\nNwS: %s: No active LoRa Modem left -> Stop Server Scan\n", TimeString);
+		return(-1);
 	}
 
 	delay(NWSSCANDELAY);					// wait per loop in ms -> no time to loose.
@@ -496,7 +506,7 @@ ackbcn_t * pbcn;			// ptr on Beacon ack. frame
 		
         BHLOG(LOGLORAW) printf("  BeeIoTParse: Send ACK\n");		
         needaction = CMD_ACKBCN;	// no saved data, but o.k.
-		// predefine beacon ack data to pkg frame (hard to achieve in generic beeiotflow()
+		// predefine beacon ack data to pkg frame (harder to achieve in generic beeiotflow()
 		pbcn = (ackbcn_t*) &mystatus.data;	// get start of payload frame
 		pbcn->rssi = msg->getrssi();
 		pbcn->snr  = msg->getsnr();
@@ -580,7 +590,7 @@ Radio *			Modem;	// Ptr on Modem used for transmission
 		pack = (beeiot_header_t*) & actionpkg;
 		// lets acknowledge action cmd related to received package to sender
 		pack->destID = pkg->hd.sendID;	 // The BeeIoT node is the messenger
-		pack->sendID = (u1_t) (GWIDx-cfgini->loradefchn);	// New sender: its me on Def.JOIN channel
+		pack->sendID = (u1_t) (GWIDx-gwt.joindef);	// New sender: its me on Def.JOIN channel
 		pack->cmd	 = action;			 // get our action command
 		pack->pkgid  = pkg->hd.pkgid;	 // get last pkgid
 		pack->frmlen = 0;				 // send BeeIoT header for ACK only
@@ -594,7 +604,7 @@ Radio *			Modem;	// Ptr on Modem used for transmission
 
 		// setup pkg header
 		pcfg->hd.destID = pkg->hd.sendID;	// The BeeIoT node is the messenger
-		pcfg->hd.sendID = (u1_t) (GWIDx-cfgini->loradefchn);	// New sender: its me on Def.JOIN channel
+		pcfg->hd.sendID = (u1_t) (GWIDx-gwt.joindef);	// New sender: its me on Def.JOIN channel
 		pcfg->hd.cmd	= action;			// get our action command
 		pcfg->hd.pkgid	= pkg->hd.pkgid;	// get last pkgid
 		pcfg->hd.frmlen = sizeof(devcfg_t); // 
@@ -666,14 +676,16 @@ int NwSrv::NwSBeacon(u1_t mid, int ndid, MsgBuffer *msg){
 	beeiotpkg_t pbuf;					// copy buffer of a pkg frame
 	msg->getpkg((beeiotpkg_t*) &pbuf);	// cast std. pkg format on beacon format
 	beeiot_beacon_t * pbcn = (beeiot_beacon_t *) & pbuf;// ptr on a beacon frame
-	beacon_t * bcn = (beacon_t *) & pbuf.data;						// ptr on Data frame of beacon
+	beacon_t * bcn = (beacon_t *) & pbuf.data;			// ptr on Data frame of beacon
 	union {
         float f;
         int i;
     } f;
 	float latd, lond;
 	uint8_t * buffer;
-	
+
+	// ESP32-Arduino is little endian; Raspberry-Debian is big endian !
+	// correct float values to big endian format
 	buffer = bcn->lat;	
     f.i = buffer[0] |  (buffer[1] <<8) |  (buffer[2] <<16) |  (buffer[3] <<24);
 	latd = f.f;

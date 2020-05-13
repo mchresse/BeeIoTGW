@@ -217,8 +217,8 @@ char	sbuf[MAXMSGLEN];
 	}
 	lflags		= (unsigned int) cfgini->biot_verbose;	// now we have the custom verbose mode
 
-	printf("============== BeeIoT WAN Gateway v%i.%i (%s: v%i.%i) ===============\n\n",
-			BIoT_VMAJOR, BIoT_VMINOR, (char *) CONFIGINI, cfgini->vmajor, cfgini->vminor);
+	printf("============== BeeIoT WAN Gateway v%i.%i (%s: v%s) ===============\n\n",
+			BIoT_VMAJOR, BIoT_VMINOR, (char *) CONFIGINI, cfgini->version);
 	snprintf(sbuf, MAXMSGLEN, "##### BeeIoT WAN Server v%i.%i - started (Cfg. v%s) #####", 
 			(int)cfgini->vmajor, (int)cfgini->vminor, cfgini->version);  
 	beelog(sbuf);	// log init of program log file

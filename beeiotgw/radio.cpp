@@ -115,6 +115,91 @@ static const u2_t LORA_TXDONE_FIXUP = us2osticks(43);
 // Radio Constructor:
 // Init LoRa Modem by BeeIoTWAN Defaults: (on SX1276 chip only)
 // - Reset Modem chip and read version type (SX1276 = 0x12)
+// - start chip initialization via SetupRadio()
+// - Assign ISR to IRQ mapping table and activate ISR by ISR-level Semaphore=0
+//******************************************************************************
+Radio::Radio(gwbind_t & gwtab, int mid) : gwt(gwtab) {
+	modemp = &gwtab.gwset[mid];		// get modem settings for this new instance
+	gwt.modem[mid] = this;			// save new Modem Instance Ptr. to Instance Index in global Binding table
+	mset.modemid = modemp->modemid;	// save mid per instance locally (should be identical as mid)
+
+	if(modemp->modemid != mid){	// should never happen !
+		BHLOG(LOGLORAW) printf("  Radio: gwset-ModemID:%i differs from mid: %i, (using %i)\n",
+				(int)modemp->modemid, mid, (int)mset.modemid);
+		throw invalid_argument("Radio: GWTab[] Ptr is empty or modem ID is zero");
+		// return;
+	}
+	
+	this->dioISR = NULL;				// init empty ISR jumptable ptr. (not used yet)
+	this->mset.gwq = NULL;
+
+	// Send Reset to assumed SPI:RFM96 module (== SX127x base) using GPIO-RST line
+	resetModem();
+
+	if( getchiptype() <= 0 ){	// expect supported chiptype  > 0
+		BHLOG(LOGLORAW) printf("  SetupRadio(): no supported chiptype 0x%02X of Modem%i detected\nExit() -> Check GPIO# in config.ini\n", 
+				(unsigned char)mset.chiptype, (int)mset.modemid);
+		throw (int) EX_RADIO_INIT;		// Exc.ID: RADIO Init failed -> break;
+		// return;
+	}
+
+	SetupRadio();	// Initialize all Radio Chip registers and modes
+
+	// setup Radio layer house keeping data 
+	// + get AES encoded Random bit field for random()
+	radio_init();
+
+	// Define and activate ISR handling:
+	// - Mask all IRQs but RxDone for RXCONT Mode
+	//   We us RXCont Mode: Do we need RX_Header as well ? RXDone should be enough
+	//   in RXonly mode we would have to add: IRQ_LORA_HEADER_MASK
+	writeReg(LORARegIrqFlagsMask, ~(IRQ_LORA_RXDONE_MASK|IRQ_LORA_CRCERR_MASK)); // for RXDone
+
+	// ToDo: this table is for future use: not used by isr_init() by now!
+	dioISR = new IrqHandler[3];	// set mapping table of DIO0..2 ISR function ptr
+	dioISR[0] = &Radio::MyIRQ0;
+	dioISR[1] = &Radio::MyIRQ1;
+	dioISR[2] = &Radio::MyIRQ2;
+	
+	TXDoneFlag=1;	// Init TX Flag: TXDone=1 -> LoRa channel is free
+
+	// Assign ISR to GPIO line
+	// => Radio member function using implicit C-function call: 
+	//    by Lambda Frame conversion
+	isr_init(modemp);	// assign ISRs to IRQ Port <modem> referenced by this
+	mset.irqlevel =0;	// Activate ISRs: enable ISR Semaphore
+
+	BHLOG(LOGLORAR) printf("  Radio(): Done\n");
+	return;
+}
+
+
+//******************************************************************************
+// destructor RADIO class
+// Release Semtech SX chip and SPI channel
+Radio::~Radio(){
+	// Stop IRQs: further ISR handling blocked
+	mset.irqlevel = 1;
+    this->hal_disableIRQs();
+
+	// Reset RFM96 module == SX1276 base
+	this->resetModem();
+
+	// Set RFM96 Module to defined LoRa-sleep mode
+	this->setLoraMode();
+
+	// done implicit
+	if(this->dioISR)	// has it already been created ?(should not, if exception at check SXtypes)
+		delete[] this->dioISR;	// release ISR jumptable
+}
+
+
+
+//******************************************************************************
+// SetupRadio()
+// Init LoRa Modem by BeeIoTWAN Defaults: (on SX1276 chip only)
+// - Get Channel config values from global cfgchntab by assigned cfgchannelid
+// - Reset Modem chip and read version type (SX1276 = 0x12)
 // - Set OpMode SLEEP -> needed to change any cfg.
 // - Set frequency REG_FRF_MSB.._LSB (0x06-0x08) <= 'FREQ' (typ.: EU868_F1)
 // - Set LoRa SyncWord -> for BIoTWAN: use 0x12, (official LoRaWan takes 0x34)
@@ -131,38 +216,17 @@ static const u2_t LORA_TXDONE_FIXUP = us2osticks(43);
 // - Set RegPaRamp to 50usec =0x08
 // - Set REG_DIO_MAPPING_1	to DIO0_RX_CONT == RXDone	=> will be redfined by RX/TX task
 // - Set IRQ Flags Mask =0xFF -> Disable all IRQs by now. => redefined by TX/TX task
-// - Assign ISR to IRQ mapping table and activate ISR by ISR-level Semaphore=0
 //******************************************************************************
-Radio::Radio(gwbind_t & gwtab, int mid) : gwt(gwtab) {
-	modemp = &gwtab.gwset[mid];		// get modem settings for this new instance
-	gwt.modem[mid] = this;			// save new Modem Instance Ptr. to Instance Index in global Binding table
-	mset.modemid = modemp->modemid;	// save mid per instance locally (should be identical as mid)
-
-	if(modemp->modemid != mid){	// should never happen !
-		BHLOG(LOGLORAW) printf("  SetupLora(): gwset-ModemID:%i differs from mid: %i, (using %i)\n",
-				(int)modemp->modemid, mid, (int)mset.modemid);
-		throw invalid_argument("Radio: GWTab[] Ptr is empty or modem ID is zero");
-		// return;
-	}
+void Radio::SetupRadio(void) {
 	
-	this->dioISR = NULL;				// init empty ISR jumptable ptr. (not used yet)
-	this->mset.gwq = NULL;
-
 	setchannelconfig(modemp->chncfgid);	// Get modem channel cfg set "JOIN default" from user ini file
 	chncfg_t *ccfg = &mset.chncfg;		// temp. ptr. to new intialized local modem channel cfg. set for further modem init
 	
 	// Reset all Channel config parameters to BeeIoT-WAN defaults:
-	BHLOG(LOGLORAR) printf("  SetupLora(): Reset SX device of Modem%d\n", (int)modemp->modemid);
+	BHLOG(LOGLORAR) printf("  SetupRadio(): Reset SX device of Modem%d\n", (int)modemp->modemid);
 
 	// Send Reset to assumed SPI:RFM96 module (== SX127x base) using GPIO-RST line
 	resetModem();
-
-	if( getchiptype() <= 0 ){	// expect supported chiptype  > 0
-		BHLOG(LOGLORAW) printf("  SetupLora(): no supported chiptype 0x%02X of Modem%i detected\nExit() -> Check GPIO# in config.ini\n", 
-				(unsigned char)mset.chiptype, (int)mset.modemid);
-		throw (int) EX_RADIO_INIT;		// Exc.ID: RADIO Init failed -> break;
-		// return;
-	}
 
 	// Now we have a supported LoRa modem chip at SPI port:
 	// Set RFM96 Module to LoRa&sleep mode for further configuration
@@ -211,6 +275,7 @@ Radio::Radio(gwbind_t & gwtab, int mid) : gwt(gwtab) {
     writeReg(RegDioMapping1, MAP_DIO0_LORA_RXDONE|MAP_DIO1_LORA_NOP|MAP_DIO2_LORA_NOP);
 	writeReg(LORARegIrqFlagsMask, 0xFF);
 
+
 	//	PrintLoraStatus(LOGALL);
 	/* LoRa Modem Register: Example Output at this point
 	---------------------------------------------------------------
@@ -226,52 +291,12 @@ Radio::Radio(gwbind_t & gwtab, int mid) : gwt(gwtab) {
 	  PAYLOAD_LENGTH    : 0x40  Last PACKET_RSSI  : 0x00  #of valid Packets : 0x0000
 	  Current_RSSI      : 0x00  IRQ Level         : 0  
 	*/
-	// setup Radio layer house keeping data 
-	// + get AES encoded Random bit field for random()
-	radio_init();
 
-	// Define and activate ISR handling:
-	// - Mask all IRQs but RxDone for RXCONT Mode
-	//   We us RXCont Mode: Do we need RX_Header as well ? RXDone should be enough
-	//   in RXonly mode we would have to add: IRQ_LORA_HEADER_MASK
-	writeReg(LORARegIrqFlagsMask, ~(IRQ_LORA_RXDONE_MASK|IRQ_LORA_CRCERR_MASK)); // for RXDone
-
-	// ToDo: this table is for future use: not used by isr_init() by now!
-	dioISR = new IrqHandler[3];	// set mapping table of DIO0..2 ISR function ptr
-	dioISR[0] = &Radio::MyIRQ0;
-	dioISR[1] = &Radio::MyIRQ1;
-	dioISR[2] = &Radio::MyIRQ2;
-	
-	TXDoneFlag=1;	// Init TX Flag: TXDone=1 -> LoRa channel is free
-
-	// Assign ISR to GPIO line
-	// => Radio member function using implicit C-function call: 
-	//    by Lambda Frame conversion
-	isr_init(modemp);	// assign ISRs to IRQ Port <modem> referenced by this
-	mset.irqlevel =0;	// Activate ISRs: enable ISR Semaphore
-
-	BHLOG(LOGLORAR) printf("  SetupLora(): Done\n");
+	BHLOG(LOGLORAR) printf("  SetupRadio(): Done\n");
 	return;
-}
+} // end of SetupRadio()
 
-//******************************************************************************
-// destructor RADIO class
-// Release Semtech SX chip and SPI channel
-Radio::~Radio(){
-	// Stop IRQs: further ISR handling blocked
-	mset.irqlevel = 1;
-    this->hal_disableIRQs();
 
-	// Reset RFM96 module == SX1276 base
-	this->resetModem();
-
-	// Set RFM96 Module to defined LoRa-sleep mode
-	this->setLoraMode();
-
-	// done implicit
-	if(this->dioISR)	// has it already been created ?(should not, if exception at check SXtypes)
-		delete[] this->dioISR;	// release ISR jumptable
-}
 
 //*****************************************************************************
 // GetChipType()
@@ -286,7 +311,7 @@ Radio::~Radio(){
 //	-1			unknown chip type detected
 // global mset.chiptype	gets read chiptype (anyway)
 int Radio::getchiptype(void){
-    mset.chiptype = readReg(RegVersion);	// read chitype directly from HW(SPI port)
+    mset.chiptype = readReg(RegVersion);	// read chiptype directly from HW(SPI port)
 	int rc;
 	
 	switch(mset.chiptype){
@@ -413,13 +438,37 @@ void Radio::setopmode (u1_t mode) {
 	BHLOG(LOGLORAR) printf("    Radio: New OpMode: %s (0x%02X)\n", 
 			rxloraOMstring[mode&OPMODE_MASK], (unsigned int)mset.currentMode);
 	mset.currentMode &= (OPMODE_LORA | OPMODE_MASK);		// Filter LF Mode
+	delayMicroseconds(250);		// give modem 250us grace time to reflect new status
+}
+
+void Radio::setLoraMode(void) {
+	// set assured sleep first in any mode
+	byte mode = readReg(RegOpMode);
+	mode = (mode & ~OPMODE_MASK) | OPMODE_SLEEP;
+	writeReg(RegOpMode,  mode);
+
+    // set LoRa flag with LF Mode - for SX1276 only !
+	mode = OPMODE_LORA | OPMODE_SLEEP;	// Start in SLeep Mode +
+	writeReg(RegOpMode, mode);			// HF Mode, no shared FSK Reg Access
+	BHLOG(LOGLORAR) printf("    Radio: Set LoRa-Sleep Mode: 0x%02X\n", (unsigned char)mode);
+	mset.currentMode = mode;	// remember new modem mode
+	delayMicroseconds(250);		// give modem 250us grace time to reflect new status
+}
+
+bool Radio::ChkLoraMode(void) {
+	byte mode = readReg(RegOpMode);		// get curr. OP Mode
+	mode &= OPMODE_LORA | OPMODE_MASK;	// Filter LF Mode
+	mset.currentMode = mode;			// remember new modem mode
+	if((mode & OPMODE_LORA) != OPMODE_LORA)
+		return(false);	// no Lora Mode
+	return(true);		// yes, Lora Mode
 }
 
 byte Radio::getopmode(void){
 	return(mset.currentMode);
 }
 int Radio::getmodemidx(void){	// deliver index of modem instance
-	return(this->mset.modemid);
+	return(mset.modemid);
 }
 long Radio::getchannelfrq(void){
 	return(mset.chncfg.freq);
@@ -437,12 +486,6 @@ int Radio::getirqlevel(void){
 	return(mset.irqlevel);
 }
 
-void Radio::setLoraMode(void) {
-    // def:LoRa with LF Mode - for SX1276 only !
-	mset.currentMode = OPMODE_LORA | OPMODE_SLEEP; // Start in SLeep Mode +
-	writeReg(RegOpMode, mset.currentMode);		  // HF Mode, no shared FSK Reg Access
-    BHLOG(LOGLORAR) printf("    Radio: Set LoRa-Mode & Sleep\n");
-}
 
 
 // configure LoRa modem (cfg1, cfg2)
@@ -650,7 +693,7 @@ void Radio::radio_init(void) {
     rxlora(RXMODE_RSSI,0);
 	BHLOG(LOGLORAR) printf("  radio_init(): get random field values:\n");
     while( (readReg(RegOpMode) & OPMODE_MASK) != OPMODE_RX ); // continuous rx ?
-    for(int i=1; i<16; i++) {
+    for(int i=1; i<RANDBUFLEN; i++) {
 		BHLOG(LOGLORAR) printf("  %2d:", i);
         for(int j=0; j<8; j++) {
             u1_t b; // wait for two non-identical subsequent least-significant bits
@@ -660,7 +703,7 @@ void Radio::radio_init(void) {
         }
 		BHLOG(LOGLORAR) printf("\n");
     }
-    mset.randbuf[0] = 16; // set initial index
+    mset.randbuf[0] = 16; // set any initial index (must fit to radio_rand1() code !
   
     setopmode(OPMODE_SLEEP);
 	writeReg(LORARegIrqFlagsMask, 0xFF);
@@ -676,12 +719,12 @@ void Radio::radio_init(void) {
 // (buf[0] holds index of next byte to be returned)
 u1_t Radio::radio_rand1 (void) {
     u1_t i = mset.randbuf[0];
-    if( i==16 ) {
-        os_aes(AES_ENC, (xref2u1_t)mset.randbuf, 16); // encrypt seed with any key
-        i = 0;
+    if( i==16 ) {	// field not encrypted yet ? do it now once
+        os_aes(AES_ENC, (xref2u1_t)mset.randbuf, RANDBUFLEN); // encrypt seed with any key
+        i = 0;	// init read index once
     }
-    u1_t v = mset.randbuf[i++];
-    mset.randbuf[0] = i;
+    u1_t v = mset.randbuf[i++];	// get next randomvalue
+    mset.randbuf[0] = i;		// set new read index
     return v;
 }
 
@@ -698,12 +741,52 @@ u1_t Radio::radio_rssi (void) {
 
 
 
+//*************************************************************
+// PrintModemStatus()
+// Dumps most important Modem runtime settings.
+// input: logtype
+//      LOGALL	Dumps all Register as availabel in current mode
+//*************************************************************
+void Radio::PrintModemStatus(int logtype){
+chncfg_t *ccfg;	// temp. ptr on Channel config set of modem
+	printf("---------------------------------------------------------------\n");
+	printf("LoRa Modem %i=%i:  Channel Status:   BeeIoT-WAN v%i.%i\n", 
+			(int)modemp->modemid, (int)mset.modemid, BIoT_VMAJOR, BIoT_VMINOR);
+	
+	if(logtype == LOGALL){
+		ccfg = &mset.chncfg;
+		printf(" GPIO Pinning:   ");
+		printf(" ChannelConfig[%i]",	(unsigned char) modemp->chncfgid);
+		printf(" ChipType:  0x%02X\n",	(unsigned char)mset.chiptype);
+		
+		printf(" IOPin-  CS: %i   ",	(int) modemp->iopins.sxcs);
+		printf(" Frq: %.3fMHz ",		(float) ccfg->freq/1000000);
+		printf(" ModemGWID: 0x%02X\n",	(unsigned char) modemp->gwid);
+
+		printf(" IOPin- RST: %i   ",	(int) modemp->iopins.sxrst);
+		printf(" SF: %i           ",	(int) ccfg->sf+6);
+		printf(" CurrMode:  0x%02X %s\n",(unsigned char) mset.currentMode, rxloraOMstring[mset.currentMode&OPMODE_MASK]);
+
+		printf(" IOPin-DIO0: %i   ",	(int) modemp->iopins.sxdio0);
+		printf(" BW: %ikHz      ",		(int)ccfg->bw == BW125 ? 125 : (ccfg->bw == BW250 ? 250 : 500));
+		printf(" IRQenable: %i\n",		mset.irqlevel);
+				
+		printf(" IOPin-DIO1: %i   ",	(int) modemp->iopins.sxdio1);
+		printf(" CR: 4/%i         ",	(unsigned char)ccfg->cr == CR_4_5 ? 5 : (ccfg->cr == CR_4_6 ? 6 : (ccfg->cr == CR_4_7 ? 7 : 8)));
+		printf(" Modem*     %p\n",		this);
+
+		printf(" IOPin-DIO2: %i   ",	(int) modemp->iopins.sxdio2);
+		printf(" IH: %i           ",	(int) ccfg->ih);
+		printf(" GWQueue*   %p len:%i\n", mset.gwq, mset.gwq->MsgQueueSize());
+		
+	}
+} // end of PrintModemStatus()
 
 
 
 //*************************************************************
 // PrintLoraStatus()
-// Dumps most importent SX127x registers in LoRa Mode.
+// Dumps most important SX127x registers in LoRa Mode.
 // requires sleep mode !
 // input: logtype
 //		LOGDYN	Dumps all dynamic registers related to current RX/TX action
@@ -773,12 +856,6 @@ void Radio::PrintLoraStatus(int logtype){
 void Radio::txlora (byte* frame, byte dataLen) {
 	chncfg_t * ccfg = &mset.chncfg;
 
-    // select LoRa modem (from sleep mode)
-    setLoraMode();
-	if((readReg(RegOpMode) & OPMODE_LORA) != OPMODE_LORA){
-		BHLOG(LOGLORAW) printf("    txlora: TX in FSK Mode !\n");
-		return;
-	}
     // enter standby mode (required for FIFO loading))
     setopmode(OPMODE_STANDBY);
 
@@ -830,24 +907,31 @@ void Radio::txlora (byte* frame, byte dataLen) {
 // StartTX()
 // start transmition
 // if async=0: return after TXDoneFlag set by ISR; =0 return immediately
+// -3: no Lora Mode active
 int Radio::starttx (byte* frame, byte dataLen, bool async) {
 	if(!frame || !dataLen)
 		return(-1);	// wrong input params
 	
 	// Start TX for LoRa modem only
+	setLoraMode();	// set Lora+SLEEP Mode
+	if(!ChkLoraMode()){
+		BHLOG(LOGLORAW) printf("    starttx: TX in FSK Mode -> skip TX\n");
+		setopmode(OPMODE_SLEEP);
+		return(-3);
+	}
 	TXDoneFlag = 0;	// Spawn TXDoneFlag -> Set to 1 by ISR if TXDone IRQ occurs
 	txlora(frame, dataLen);
 	
 	if (async) {// TX async: return immediately
 		// but spend some grace time for the radio to be save for next SPI access
-		delayMicroseconds(150);		// wait for  a while till SX is stable
+		delayMicroseconds(250);		// wait for  a while till SX is stable
 	} else {	// TX sync: lets wait till TXDone-ISR reports TX completion
 		int count = 0;
 		// the ISR will inform us about completion by TXDoneFlag = 1;
 		while (!TXDoneFlag){	// Poll TX compl. flag processed by ISR routine
 			// wait for max. # of sent bytes with Tsymb=1ms (SF7)
 			delay(dataLen+8);	// Give ISR also some time to validate TXDone
-								// min.: length of HD+payload+preamble Bytes
+								// min.: length of HD+payload+preamble Bytes in ms
 			// ToDO: timeout action if TX fails in a certain time -> retry ?
 			if(++count == MAXTXTO){
 				BHLOG(LOGLORAR) printf("    Radio: TX Time Out !\n");
@@ -855,26 +939,20 @@ int Radio::starttx (byte* frame, byte dataLen, bool async) {
 				return(-2);	// report TX TimeOut
 			}
 		}
-		BHLOG(LOGLORAR) printf("    Radio: TX Done (TO_count=%i) !\n", count);
+		BHLOG(LOGLORAR) printf("    Radio: TX Done (TO_count=%ims) !\n", count*(dataLen+8));
 	}
     // the radio will go automatically to STANDBY mode as soon as TX has been finished
-	return(0);	// TX Data at least initiated
+	return(0);	// TX of Data at least initiated
 }
 
 //***********************************************************
 // starts LoRa receiver (time=LMIC.rxtime, timeout=LMIC.rxsyms, 
 //		 				result=LMIC.frame[LMIC.dataLen])
+// rxmode:	RXMODE_SINGLE/RXMODE_RSSI/RXMODE_SCAN Mode
+// rxto :	wait time in sec. in rx single mode
 void Radio::rxlora (u1_t rxmode, int rxto) {
 chncfg_t *ccfg = &mset.chncfg;
 
-	// rxto : wait time in sec. in rx single mode
-    // select LoRa modem (from sleep mode)
-
-    setLoraMode();
-	if((readReg(RegOpMode) & OPMODE_LORA) != OPMODE_LORA){
-		BHLOG(LOGLORAW) printf("    rxlora: RX in FSK Mode !\n");
-		return;
-	}
     // enter standby mode (warm up))
     setopmode(OPMODE_STANDBY);    // don't use MAC settings at startup
 
@@ -961,11 +1039,17 @@ chncfg_t *ccfg = &mset.chncfg;
 }
 
 void Radio::startrx (u1_t rxmode, int rxtime) {
+	setLoraMode();	// set Lora+SLEEP Mode
 	// ASSERT( (readReg(RegOpMode) & OPMODE_MASK) == OPMODE_SLEEP );
-	// basically not needed: rx routine forces STDBY Mode
-
+	// basically not needed: rx routine forces STDBY Mode, but not Lora
+	if(!ChkLoraMode()){
+		BHLOG(LOGLORAW) printf("    startrx: RX in FSK Mode -> skip RXMode\n");
+		setopmode(OPMODE_SLEEP);
+		return;
+	}
 	// LoRa modem only !
-        rxlora(rxmode, rxtime);
+
+	rxlora(rxmode, rxtime);
     // the radio will go back to STANDBY mode as soon as the RX is finished
     // or timed out, and the corresponding IRQ will inform us about completion.
 }
@@ -980,7 +1064,7 @@ void Radio::startrx (u1_t rxmode, int rxtime) {
 //
 // 0. Check LoRa Mode	-> BIOT use only LoRa Modem type
 //	1. Check TXDone		-> set BeeIotTXFlag flag only
-//	2. Check RX Queue full -> no RX-Queue buffer left => shortcut ISR, no action
+//	2. Check RX Queue full -> skipped. since unlimited dynamic MsgQueue
 //	3. Check RXDone		
 //		4. CRC Check	-> shortcut ISR, no action
 //		5. a)Get RSSI & SNR Status and b) evaluate SNR threshold
@@ -1060,6 +1144,7 @@ chncfg_t * ccfg = &mset.chncfg;
 				BHLOG(LOGLORAW) printf("\n");
 				--gwt.cp_nb_rx_rcv;		// TXDone Pkgs not counted as Received pkg.-> only RX
 			// }
+
 		// 3. IRQ in RX Mode: RX DONE -> Check for new received valid packet
 		} else if((flags & IRQ_LORA_RXDONE_MASK) || flags==0) {  // receiving a LoRa package ?
 			// Save exact RXDone time (needed for start of RX1 window)
@@ -1141,6 +1226,8 @@ chncfg_t * ccfg = &mset.chncfg;
 					// 6. Check Package size: in range of BeeIoT WAN protocol specification ?
 					if (mset.rxdlen < BIoT_HDRLEN || mset.rxdlen > MAX_PAYLOAD_LENGTH) {
 						// Non BeeIoT Package -> store for future analysis / test purpose
+						if(mset.rxdlen > (byte) MAXRXBUFLEN) 
+							mset.rxdlen = (byte) MAXRXBUFLEN;	// limit raw data to buffer size
 						readBuf(RegFifo, (byte *) mset.rxbuffer, mset.rxdlen);				
 						BHLOG(LOGLORAR) printf("  IRQ%d: New RXPkg size out of BIoTWAN range: %iBy -> ignored\n", 
 								(unsigned char)dio, (int) mset.rxdlen);
@@ -1207,9 +1294,9 @@ chncfg_t * ccfg = &mset.chncfg;
 		BHLOG(LOGLORAR) printf("IRQ%d: Force ModemType from FSK to last known LoRa-Mode 0x%02X!\n",
 				(unsigned char)dio, (unsigned char)mset.currentMode);
 
-		setLoraMode();	// Force OPMode to Lora + HF On + no FKS reg access + OM:SLEEP
-		// SetupLoRa(); // may be this is also needed ? Full Reset + Reconfig
-    } // FSK IRQ
+		this->SetupRadio();		// Reset Modem completely
+		return; // break here, we are done.
+	} // FSK IRQ
 	
 	setopmode(OPMODE_SLEEP); // Force SLEEP Mode
 	fflush(stdout);
@@ -1218,17 +1305,17 @@ chncfg_t * ccfg = &mset.chncfg;
 
 
 void Radio::MyIRQ0(void) {
-  BHLOG(LOGLORAR) printf("IRQ[%i] at DIO 0 (level %i)\n", (int) mset.modemid,(unsigned char) mset.irqlevel);
+  BHLOG(LOGLORAR) printf("\nIRQ[%i] at DIO 0 (level %i)\n", (int) mset.modemid,(unsigned char) mset.irqlevel);
   if (mset.irqlevel==0) {
 	hal_disableIRQs();
-	myradio_irq_handler(0);			// instead receivepacket();
+	myradio_irq_handler(0);
 	hal_enableIRQs();
 	return;
   }
 }
 
 void Radio::MyIRQ1(void) {
-  BHLOG(LOGLORAR) printf("IRQ[%i] at DIO 1 (level %i)\n", (int) mset.modemid,(unsigned char) mset.irqlevel);
+  BHLOG(LOGLORAR) printf("\nIRQ[%i] at DIO 1 (level %i)\n", (int) mset.modemid,(unsigned char) mset.irqlevel);
   if (mset.irqlevel==0){
 	hal_disableIRQs();
     myradio_irq_handler(1);
@@ -1237,7 +1324,7 @@ void Radio::MyIRQ1(void) {
 }
 
 void Radio::MyIRQ2(void) {
-  BHLOG(LOGLORAR) printf("IRQ[%i] at DIO 2 (level %i)\n", (int) mset.modemid,(unsigned char) mset.irqlevel);
+  BHLOG(LOGLORAR) printf("\nIRQ[%i] at DIO 2 (level %i)\n", (int) mset.modemid,(unsigned char) mset.irqlevel);
   if (mset.irqlevel==0){
 	hal_disableIRQs();
     myradio_irq_handler(2);

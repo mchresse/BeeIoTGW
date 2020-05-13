@@ -22,38 +22,41 @@
 using namespace std;
 
 #include "regslora.h"
-// LoRa Radio LogStatus() logging modes
-#define LOGDYN	1
-#define LOGSTAT 2
-#define LOGALL	3
 
+// LoRa Radio Print<Log>Status() modes
+enum { LOGDYN, LOGSTAT, LOGALL };
 
 //***************************************************************
 // LoRa Modem Hardware IO & IRQ callback function declarations
-class Radio;	// forward declaration for typedef
+class Radio;				// forward declaration for typedef
 typedef void (Radio::*IrqHandler )( void );	// prototype of DIOx-IRQ handler routines
 
 // Radio internal housekeeping
+enum {	MAXRXBUFLEN=256,	// max. length of generic Read Buffer
+		MAXTXBUFLEN=256,	// max. length of generic Send Buffer
+		RANDBUFLEN=16,		// Random value buffer length
+};
+
 typedef struct {
 	byte	 modemid;		// Modem ID: 0.. cfgini->loranumchn;
 	chncfg_t chncfg;		// Configuration of modem LoRa transmit channel
 
 	// current LoRa Modem Op.Mode
-	byte currentMode;		// Modem status: SLEEP/IDLE/RX/TX
-	byte chiptype;			// Modem chip type: Semtech LoRa Chip: SX1276 0x12, =0: unknown
-	MsgQueue * gwq;				// local Ptr on Modem MsgQueue of LoRa Packages
+	byte	currentMode;	// Modem status: SLEEP/IDLE/RX/TX
+	byte	chiptype;		// Modem chip type: Semtech LoRa Chip: SX1276 0x12, =0: unknown
+	MsgQueue *gwq;			// local Ptr on Modem MsgQueue of LoRa Packages
 	
 	// used by ISR routine
-	int	irqlevel;			// =0..n IRQ Enable semaphore: (0: IRQs allowed) 
-	int snr;				// Signal/Noise Ratio level [db]
-	int rssi;				// Received signal strength indication [dbm]
-	byte rxbuffer[256];		// generic frame buffer for unknown packages
-	byte rxdlen;			// length of generic/unknown package
-	byte txbuffer[256];		// universal TX buffer
-	byte txdlen;			// length of TX package to be sent
+	int		irqlevel;		// =0..n IRQ Enable semaphore: (0: IRQs allowed) 
+	int		snr;			// Signal/Noise Ratio level [db]
+	int		rssi;			// Received signal strength indication [dbm]
+	byte	rxbuffer[MAXRXBUFLEN];	// generic frame buffer for unknown packages
+	byte	rxdlen;			// length of generic/unknown package
+	byte	txbuffer[MAXTXBUFLEN];	// universal TX buffer
+	byte	txdlen;			// length of TX package to be sent
 
 	// (initialized by radio_init(), used by radio_rand1())
-	u1_t randbuf[16];
+	u1_t randbuf[RANDBUFLEN];
 
 	struct timeval now;		// current timestamp used each time a ISR time check is done
 	unsigned long txstart;	// tstamp when TX Mode was entered
@@ -86,6 +89,10 @@ public:
 	// default is ndid=0 and modem NDB[0].joindef, ín Multi modem mode: used for JOIN requests only
 	Radio(gwbind_t & gwtab, int mid);	// Detect SX lora chip and setup config channel
 	~Radio();					// reset SX Chip (Sleep)
+	
+	// do final setup of Radio chip registers for constructor
+	// used als for recovery from FSK mode
+	void SetupRadio(void);
 
 	int	 getmodemidx(void);		// deliver index of modem instance
 	long getchannelfrq(void);	// channel frequency e.g.868.1MHz
@@ -97,9 +104,13 @@ public:
 	
 	// print LoraRegister Status to Serial port in diff. sizes
 	void PrintLoraStatus(int logtype);
+	// print config settings and runtime status of current modem (majorly mset)
+	void PrintModemStatus(int logtype);
 
 	// Deliver current Modem OpMode
 	byte getopmode(void);
+	// Check if Lora Mode is active
+	bool ChkLoraMode(void);
 
 	// TX pkg frame via Lora Modem
 	int  starttx (byte* frame, byte dataLen, bool async);
@@ -117,7 +128,6 @@ public:
 	void MyIRQ0(void);		// DIO0 IRQ member function wrapper
 	void MyIRQ1(void);		// DIO1 IRQ member function wrapper
 	void MyIRQ2(void);		// DIO2 IRQ member function wrapper
-	void init(void);		// IRQ init test fkt.
 
 	// MyIRQx ISR function ptr table for dyn. GPIO-DIOx assignment used in isr_init();
 	IrqHandler *dioISR;		// Ptr table root allocated by Radio()
