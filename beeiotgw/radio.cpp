@@ -1283,7 +1283,7 @@ chncfg_t * ccfg = &mset.chncfg;
         gettimeofday(&now, 0);
         tstamp = (uint32_t)(now.tv_sec*1000000 + now.tv_usec);
 
-		BHLOG(LOGLORAW) printf("IRQ<%ul>: FSK-IRQ%d - should never happen (2)(OPMode: 0x%0.2X) -> skipped\n", 
+		BHLOG(LOGLORAW) printf("IRQ<%u>: FSK-IRQ%d - should never happen (2)(OPMode: 0x%0.2X) -> skipped\n", 
 					(unsigned long)tstamp, (unsigned char)dio, (unsigned char) readReg(RegOpMode));
 
 		// clear/ack all radio IRQ flags and close masking
@@ -1294,7 +1294,7 @@ chncfg_t * ccfg = &mset.chncfg;
 		BHLOG(LOGLORAR) printf("IRQ%d: Force ModemType from FSK to last known LoRa-Mode 0x%02X!\n",
 				(unsigned char)dio, (unsigned char)mset.currentMode);
 
-		this->SetupRadio();		// Reset Modem completely
+		this->SetupRadio();		// Reset Modem completely and leave it in SLEEP Mode
 		return; // break here, we are done.
 	} // FSK IRQ
 	

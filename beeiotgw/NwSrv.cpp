@@ -188,8 +188,8 @@ int NwSrv::NwNodeScan(void) {
 		TimeString);
 
   // run forever: wait for incoming packages via radio_irq_handler()
-	int maxmod = mactive;	// get # of active modems only once
-	int count =0;
+  int maxmod = mactive;	// get # of active modems only once
+  int count =0;
   while(1) {
 	for(int mid=0; mid < maxmod; mid++){// ... for all discovered modems
 		count++;
@@ -197,11 +197,12 @@ int NwSrv::NwNodeScan(void) {
 			printf("* ");
 		}
 		if(count%(2*600) == (2*600-1)){	// each 2. minute
-			printf("\n");
+			printf(" %i\n", count);
 		}
-		if(count >  (cfgini->biot_loopwait+2)*600){		// each loop + 2 minutes
+		if(count >  ((cfgini->biot_loopwait+2)*600)){		// each loop + 2 minutes
 			gwt.modem[mid]->PrintModemStatus(LOGALL);
 			gwt.modem[mid]->PrintLoraStatus(LOGALL);
+			printf(" %i\n", count);
 			if(!gwt.modem[mid]->ChkLoraMode()){
 				gwt.modem[mid]->SetupRadio();	// FSK recovery needed: reset complete Modem
 			}
@@ -210,8 +211,6 @@ int NwSrv::NwNodeScan(void) {
 		
 		// Check RX Queue Status (len>0) and process package accordingly
 		while(gwt.gwq->MsgQueueSize() > 0){	// Do we have a package in the RX Queue ?
-			count =0;
-
 			gettimeofday(&now, 0);		// get current timestamp
 			strftime(TimeString, 80, "%d-%m-%y %H:%M:%S", localtime(&now.tv_sec));
 
@@ -237,12 +236,12 @@ int NwSrv::NwNodeScan(void) {
 			BHLOG(LOGBH) printf("  NwSrv: LoraStatistic - Rcv:%u, Bad:%u, CRC:%u, O.K:%u, Fwd:%u\n",
 				gwt.cp_nb_rx_rcv, gwt.cp_nb_rx_bad, gwt.cp_nb_rx_crc, 
 				gwt.cp_nb_rx_ok, gwt.cp_up_pkt_fwd);
+			count =0;
 		}
 		
 		// activate modem to RXCont mode
 		if((gwt.modem[mid]->getopmode() & OPMODE_RX)!= OPMODE_RX){	
 			if(mid==0){ // get new config only by status change of def. JOIN modem
-				
 				//re-read config.ini file again (could have been changed in between) 
 				configuration* pcfg;
 				pcfg = getini((char*)CONFIGINI);
@@ -260,6 +259,7 @@ int NwSrv::NwNodeScan(void) {
 					cfgini->loranumchn = mactive;	// limit # of supp. modems to what have been discovered
 				} // (new) valid cfg-data available
 			}
+			count = 0;
 
 			// Start LoRa Modem: in continuous read mode again
 			BHLOG(LOGLORAR) printf("  NwS: Enter RX_Cont Mode for Lora Modem%i\n", mid);
@@ -573,16 +573,18 @@ Radio *			Modem;	// Ptr on Modem used for transmission
 		pack->sendID= (u1_t) pndb->nodecfg.gwid; // New sender: its me
 		pack->cmd	= action;			 // get our action command
 		pack->pkgid = pkg->hd.pkgid;	 // get last pkg msgid
-		if(action = CMD_ACKBCN){
+		pack->res	= 0;
+		if(action == CMD_ACKBCN){
 			// assumed pbcn data is already defined by caller: e.g. rssi & snr
 			memcpy(&actionpkg.data, &pkg->data, sizeof(ackbcn_t));
-			// ToDO: add MIC field to end of actionpkg.data
+			// ToDO: add MIC field at end of actionpkg.data
 			pack->frmlen= sizeof(ackbcn_t);	// length of ackbcn data only
 			pkglen = BIoT_HDRLEN + pack->frmlen + BIoT_MICLEN;// just the BeeIoT header + MIC			
 			BHLOG(LOGLORAR) hexdump((byte*) &actionpkg, pkglen);
 		}else{
 			pack->frmlen= 0;				 // send BeeIoT header for ACK only
 			pkglen = BIoT_HDRLEN+BIoT_MICLEN;// just the BeeIoT header + MIC
+			// ToDO: add MIC field at end of actionpkg.data
 		}
 		break;
 
@@ -594,7 +596,9 @@ Radio *			Modem;	// Ptr on Modem used for transmission
 		pack->cmd	 = action;			 // get our action command
 		pack->pkgid  = pkg->hd.pkgid;	 // get last pkgid
 		pack->frmlen = 0;				 // send BeeIoT header for ACK only
+		pack->res	= 0;
 		pkglen = BIoT_HDRLEN+BIoT_MICLEN;// just the BeeIoT header + MIC
+		// ToDO: add MIC field to end of actionpkg.data
 		break;
 
 	case CMD_CONFIG: // Send runtime config params as assiged to node
@@ -608,6 +612,7 @@ Radio *			Modem;	// Ptr on Modem used for transmission
 		pcfg->hd.cmd	= action;			// get our action command
 		pcfg->hd.pkgid	= pkg->hd.pkgid;	// get last pkgid
 		pcfg->hd.frmlen = sizeof(devcfg_t); // 
+		pcfg->hd.res	= 0;
 
 		pcfg->cfg.channelidx= pndb->nodecfg.channelidx;	// we start with assigned Channel IDX
 		pcfg->cfg.gwid		= pndb->nodecfg.gwid;		// store predefined GW
@@ -638,10 +643,10 @@ Radio *			Modem;	// Ptr on Modem used for transmission
 	}
 	
 	// Do final TX for all CMD cases: Select assigned modem handle
-	mid = pndb->msg.mid;	// get node pkg used  ModemID
-	if(mid >= mactive){		// if mid is out of active modem scope (should never happen!)
+	mid = pndb->msg.mid;		// get node pkg used  ModemID
+	if(mid >= mactive){			// if mid is out of active modem scope (should never happen!)
 		BHLOG(LOGLORAW) printf("\n  BIoTFlow: ################# Force mid:%i to default-mid:%i ###################\n\n", mid, pndb->middef);
-		mid = pndb->middef;	// error recovery: limit modemid to assigned JOIN default.
+		mid = pndb->middef;		// error recovery: limit modemid to assigned JOIN default.
 		pndb->msg.mid = mid;	// safe state for next time also
 		// t.b.d.: there must be a wrong ID handling with NDB->mid ?
 	}
@@ -650,7 +655,7 @@ Radio *			Modem;	// Ptr on Modem used for transmission
 			(int)actionpkg.hd.pkgid, (unsigned char)actionpkg.hd.sendID, (unsigned char)actionpkg.hd.destID, 
 			(unsigned char)actionpkg.hd.cmd, (int)actionpkg.hd.frmlen, (int)mid);
 
-	Modem = gwt.modem[mid];	// get corresponding modem object for TX
+	Modem = gwt.modem[mid];		// get corresponding modem object for TX
 	int rc = Modem->starttx((byte *)&actionpkg, pkglen, async );	// send LoRa pkg	
 
 	if(rc<0){
