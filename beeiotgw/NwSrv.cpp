@@ -202,10 +202,9 @@ int NwSrv::NwNodeScan(void) {
 		if(count >  ((cfgini->biot_loopwait+2)*600)){		// each loop + 2 minutes
 			gwt.modem[mid]->PrintModemStatus(LOGALL);
 			gwt.modem[mid]->PrintLoraStatus(LOGALL);
-			printf(" %i\n", count);
-			if(!gwt.modem[mid]->ChkLoraMode()){
+//			if(!gwt.modem[mid]->ChkLoraMode()){	// if no Lora Mode -> recover from FSK Mode
 				gwt.modem[mid]->SetupRadio();	// FSK recovery needed: reset complete Modem
-			}
+//			}
 			count=0;
 		}
 		
