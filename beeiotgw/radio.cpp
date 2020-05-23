@@ -465,6 +465,7 @@ bool Radio::ChkLoraMode(void) {
 }
 
 byte Radio::getopmode(void){
+	mset.currentMode = readReg(RegOpMode) & (OPMODE_LORA | OPMODE_MASK);	// get curr. OP Mode
 	return(mset.currentMode);
 }
 int Radio::getmodemidx(void){	// deliver index of modem instance
@@ -905,7 +906,7 @@ void Radio::txlora (byte* frame, byte dataLen) {
 
 //******************************************************************************
 // StartTX()
-// start transmition
+// start transmission
 // if async=0: return after TXDoneFlag set by ISR; =0 return immediately
 // -3: no Lora Mode active
 int Radio::starttx (byte* frame, byte dataLen, bool async) {
