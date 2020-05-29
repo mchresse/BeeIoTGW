@@ -190,6 +190,7 @@ int NwSrv::NwNodeScan(void) {
   // run forever: wait for incoming packages via radio_irq_handler()
   int maxmod = mactive;	// get # of active modems only once
   int count =0;
+  byte omstatus =0;
   while(1) {
 	for(int mid=0; mid < maxmod; mid++){// ... for all discovered modems
 		count++;
@@ -239,7 +240,8 @@ int NwSrv::NwNodeScan(void) {
 		}
 		
 		// activate modem to RXCont mode
-		if((gwt.modem[mid]->getopmode() & OPMODE_RX)!= OPMODE_RX){	
+		omstatus = gwt.modem[mid]->getopmode();
+		if((omstatus & OPMODE_RX)!= OPMODE_RX){	
 			if(mid==0){ // get new config only by status change of def. JOIN modem
 				//re-read config.ini file again (could have been changed in between) 
 				configuration* pcfg;
@@ -261,9 +263,12 @@ int NwSrv::NwNodeScan(void) {
 			count = 0;
 
 			// Start LoRa Modem: in continuous read mode again
-			BHLOG(LOGLORAR) printf("  NwS: Enter RX_Cont Mode for Lora Modem%i\n", mid);
-			gwt.modem[mid]->startrx(RXMODE_SCAN, 0);	// RX in RX_CONT Mode
-			
+			BHLOG(LOGLORAR) printf("  NwS: Enter RX_Cont Mode for Lora Modem%i (omstatus=%02X)\n", mid, (unsigned char)omstatus);
+			int rc = gwt.modem[mid]->startrx(RXMODE_SCAN, 0);	// RX in RX_CONT Mode
+			if(rc<0){
+				gwt.modem[mid]->SetupRadio();	// FSK recovery needed: reset complete Modem
+				gwt.modem[mid]->startrx(RXMODE_SCAN, 0);	// retry RX CONT Mode
+			}
 			// ISR is now waiting for DIO0 port change
 			gettimeofday(&now, 0);
 			strftime(TimeString, 80, "%d-%m-%y %H:%M:%S", localtime(&now.tv_sec));
