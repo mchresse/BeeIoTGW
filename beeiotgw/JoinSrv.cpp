@@ -78,7 +78,7 @@ extern int AppGH		(int ndid, char* data, byte len, int mid);	// GreenHouse Contr
 // => The hit index position in this table results to NodeID = NODEIDBASE + idx !
 // NODEIDBASE+0 to be used by new node for JOIN communication -> else rejected !
 
-static nodewltable_t WLTab[MAXNODES+2]={			// +2 for dummy JOIN lines ID=0,n
+static nodewltable_t WLTab[MAXNODES+1]={			// +1 for last dummy JOIN line ID=n
 
 	// 0: Dummy start marker of table (NODEID == 0x00 -> used for JOIN requests => don't change)
 	NODEIDBASE, GWIDx, 0,  0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0,  1,0,0,
@@ -138,11 +138,15 @@ JoinSrv::JoinSrv(gwbind_t &gwtab, int nmodem): gwt(gwtab), mactive(nmodem){
 		pndb->msg.rssi				= 0;
 		pndb->msg.snr				= 0;	
 		pndb->msg.mid				= 0;	// mid of retrieved Pkg: to be used for any answer pkg
-
-		pndb->middef				= 0;	// preset default MID -> initialized finally by WLTab[]
+		if (WLTab[i].nodeid == 0){	// end of pre init field for WLTab reached ?
+			memset(&WLTab[i], 0, sizeof(nodewltable_t));	// reset all remaining fields
+		}
+		pndb->pwltab				= &WLTab[i];	// link to WLTAB[] of node i
 	}
+	memset(&WLTab[MAXNODES], 0, sizeof(nodewltable_t));	// reset last entry in WLTab[]
 
-	NDB[0].middef = gwtab.joindef;	// set JOIN default modem for NDB-ID: 0 -> node ID = NODEIDBASE
+	// set JOIN default modem for NDB-ID: 0 -> node ID = NODEIDBASE
+	NDB[0].middef = gwtab.joindef;	
 } // end of JoinSrv()
 
 // JoinSrv Destructor
