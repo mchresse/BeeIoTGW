@@ -1039,20 +1039,32 @@ chncfg_t *ccfg = &mset.chncfg;
 	mset.rxtime = 0;	// will be init by ISR at RXDONE
 }
 
-void Radio::startrx (u1_t rxmode, int rxtime) {
+//******************************************************************************
+// STARTRX()
+// INPUT:
+//	rxmode	RXMODE_SINGLE	= one Shot RX Mode (till first RX package read)
+//			RXMODE_CONT		= Continuous RX Mode
+//			TXMODE_RSSI		= Read random RSSI Data
+//	rxtime	RX TimeOut value for RXMODE_SINGLE
+// RETURN: 
+//	0	RXMode activated
+//	-1	No LoraMode detected (probably FSK Mode) -> no RX Mode activated
+//******************************************************************************
+int Radio::startrx (u1_t rxmode, int rxtime) {
 	setLoraMode();	// set Lora+SLEEP Mode
 	// ASSERT( (readReg(RegOpMode) & OPMODE_MASK) == OPMODE_SLEEP );
 	// basically not needed: rx routine forces STDBY Mode, but not Lora
 	if(!ChkLoraMode()){
 		BHLOG(LOGLORAW) printf("    startrx: RX in FSK Mode -> skip RXMode\n");
 		setopmode(OPMODE_SLEEP);
-		return;
+		return(-1);
 	}
 	// LoRa modem only !
 
 	rxlora(rxmode, rxtime);
     // the radio will go back to STANDBY mode as soon as the RX is finished
     // or timed out, and the corresponding IRQ will inform us about completion.
+	return(0);
 }
 
 
