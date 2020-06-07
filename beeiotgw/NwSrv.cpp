@@ -269,6 +269,7 @@ int NwSrv::NwNodeScan(void) {
 				gwt.modem[mid]->SetupRadio();	// FSK recovery needed: reset complete Modem
 				gwt.modem[mid]->startrx(RXMODE_SCAN, 0);	// retry RX CONT Mode
 			}
+			delay(500);		// wait some time (500ms) till status gets active
 			// ISR is now waiting for DIO0 port change
 			gettimeofday(&now, 0);
 			strftime(TimeString, 80, "%d-%m-%y %H:%M:%S", localtime(&now.tv_sec));

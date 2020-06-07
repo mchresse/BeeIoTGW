@@ -52,7 +52,9 @@ enum { RXMODE_SINGLE, RXMODE_SCAN, RXMODE_RSSI };
 
 #define MAXNODES	10			// max. # of supported/known nodes
 // NODEIDBASE defined in BeeIoTWAN.h
-enum {	NODEID1=NODEIDBASE+1, NODEID2, NODEID3, NODEID4, NODEID5};	// Transfer ID of LoRa Client 5
+enum {	NODEID1=NODEIDBASE+1, NODEID2, NODEID3, NODEID4, NODEID5,
+		NODEID6, NODEID7, NODEID8, NODEID9, NODEID10
+};	// Transfer IDs of LoRa Clients
 
 // GWIDx defined in BeeIoTWAN.h
 #define GWID1		0x98		// Transfer ID of this gateway (backup srv., SDLog, FW upd.)

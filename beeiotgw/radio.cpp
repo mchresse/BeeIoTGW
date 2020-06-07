@@ -442,17 +442,12 @@ void Radio::setopmode (u1_t mode) {
 }
 
 void Radio::setLoraMode(void) {
-	// set assured sleep first in any mode
-	byte mode = readReg(RegOpMode);
-	mode = (mode & ~OPMODE_MASK) | OPMODE_SLEEP;
-	writeReg(RegOpMode,  mode);
-
     // set LoRa flag with LF Mode - for SX1276 only !
-	mode = OPMODE_LORA | OPMODE_SLEEP;	// Start in SLeep Mode +
+	byte mode = OPMODE_LORA | OPMODE_SLEEP;	// Start in SLeep Mode +
 	writeReg(RegOpMode, mode);			// HF Mode, no shared FSK Reg Access
-	BHLOG(LOGLORAR) printf("    Radio: Set LoRa-Sleep Mode: 0x%02X\n", (unsigned char)mode);
-	mset.currentMode = mode;	// remember new modem mode
 	delayMicroseconds(250);		// give modem 250us grace time to reflect new status
+	mset.currentMode = readReg(RegOpMode);	// remember new modem mode
+	BHLOG(LOGLORAR) printf("    Radio: Set LoRa-Sleep Mode: 0x%02X\n", (unsigned char)mset.currentMode);
 }
 
 bool Radio::ChkLoraMode(void) {
@@ -914,7 +909,7 @@ int Radio::starttx (byte* frame, byte dataLen, bool async) {
 		return(-1);	// wrong input params
 	
 	// Start TX for LoRa modem only
-	setLoraMode();	// set Lora+SLEEP Mode
+//	setLoraMode();	// set Lora+SLEEP Mode
 	if(!ChkLoraMode()){
 		BHLOG(LOGLORAW) printf("    starttx: TX in FSK Mode -> skip TX\n");
 		setopmode(OPMODE_SLEEP);
@@ -1051,7 +1046,7 @@ chncfg_t *ccfg = &mset.chncfg;
 //	-1	No LoraMode detected (probably FSK Mode) -> no RX Mode activated
 //******************************************************************************
 int Radio::startrx (u1_t rxmode, int rxtime) {
-	setLoraMode();	// set Lora+SLEEP Mode
+	//	setLoraMode();	// set Lora+SLEEP Mode
 	// ASSERT( (readReg(RegOpMode) & OPMODE_MASK) == OPMODE_SLEEP );
 	// basically not needed: rx routine forces STDBY Mode, but not Lora
 	if(!ChkLoraMode()){
