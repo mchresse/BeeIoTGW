@@ -78,7 +78,7 @@ extern int AppGH		(int ndid, char* data, byte len, int mid);	// GreenHouse Contr
 // => The hit index position in this table results to NodeID = NODEIDBASE + idx !
 // NODEIDBASE+0 to be used by new node for JOIN communication -> else rejected !
 
-static nodewltable_t WLTab[MAXNODES+1]={			// +1 for last dummy JOIN line ID=n
+static nodewltable_t WLTab[MAXNODES+2]={			// +2 for dummy JOIN lines ID=0,n
 
 	// 0: Dummy start marker of table (NODEID == 0x00 -> used for JOIN requests => don't change)
 	NODEIDBASE, GWIDx, 0,  0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0,  1,0,0,
