@@ -115,7 +115,7 @@ public:
 	// TX pkg frame via Lora Modem
 	int  starttx (byte* frame, byte dataLen, bool async);
 	// RX Lora Modem Channel in RXSingle or RXCont Mode
-	void startrx (u1_t rxmode, int rxtime);
+	int startrx (u1_t rxmode, int rxtime);
 	
 	// link GW Queue to modem session async to instance creation
 	void assign_gwqueue(MsgQueue * gwq);

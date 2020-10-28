@@ -52,7 +52,7 @@ Diese erfüllt (ähnlich wie bei LoRa-Wan) folgende Rollen/Services:
 	- Default App: BIoT zur Auswertung der BeeIoT Node Sensordaten
 	- Weiterleitung der validierten Datenpakete für eine Webdarstellung in Form einer CSV Datei
 
-###RPi-Gateway Aufbau
+### RPi-Gateway Aufbau
 Bevor wir tief in die LoRa SW Stack details eintauchen, zunächst der HW AUfbau des RaspberryPi Gateway.
 Im Single Channel Betrieb müsste leistungsmäßig ein RPi-ZeroW reichen (Der Prototyp wurde mit einem RPi 3+ gestartet).
 Im folgende Diagramm sieht man das Gesamtkonzept von Sensor-Client über Gateway zum WebServer User Interface (HMI):
@@ -101,7 +101,7 @@ Das ist der optimale Punkt um im Radius von 3-4km alle Bienenstandorte zu erreic
 
 Ggfs. kann die Reichweite noch durch eine rundstrahlende LoRa Aktiv-Antenne (ca. 120€) mit +6dBm verbessert werden, macht aber für die BeeIoT-SW keine Unterschied.
 
-####RPi-Gateway RadioLayer
+#### RPi-Gateway RadioLayer
 Die SX1276 Konfiguration, die Steuerung der Paketübertragung sowie das IRQ handling via eigener IRQ callback Funktion habe ich abgeleitet vom LMIC radio Layer native nachimplementiert, dabei aber weitgehend die API des LMIC radio layers beibehalten.
 Der NwServer verwendet folgende Schnittstellen Funktionen:
 ```cpp
@@ -119,7 +119,7 @@ Die vom Radio-Layer implizite bei jedem IRQ aufgerufene ISR-Callback Funktion:
 ```
 setzt im TX Mode zur Best#tigung der Sendung das *BeeIotTXFlag* und füllt im RX-Mode die RXQueue mit den Empfangs-Paketdaten und setzt schliesslich das *BeeIotRXFlag*-Semaphor.
 
-###BeeIoT-Client Aufbau
+### BeeIoT-Client Aufbau
 Der Grundsätzliche HW Aufbau des ["BeeIot Sensor Knoten"](https://github.com/mchresse/BeeIoT/blob/master/BeeIoT_v20.md) wurde ja schon im BeeIoT Projekt beschrieben.
 Zum Verständnis für die SW Stack Beschreibung zusammenfassend:
 - Der Client verwendet ebenfalls die SX1276 Module diskret angeschlossen via SPI GPIO Ports z.B. eines ESP32
@@ -160,7 +160,7 @@ Die ISR: onReceive(len) Funktion wird aufgerufen, wenn ein Paket vollständig in
 LoRa.receive();   // No Parameter -> explicite header Mode
 ```
 
-###Client Function FLow
+### Client Function FLow
 Ein standard Arduino Sketch besteht aus der Setup() und der Loop() Phase:
 Bei PowerOn startet der Boot Loader erst einmalig die Setup Phase. Anschliessend wird die Loop Funktion in einer Endlosschleife aufgerufen. Es sei denn, man geht am Ende in den Sleep() Mode. Beim darauffolgenden WakeUp (z.B. RTC getriggert) startet der bootLoader wiederum die Setup Phase.
 Aus diesem Grund wird in der Setup-Funktion als erstes ein "reentrant Check" über ein resident gespeichertes Exit-Mode Flag durchgeführt.
@@ -178,7 +178,7 @@ Der BIoTWAN Radio Layer versteckt sich im Gesamt-FunctionFlow des Clients in der
 
 <img src="./images_v2/Node_Fkt_Flow.jpg">
 
-###Client Data Security
+### Client Data Security
 
 Für das Lora Protokoll ist der Erhalt des Runtime Parameter Status essentiell wichtg um ev. Paketübertragungszähler oder Encoding Keys weiter zu verwenden.
 
@@ -260,7 +260,7 @@ Dazu wird am Anfang eines jeden Reportversuchs über LoRaLog() der Modem Status 
 	+ Im Fehlerfall erfolgen auch hier Retries clientseitig bzw. der Server kann im RX1 Fenster einen Retry- oder REJOIN Antrag stellen (z.B. wenn der Paketheader in Ordnung war (d.h. konnte einer App zugeordnet werden), die Frame-Payloaddaten waren aber korrupt.
 - BIOT_RX/TX -> gibt der ISR Funktion zur Validierung den erwarteten IRQ Typs des eingetroffenen IRQ Requests via DIOx Leitung an.
 
-###BeeIoTWAN Channel Switch
+### BeeIoTWAN Channel Switch
 Um gehäuften Konflikten auf einem ConfigChannel ausweichen zu können, werden sowohl im Gateway als auch in jedem Knoten folgende ConfigChannel Datensätze geführt, zwischen denen der Netzwerk Service bei einer OTAA Join Session auswählen kann:
 
 |Index| Frequence| Band | Spreading Start| Spreading End| CodingRate | TxPower | DutyTime |
@@ -279,7 +279,7 @@ Um gehäuften Konflikten auf einem ConfigChannel ausweichen zu können, werden s
 CC0 ist der default Config Channel und CC15 wird für datenintensive Downlink Aktionen verwendet.
 Dank dieser verteilten Tabelle muss nur der ConfigChannel-Index bei einem CONFIG Kommando zw. Client und Server übertragen werden und beide Seiten stellen sich auf den neuen Kanal bei der nächsten Session ein. Läuft etwas schief -> Rückfall auf den default Channel mit einem Rejoin Versuch durch den Client (Zaehler und Keys bleiben dann aber unverändert).
 
-###BeeIoTWAN Communication Packets
+### BeeIoTWAN Communication Packets
 Zum Austausch zwischen 2 Instanzen bedarf es einer gemeinsamen Sprache und gemeinsamen Syntax.
 Diese gemeinsamen Festlegungen (typedefs) wurden in der Header Datei BIoTWAN.h zusammengefasst.
 
@@ -330,7 +330,7 @@ Die folgende Tabelle führt die Bedeutung für den **Empfänger** (!) auf:
 
 Die Kommando-spezifischen Paketinterpretationen werden durch ein Cast der jew. CMD-Typedef Strukur auf beeiotpkg_t erreicht.
 
-###BeeIoTWAN-JOIN
+### BeeIoTWAN-JOIN
 Ein JOIN request muss im Idealfall nur einmal zur Lebenszeit eines Clients abgesetzt werden, und zwar im Anschluss oder während der Setupphase eines Knoten. Ein erfolgreicher JOIN-request des Knotens wird durch ein JOIN Accept Paket: CONFIG durch den NwServer quittiert.
 
 Voraussetzungen des JOIN requests zur Massnahme folgender Störfalle:
@@ -415,7 +415,7 @@ Im Falle eines korrupten Paketheaders reagiert der Gateway nicht (er hat keine v
 Da der Client als protokoll-Masetr auftriit bekommt der Gateway durch das nachfolgende RX1-Empfangsfenster die Gelegenheit seinerseits eine Aktion beim Client auszulösen. Spricht clientseitig etwas dagegen (z.B. der Batteriestatus)
 so kann er auch "verweigern" -> GW läuft auf Timeout.
 
-###Der Gateway/Server Empfangsstack
+### Der Gateway/Server Empfangsstack
 Der Gateway/Server Stack ist dafür vorbereitet von verschiedenen Clients(Nodes) Pakete zu empfangen. Abhängig von der vorhergehenden Registrierung des Nodes beim Gateway (via JOIN Request) werden ensprechende AppServices angerufen, die FrameDaten weiter zu prozessieren:
 
 <img src="./images_v2/BeeIoT_SrvModules.jpg">
@@ -471,7 +471,7 @@ AppSrv  -> AppProxy() -> AppBIoT()  call BeeHive Mon.-App-Function depending on
                       -> AppTurtle()call TurtleHouse monitoring App-Function
 ```
 
-####Radio Service - class Radio
+#### Radio Service - class Radio
 Der *Radio Service* empfängt die rohen LoRa-Pakete. Dabei werden in der ISR Routine myradio_irq_handler() verschiedene Checks des Paketheaders durchgeführt:
 1. Check LoRa Mode	-> BIOT use only LoRa Modem type
     1. Check TXMode	-> set BeeIotTXFlag flag only => done.
@@ -492,7 +492,7 @@ Die Länge ist 0 wenn sich kein gefülltes Datenpaket in der MsgQueue befindet.
 Der Wert >0 gibt die Anzahl der eingetragenen MsgBuffer (Pakete) an.
 Da älteste Paket steht am Anfang -> FiFo Reihefolge der Paketbearbeitung. Neue Pakete werden hinten angehängt.
 
-####Network Service - class NwSrv
+#### Network Service - class NwSrv
 Der *NetworkServer* koordiniert den BIoTWAN Protokollfluss.
 Dazu wird in NwNodeScan() dauerhaft eine Loop im RX-Contiguous Mode durchlaufen, während dieser die MsgQueue Länge auf >0  gepolled wird. GetMsg() liefert und PoPMsg() entfernt das "älteste" nicht bearbeitete Queue Element.
 
@@ -504,7 +504,7 @@ Bei Akzeptanz wird die aktuell zum Paket sendenden Clients gespeicherte MSG-ID m
 Anschliessend wird der CMD-Code geprüft. Network-Service Commandos werden sofort in der NWS-Service BeeIoTFlow-Routine bearbeitet: NOP, (RE-)JOIN, ACK, CONFIG.
 Application Commands werden an den zugewiesenen Application-Service via AppSrv.AppProxy() übergeben: z.B. LOGSTATUS, GETSDLOG, FWUPD.
 
-####JOIN Service - class JoinSrv
+#### JOIN Service - class JoinSrv
 Der *JOIN-Service* evaluiert die Client JOIN Request Anfragen, indem er alle Headerparameter auf ihre Werte konform zu BIoTWan.h prüft nd ob ein Knoten bekannt ist (via WLTab[]).
 Im JOIN Erfolgsfall erst werden alle weiteren Session Pakete dieses CLients zugelassen.
 
@@ -529,7 +529,7 @@ Alternativ kann diese CSV Datei auch per curl()-FTP an einen externen (Web-) Ser
 
 Am Ende der Bearbeitung kann der Applikations-Service auch einen Vorschlag für ein RX1 Paket stellen (rc=1), welches als 2. Antwort im RX1 Window an den Client zurückgesendet wird.
 
-##Logging
+## Logging
 Sowohl im CLient wie auf Server Seite ist derselbe Logging mechanismus über ein 16 Bit Flagfeld eingerichtet: **lflags**.
 Diese globale variable ist für alle Codebereiche gleichermaßen erreichbar und wird über ein inline Macro LOGBH evaluiert.
 
@@ -661,7 +661,7 @@ onReceive: RX(0x98>0x81)[1]:(cmd=5: ACK) DataLen=0 Bytes
   Main: Going to Deep Sleep - Trigger: Timer only(600 sec.)
 ```
 
-##BeeIoT ToDo Liste
+## BeeIoT ToDo Liste
 
 Was im aktuellen BIoT Design noch fehlt:
 - Collison detection (ist aber ggfs. durch die CRC Prüfung und Resend(RETRY)-Anforderung abgedeckt)

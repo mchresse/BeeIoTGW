@@ -442,17 +442,12 @@ void Radio::setopmode (u1_t mode) {
 }
 
 void Radio::setLoraMode(void) {
-	// set assured sleep first in any mode
-	byte mode = readReg(RegOpMode);
-	mode = (mode & ~OPMODE_MASK) | OPMODE_SLEEP;
-	writeReg(RegOpMode,  mode);
-
     // set LoRa flag with LF Mode - for SX1276 only !
-	mode = OPMODE_LORA | OPMODE_SLEEP;	// Start in SLeep Mode +
+	byte mode = OPMODE_LORA | OPMODE_SLEEP;	// Start in SLeep Mode +
 	writeReg(RegOpMode, mode);			// HF Mode, no shared FSK Reg Access
-	BHLOG(LOGLORAR) printf("    Radio: Set LoRa-Sleep Mode: 0x%02X\n", (unsigned char)mode);
-	mset.currentMode = mode;	// remember new modem mode
 	delayMicroseconds(250);		// give modem 250us grace time to reflect new status
+	mset.currentMode = readReg(RegOpMode);	// remember new modem mode
+	BHLOG(LOGLORAR) printf("    Radio: Set LoRa-Sleep Mode: 0x%02X\n", (unsigned char)mset.currentMode);
 }
 
 bool Radio::ChkLoraMode(void) {
@@ -465,6 +460,7 @@ bool Radio::ChkLoraMode(void) {
 }
 
 byte Radio::getopmode(void){
+	mset.currentMode = readReg(RegOpMode) & (OPMODE_LORA | OPMODE_MASK);	// get curr. OP Mode
 	return(mset.currentMode);
 }
 int Radio::getmodemidx(void){	// deliver index of modem instance
@@ -905,7 +901,7 @@ void Radio::txlora (byte* frame, byte dataLen) {
 
 //******************************************************************************
 // StartTX()
-// start transmition
+// start transmission
 // if async=0: return after TXDoneFlag set by ISR; =0 return immediately
 // -3: no Lora Mode active
 int Radio::starttx (byte* frame, byte dataLen, bool async) {
@@ -913,7 +909,7 @@ int Radio::starttx (byte* frame, byte dataLen, bool async) {
 		return(-1);	// wrong input params
 	
 	// Start TX for LoRa modem only
-	setLoraMode();	// set Lora+SLEEP Mode
+//	setLoraMode();	// set Lora+SLEEP Mode
 	if(!ChkLoraMode()){
 		BHLOG(LOGLORAW) printf("    starttx: TX in FSK Mode -> skip TX\n");
 		setopmode(OPMODE_SLEEP);
@@ -1038,20 +1034,32 @@ chncfg_t *ccfg = &mset.chncfg;
 	mset.rxtime = 0;	// will be init by ISR at RXDONE
 }
 
-void Radio::startrx (u1_t rxmode, int rxtime) {
-	setLoraMode();	// set Lora+SLEEP Mode
+//******************************************************************************
+// STARTRX()
+// INPUT:
+//	rxmode	RXMODE_SINGLE	= one Shot RX Mode (till first RX package read)
+//			RXMODE_CONT		= Continuous RX Mode
+//			TXMODE_RSSI		= Read random RSSI Data
+//	rxtime	RX TimeOut value for RXMODE_SINGLE
+// RETURN: 
+//	0	RXMode activated
+//	-1	No LoraMode detected (probably FSK Mode) -> no RX Mode activated
+//******************************************************************************
+int Radio::startrx (u1_t rxmode, int rxtime) {
+	//	setLoraMode();	// set Lora+SLEEP Mode
 	// ASSERT( (readReg(RegOpMode) & OPMODE_MASK) == OPMODE_SLEEP );
 	// basically not needed: rx routine forces STDBY Mode, but not Lora
 	if(!ChkLoraMode()){
 		BHLOG(LOGLORAW) printf("    startrx: RX in FSK Mode -> skip RXMode\n");
 		setopmode(OPMODE_SLEEP);
-		return;
+		return(-1);
 	}
 	// LoRa modem only !
 
 	rxlora(rxmode, rxtime);
     // the radio will go back to STANDBY mode as soon as the RX is finished
     // or timed out, and the corresponding IRQ will inform us about completion.
+	return(0);
 }
 
 
@@ -1283,7 +1291,7 @@ chncfg_t * ccfg = &mset.chncfg;
         gettimeofday(&now, 0);
         tstamp = (uint32_t)(now.tv_sec*1000000 + now.tv_usec);
 
-		BHLOG(LOGLORAW) printf("IRQ<%ul>: FSK-IRQ%d - should never happen (2)(OPMode: 0x%0.2X) -> skipped\n", 
+		BHLOG(LOGLORAW) printf("IRQ<%u>: FSK-IRQ%d - should never happen (2)(OPMode: 0x%0.2X) -> skipped\n", 
 					(unsigned long)tstamp, (unsigned char)dio, (unsigned char) readReg(RegOpMode));
 
 		// clear/ack all radio IRQ flags and close masking
@@ -1294,7 +1302,7 @@ chncfg_t * ccfg = &mset.chncfg;
 		BHLOG(LOGLORAR) printf("IRQ%d: Force ModemType from FSK to last known LoRa-Mode 0x%02X!\n",
 				(unsigned char)dio, (unsigned char)mset.currentMode);
 
-		this->SetupRadio();		// Reset Modem completely
+		this->SetupRadio();		// Reset Modem completely and leave it in SLEEP Mode
 		return; // break here, we are done.
 	} // FSK IRQ
 	
