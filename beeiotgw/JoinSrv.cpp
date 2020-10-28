@@ -83,17 +83,22 @@ static nodewltable_t WLTab[MAXNODES+2]={			// +2 for dummy JOIN lines ID=0,n
 	// 0: Dummy start marker of table (NODEID == 0x00 -> used for JOIN requests => don't change)
 	NODEIDBASE, GWIDx, 0,  0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0,  1,0,0,
 //---------------------------------------------------
-// 1: BeeIoT ESP32-WROOM32:	MAC: 24:6F:28:D5:8A:DC
+// 1: BeeIoT ESP32-WROOM32:	MAC: 24:6F:28:D5:8A:DC	// default: BeeHive Weightcell #1
 	NODEID1, GWID1,	0, BIoT_EUID,					// ndid, gwid, mid, AppEUI: BIoT
 	0xDC, 0x8A, 0xD5, 0xFF, 0xFE, 0x28, 0x6F, 0x24, // DevEUI 
 	10, 0, 0,										// reportfrq, joinflag, chncfg
 //---------------------------------------------------
-// 2: ESP32-WROVERB: MAC 24:6F:28:F0:0D:AC
+// 2: ESP32-WROVERB: MAC 24:6F:28:F0:0D:AC			// beacon test Module 1
 	NODEID2, GWID1,	0, BIoT_EUID,					// ndid, gwid, mid, AppEUI: BIoT
 	0xAC, 0x0D, 0xF0, 0xFF, 0xFE, 0x28, 0x6F, 0x24, // DevEUI
 	1, 0, 0,										// reportfrq, joinflag, chncfg
 //---------------------------------------------------
-// 3: fill in more nodes here ...
+// 3: BeeIoT ESP32-WROOM32:	MAC: 94:FE:8A:B5:AA:8C	// Beacon test Module 2
+	NODEID3, GWID1,	0, BIoT_EUID,					// ndid, gwid, mid, AppEUI: BIoT
+	0x94, 0xFE, 0x8A, 0xFF, 0xFE, 0xB5, 0xAA, 0x8C, // DevEUI 
+	1, 0, 0,										// reportfrq, joinflag, chncfg
+//---------------------------------------------------
+// 4: fill in more nodes here ...
 //---------------------------------------------------
 // N: Dummy end marker of table (NODEID == 0x00)
 	0x00, 0x00, 0x00, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0,  0,0,0,
