@@ -98,7 +98,12 @@ static nodewltable_t WLTab[MAXNODES+2]={			// +2 for dummy JOIN lines ID=0,n
 	0x94, 0xFE, 0x8A, 0xFF, 0xFE, 0xB5, 0xAA, 0x8C, // DevEUI 
 	1, 0, 0,										// reportfrq, joinflag, chncfg
 //---------------------------------------------------
-// 4: fill in more nodes here ...
+// 4: BeeIoT ESP32-WROOM32:	MAC: 2C:2B:16:28:6F:24 	// Beacon test Module 3
+	NODEID4, GWID1,	0, BIoT_EUID,					// ndid, gwid, mid, AppEUI: BIoT
+	0x2C, 0x2B, 0x16, 0xFF, 0xFE, 0x28, 0x6F, 0x24, // DevEUI 
+	1, 0, 0,										// reportfrq, joinflag, chncfg
+//---------------------------------------------------
+// 5: fill in more nodes here ...
 //---------------------------------------------------
 // N: Dummy end marker of table (NODEID == 0x00)
 	0x00, 0x00, 0x00, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0,  0,0,0,
