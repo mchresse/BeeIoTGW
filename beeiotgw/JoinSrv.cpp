@@ -57,6 +57,7 @@
 #include "radio.h"
 #include "JoinSrv.h"
 #include "BIoTApp.h"
+#include "BIoTCrypto.h"
 
 //******************************************************************************
 // Global Logging flags + User runtime settings
@@ -98,7 +99,7 @@ static nodewltable_t WLTab[MAXNODES+2]={			// +2 for dummy JOIN lines ID=0,n
 	0x94, 0xFE, 0x8A, 0xFF, 0xFE, 0xB5, 0xAA, 0x8C, // DevEUI 
 	1, 0, 0,										// reportfrq, joinflag, chncfg
 //---------------------------------------------------
-// 4: BeeIoT ESP32-WROOM32:	MAC: 2C:2B:16:28:6F:24 	// Beacon test Module 3
+// 4: BeeIoT ESP32-WROOM32:	MAC: 2C:2B:16:28:6F:24 	// Beehive Weight cell test Module 3
 	NODEID4, GWID1,	0, BIoT_EUID,					// ndid, gwid, mid, AppEUI: BIoT
 	0x2C, 0x2B, 0x16, 0xFF, 0xFE, 0x28, 0x6F, 0x24, // DevEUI 
 	1, 0, 0,										// reportfrq, joinflag, chncfg
@@ -108,6 +109,8 @@ static nodewltable_t WLTab[MAXNODES+2]={			// +2 for dummy JOIN lines ID=0,n
 // N: Dummy end marker of table (NODEID == 0x00)
 	0x00, 0x00, 0x00, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0,  0,0,0,
 };//-------------------------------------------------
+
+uint8_t  NwSKey[16]	= { 0xDD, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F};
 
 
 //***************************************************************************
@@ -286,7 +289,7 @@ int  rc =0;
 //***************************************************************************
 // JoinSrv_ValidateNode()
 // Check Pkg-Header based on NDB Data
-// 1. Check MIC based integrity
+// 1. Check MIC based pkg integrity
 // 2. Search NDB for mutual NodeID
 // 3. Check corresponding GW ID
 // 4. Check WLTab for registered but not joined Nodes
@@ -302,35 +305,40 @@ int  rc =0;
 int JoinSrv::JS_ValidatePkg(beeiotpkg_t* mystatus){
 	int rc =0;
 	int ndid;
-	
-	// 1. First create expected MIC and validate with Pkg-MIC
-		// ToDo ... Also for JOIN requests ?
 
-	// 2. check range of mutual GWID and NodeID (incl. JOIN requests !)
+	// 1. check range of mutual GWID and NodeID (incl. JOIN requests !)
 	if((mystatus->hd.sendID < NODEIDBASE) || (mystatus->hd.sendID > NODEIDBASE+MAXNODES)){
 		// This is no known NodeID for this curr. Nw server instance !
 		rc=-1;
 		return(rc);
 	}
-	// Pkg GW ID in range: (GWIDx-MAXGW-1)...GWIDx ?
+	// 2. Pkg GW ID in range: (GWIDx-MAXGW-1)...GWIDx ?
 	if((mystatus->hd.destID >= GWIDx) && (mystatus->hd.destID < (GWIDx-MAXGW))){ 
 		// This is no packet for this current Nw server instance !
 		rc = -2;
 		return(rc);
 	}
 
-	// 2. Compare Pkg Header with corresponding WLTab[] and NDB[] entries
+	
+	// 4. Compare Pkg Header with corresponding WLTab[] and NDB[] entries
 	ndid = mystatus->hd.sendID - NODEIDBASE;	// extract NDB index
 	if(!WLTab[ndid].joined){ // This Node is known/registered but not joined yet ?
 		if(mystatus->hd.sendID == NODEIDBASE && mystatus->hd.cmd == CMD_JOIN){
-			// o.k. this is already a JOIN request -> lets do it...
+				// Validate Pkg with Pkg-MIC integrity check
+				// ... Also for JOIN requests
+				if(JS_ValidateMic(mystatus, CMD_JOIN, ndid) < 0){ // Pkg Integrity by MIC o.k. ?
+					// PKG data is corrupted !
+					rc=-3;	// JOIN pkg corrupt -> initiate a rejoin request
+					return(rc);
+				}
+			// o.k. this is already a valid JOIN request -> lets do it by usual parse function...
 			return(0);
 		}
 		// Known but not joined -> Node should initiate a JOIN request first -> rejected
 		rc=-3;
 		return(rc);
 	}
-	// Hint: A REJOIN PKG is bypassed as normal CMD package 
+	// 5. Hint: A REJOIN PKG is bypassed as normal CMD package 
 	// -> will be parsed later by detected nodeid
 	if(mystatus->hd.cmd == CMD_REJOIN){
 		if(mystatus->hd.destID != (GWIDx-gwt.joindef)){ // calculate user-default JOIN channel
@@ -339,10 +347,18 @@ int JoinSrv::JS_ValidatePkg(beeiotpkg_t* mystatus){
 			// for cleaner process: Node should always use GWIDx also for REJOIN
 			BHLOG(LOGLORAW) printf("  JS_ValidateNode: Warning: Wrong GWID used for REJOIN: 0x%02X\n", (unsigned char) mystatus->hd.destID);
 		}
+			// Validate Pkg with Pkg-MIC integrity check
+			// ... Also for JOIN requests
+			if(JS_ValidateMic(mystatus, CMD_JOIN, ndid) < 0){ // Pkg Integrity by MIC o.k. ?
+				// PKG data is corrupted !
+				rc=-3;	// JOIN pkg corrupt -> initiate a rejoin request
+				return(rc);
+			}
 			// o.k. Node is already joined and requests reactivation -> lets do it...
 			return(0);	// forget ndid by now to bypass to the JOIN process by BIOTPARSE -> RegisterNode() will find it again
 	}
-	// No (RE-)JOIN package...then GW-ID must fit to NDB assignment
+	
+	// 6. No (RE-)JOIN package...then GW-ID must fit to NDB assignment
 	if(NDB[ndid].nodecfg.gwid != mystatus->hd.destID){
 		// this joined node is (still) not using the assigned GWID
 		// pkg rejected -> request a rejoin
@@ -351,7 +367,7 @@ int JoinSrv::JS_ValidatePkg(beeiotpkg_t* mystatus){
 		return(rc);
 	}
 	
-	// BIoT-Nw addresses assured now: "This was a package for us" -> now we could answer in any case
+	// 7. BIoT-Nw addresses assured now: "This was a package for us" -> now we could answer in any case
 
 	// This check normally to be done by AppServer:
 	// Check User Status data length
@@ -364,7 +380,14 @@ int JoinSrv::JS_ValidatePkg(beeiotpkg_t* mystatus){
 		return(rc);
 	}
 	
-	// Now we have a valid BeeIoT Package header: check the "cmd" for next BeeIoTWAN action
+	// 8. Now we have a valid BeeIoT Package header: check the "cmd" for next BeeIoTWAN action
+	// Validate Pkg-data with Pkg-MIC integrity check
+	if(JS_ValidateMic(mystatus, -1, ndid) < 0){ // Pkg Integrity by MIC o.k. ?
+		// PKG data is corrupted !
+		rc=-6;	// JOIN pkg corrupt -> initiate a rejoin request
+		return(rc);
+	}
+
 	// some debug output: assumed all is o.k.
 		BHLOG(LOGLORAR) printf("  JS_ValidateNode(0x%02X>0x%02X)", (unsigned char)mystatus->hd.sendID, (unsigned char)mystatus->hd.destID);
 		BHLOG(LOGLORAR) printf("[%2i]:(cmd:%02d)", (unsigned char) mystatus->hd.pkgid, (unsigned char) mystatus->hd.cmd);
@@ -381,3 +404,60 @@ int JoinSrv::JS_ValidatePkg(beeiotpkg_t* mystatus){
 	return(ndid);	// everything fine with this PKG -> return assigned ndid 
 }
 
+
+//***************************************************************************
+// JoinSrv_ValidateMic()
+// Check Pkg-integrity by deluivered MIC
+// 1. Create MIC based on known pkg & client session attributed
+// 2. Compare created MIC with given MIC (last bytes of pkg. data)
+// INPUT:
+//	mystatus	ptr to raw BIoTWAN pkg
+//  mode		=0 Compute data MIC
+//				=CMD_JOIN/CMD_REJOIN compute JOIN MIC
+// ndid			Node ID of NDB-Tab entry
+// RETURN:
+// >=0	pkg integrity o.k.
+// -1	pkg data corrupted
+//
+int JoinSrv::JS_ValidateMic(beeiotpkg_t* mystatus, uint8_t mode, int ndid){
+int rc =0;
+uint32_t bufmic = 0x11223344;
+uint32_t * pduid;
+byte * pmic;
+beeiot_join_t* pjoin;
+
+  // ToDo get MIC calculation:
+  // byte cmac[16]={0x11,0x22,0x33,0x44};
+  // cmac = aes128_cmac(NwkKey, MHDR | JoinEUI | DevEUI | DevNonce)
+  if(mode == CMD_JOIN || mode == CMD_REJOIN){
+    // For JoinPkg:
+	 pjoin = (beeiot_join_t*) mystatus;
+    LoRaMacJoinComputeMic( (const uint8_t*) mystatus, (uint16_t) mystatus->hd.frmlen+BIoT_HDRLEN,
+               (const uint8_t*) &NwSKey , (uint32_t*) &bufmic );
+  }else{
+    // For Upload Pkg:
+	pduid = (uint32_t*) &(WLTab[ndid].DevEUI);
+	LoRaMacComputeMic( (const uint8_t*)mystatus, (uint16_t) mystatus->hd.frmlen+BIoT_HDRLEN, (const uint8_t*) &NwSKey,
+             (const uint32_t) *pduid, UP_LINK, (uint32_t) mystatus->hd.pkgid, (uint32_t*) &bufmic );
+  }
+
+	pmic = (byte*) &(mystatus->data);
+	pmic += mystatus->hd.frmlen;
+	
+	BHLOG(LOGLORAW) printf("  JS_ValidateMic: Pkg-MIC[4]: 0x%02X%02X%02X%02X == 0x%X ", 
+      pmic[0], pmic[1],  pmic[2], pmic[3], bufmic);
+
+  	if(	((bufmic >>24) & 0xFF) == pmic[0] &&
+		((bufmic >>16) & 0xFF) == pmic[1] &&
+		((bufmic >> 8) & 0xFF) == pmic[2] &&
+		((bufmic     ) & 0xFF) == pmic[3]){
+		// MIC is correct
+		BHLOG(LOGLORAW) printf(" -> Pkg.-data o.k. !\n");
+		return(0);
+	}
+
+	BHLOG(LOGLORAW) printf(" -> Pkg.-data corrupted !\n");
+  
+//	return(-1);
+	return(0);	// for test purpose
+}

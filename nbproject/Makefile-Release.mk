@@ -35,7 +35,10 @@ OBJECTDIR=${CND_BUILDDIR}/${CND_CONF}/${CND_PLATFORM}
 
 # Object Files
 OBJECTFILES= \
+	${OBJECTDIR}/beeiotgw/BIoTAES.o \
 	${OBJECTDIR}/beeiotgw/BIoTApp.o \
+	${OBJECTDIR}/beeiotgw/BIoTCrypto.o \
+	${OBJECTDIR}/beeiotgw/BIoTcmac.o \
 	${OBJECTDIR}/beeiotgw/JoinSrv.o \
 	${OBJECTDIR}/beeiotgw/NwSrv.o \
 	${OBJECTDIR}/beeiotgw/aes.o \
@@ -72,10 +75,25 @@ ${CND_DISTDIR}/${CND_CONF}/${CND_PLATFORM}/beeiotgw: ${OBJECTFILES}
 	${MKDIR} -p ${CND_DISTDIR}/${CND_CONF}/${CND_PLATFORM}
 	${LINK.cc} -o ${CND_DISTDIR}/${CND_CONF}/${CND_PLATFORM}/beeiotgw ${OBJECTFILES} ${LDLIBSOPTIONS}
 
+${OBJECTDIR}/beeiotgw/BIoTAES.o: beeiotgw/BIoTAES.cpp
+	${MKDIR} -p ${OBJECTDIR}/beeiotgw
+	${RM} "$@.d"
+	$(COMPILE.cc) -O2 -std=c++14 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/beeiotgw/BIoTAES.o beeiotgw/BIoTAES.cpp
+
 ${OBJECTDIR}/beeiotgw/BIoTApp.o: beeiotgw/BIoTApp.cpp
 	${MKDIR} -p ${OBJECTDIR}/beeiotgw
 	${RM} "$@.d"
 	$(COMPILE.cc) -O2 -std=c++14 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/beeiotgw/BIoTApp.o beeiotgw/BIoTApp.cpp
+
+${OBJECTDIR}/beeiotgw/BIoTCrypto.o: beeiotgw/BIoTCrypto.cpp
+	${MKDIR} -p ${OBJECTDIR}/beeiotgw
+	${RM} "$@.d"
+	$(COMPILE.cc) -O2 -std=c++14 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/beeiotgw/BIoTCrypto.o beeiotgw/BIoTCrypto.cpp
+
+${OBJECTDIR}/beeiotgw/BIoTcmac.o: beeiotgw/BIoTcmac.cpp
+	${MKDIR} -p ${OBJECTDIR}/beeiotgw
+	${RM} "$@.d"
+	$(COMPILE.cc) -O2 -std=c++14 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/beeiotgw/BIoTcmac.o beeiotgw/BIoTcmac.cpp
 
 ${OBJECTDIR}/beeiotgw/JoinSrv.o: beeiotgw/JoinSrv.cpp
 	${MKDIR} -p ${OBJECTDIR}/beeiotgw

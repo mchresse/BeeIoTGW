@@ -191,7 +191,8 @@ int NwSrv::NwNodeScan(void) {
   int maxmod = mactive;	// get # of active modems only once
   int count =0;
   byte omstatus =0;
-  while(1) {
+
+  while(1) { // start NwService loop (endless)
 	for(int mid=0; mid < maxmod; mid++){// ... for all discovered modems
 		count++;
 		if(count%(10*10) == (10*10-1)){	// all 10 sec.
@@ -209,7 +210,8 @@ int NwSrv::NwNodeScan(void) {
 			count=0;
 		}
 		
-		// Check RX Queue Status (len>0) and process package accordingly
+		// Process NwS-Queue:
+		// Check RX Queue Status (len>0) and process each package accordingly
 		while(gwt.gwq->MsgQueueSize() > 0){	// Do we have a package in the RX Queue ?
 			gettimeofday(&now, 0);		// get current timestamp
 			strftime(TimeString, 80, "%d-%m-%y %H:%M:%S", localtime(&now.tv_sec));

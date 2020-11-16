@@ -20,6 +20,9 @@
 
 using namespace std;
 
+#define UP_LINK   0   // DIR: Client -> GW
+#define DOWN_LINK 1   // DIR: GW -> Client
+
 class JoinSrv {
 //******************************************************************************
 public:
@@ -53,6 +56,9 @@ private:
 
 //*****************************************
 // JOINSrv local member function prototypes
+
+	// verify Pkg data integrity by MIC code
+	int JS_ValidateMic(beeiotpkg_t* mystatus, uint8_t mode, int ndid);
 
 	//******************************************************************************
 	// compare 2 binary streams with given length "binlen".
