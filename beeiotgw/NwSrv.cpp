@@ -364,10 +364,10 @@ ackbcn_t * pbcn;			// ptr on Beacon ack. frame
 				(unsigned char)mystatus.hd.destID);					
 			gwt.cp_nb_rx_ok++;		// incr. # of correct received packages	
 			return(rc);			
-		}else if (rc == -5){
+		}else if (rc == -5 || rc == -6){
 			// wrong Framelen detected -> request RETRY
-			BHLOG(LOGLORAW) printf("  BeeIoTParse: Wrong Framelen 0x%02X -> requesting a RETRY\n", 
-				(unsigned char)mystatus.hd.frmlen);					
+			BHLOG(LOGLORAW) printf("  BeeIoTParse: Wrong Framelen 0x%02X or payload corrupted (rc:%i)-> requesting a RETRY\n",
+				(unsigned char)mystatus.hd.frmlen, rc);
 			BeeIoTFlow(CMD_RETRY, &mystatus, mystatus.hd.sendID-NODEIDBASE, 0);
 			gwt.cp_nb_rx_bad++;	// bad pkg
 			return(rc);

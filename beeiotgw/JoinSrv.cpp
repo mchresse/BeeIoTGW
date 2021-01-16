@@ -301,6 +301,8 @@ int  rc =0;
 // -2	wrong NodeID
 // -3	Known in WLTab but not joined -> no NDB entry
 // -4   Known and Joined, but using wrong GWID -> should rejoin
+// -5
+// -6	Pkg Header o.k., but payload data corrupted
 //
 int JoinSrv::JS_ValidatePkg(beeiotpkg_t* mystatus){
 	int rc =0;
@@ -458,6 +460,6 @@ beeiot_join_t* pjoin;
 
 	BHLOG(LOGLORAW) printf(" -> Pkg.-data corrupted !\n");
   
-//	return(-1);
-	return(0);	// for test purpose
+	return(-1);
+//	return(0);	// for test purpose
 }

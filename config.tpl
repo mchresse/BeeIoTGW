@@ -7,31 +7,58 @@
 
 ; BeeIoT Gateway&Server config file for first runtime initialization 
 ; 01.02.2020
-VERSION = 2.2		; Version of Config.INI File Format
+VERSION = 2.3		; Version of Config.INI File Format
 VMAJOR	= 1		; Major Version of BIoTWAN Protocol
-VMINOR	= 0		; Minor Version of BIoTWAN Protocol
+VMINOR	= 2		; Minor Version of BIoTWAN Protocol
 
 ; BeeIoT Server configuration runtime parameters
 ; This file can be modified during runtime of beeiotgw !
 ; All Values are parsed cyclic during runtime right after the wait loop.
 [HWCONFIG]              ; wPi configuration settings
-LORANUMCHN	= 1	; only one LORA channel supported > single channel gateway
-LORADEFCHN	= 0	; Default LORA Channel for JOIN REQUEST
 
-; LoRa Port0 > Dragino LoRa Hat GPIO ports of SX1276 + GPS chip
-LORA0CS		= 6	; GPIO 25  	Pin 22
-LORA0MOSI	= 12	; GPIO 10 	MOSI Pin 19
-LORA0MISO	= 13	; GPIO 9  	MISO Pin 21
-LORA0SCK	= 14	; GPIO 11 	SCLK Pin 23 
-LORA0RST	= 0	; GPIO 0	Pin 11
-LORA0DIO0	= 7	; GPIO 4	Pin 7
-LORA0DIO1	= 4	; GPIO 23	Pin 16
-LORA0DIO2	= 5	; GPIO 24	Pin 18
-LORA0DIO3	= -1	; GPIO 24	Pin 18
-LORA0DIO4	= -1	; GPIO 24	Pin 18
-LORA0DIO5	= -1	; GPIO 24	Pin 18
-GPS0TXD		= 15	; GPIO 15 	TxD	of GPS module
-GPS0RXD		= 16	; GPIO 16 	RxD of GPS module
+; Component enabler
+HCLORA          = 1	; =1 LoRa Port sending enabled
+HCLORAWAN       = 0	; =0 BIoTWAN protocol enabled, =1 LoRaWAN enable (not supp. yet)
+HCWIFICLIENT    = 1	; =1 Client (!) onboard Wifi to be used 
+HCGPS           = 0	; =1 GPS module enabled
+HCLOCWEB        = 1	; =1 Activate local Webpage date preparation at BEEIOTWEB
+HCREMWEB        = 1	; =1 Activate remote Webpage date preparation at EXFTPURL > EXFTPPATH
+
+; LoRa Modem Chip GPIo section
+LORANUMCHN	= 1		; # of supported LORA Modems =1: single channel gateway
+LORADEFCHN	= 0		; LORA ModemID for JOIN REQUESTs (of x = 0..MAXGW)
+
+; LoRa Ports > Dragino LoRa HAT GPIO of SX1276 + GPS chips
+; Common SPI GPIO lanes 
+;			 >wPi#:		  BCM:	J40:
+LORAxMISO	= 13	; GPIO 9  	Pin 21	MISO
+LORAxMOSI	= 12	; GPIO 10 	Pin 19  MOSI
+LORAxSCK	= 14	; GPIO 11 	Pin 23	SCLK 
+
+; LoRa Port0 >wPi#:       BCM:	J40:
+LORA0CS		= 6		; GPIO 25  	Pin 22	NSS0
+LORA0RST	= 0		; GPIO 0	Pin 11	Reset0
+LORA0DIO0	= 7		; GPIO 4	Pin  7	DIO0-0
+LORA0DIO1	= 4		; GPIO 23	Pin 16	DIO1-0 n.c.
+LORA0DIO2	= 5		; GPIO 24	Pin 18	DIO2-0 n.c.
+LORA0DIO3	= -1	; GPIO x	Pin x	DIO3-0 n.c.
+LORA0DIO4	= -1	; GPIO x	Pin x	DIO4-0 n.c.
+LORA0DIO5	= -1	; GPIO x	Pin x	DIO5-0 n.c.
+LORA0CHANNEL= 0		; Channel cfg. set (see BeeIoTWAN.h) 
+
+; LoRa Port1 >wPi#:	      BCM:	J40:
+LORA1CS		= 21	; GPIO 5  	Pin 29	NSS1
+LORA1RST	= 22	; GPIO 6	Pin 31	Reset1
+LORA1DIO0	= 23	; GPIO 13	Pin 33	DIO0-1
+LORA1DIO1	= -1	; GPIO x	Pin x	DIO1-1 n.c.
+LORA1DIO2	= -1	; GPIO x	Pin x	DIO2-1 n.c.
+LORA1DIO3	= -1	; GPIO x	Pin x	DIO3-1 n.c.
+LORA1DIO4	= -1	; GPIO x	Pin x	DIO4-1 n.c.
+LORA1DIO5	= -1	; GPIO x	Pin x	DIO5-1 n.c.
+LORA1CHANNEL= 1		; Channel cfg. set (see BeeIoTWAN.h)
+
+GPS0TXD		= 15	; GPIO 14 	Pin  8 TxD	of GPS module
+GPS0RXD		= 16	; GPIO 15 	Pin 10 RxD  of GPS module
 
 ; Component enabler
 HCLORA          = 1     ; =1 LoRa Port sending enabled
@@ -43,7 +70,7 @@ HCREMWEB        = 1	; =1 Activate remote Webpage date preparation at EXFTPURL > 
 
 [BEEIOT]   ; Init of Main Programm
 BHLOOPWAIT      = 1          ; Sensor loop wait time in Minutes
-BEEIOTHOME      = /home/pi/share/biot  ; Home path for beeiot housekeeping data
+BEEIOTHOME      = /home/pi/biot  ; Home path for beeiot housekeeping data
 LOGFILE         = beeiot.txt ; log file name (/w extension)
 CSVFILE         = beeiotlog  ; *.csv data log file name (/wo extension): results in beeiotlogYYYY.csv
 CSVDAYS         = beeiotdays ; *.csv file of daily statistic summary (/wo extension)
@@ -63,6 +90,10 @@ NSAMPLES        = 1          ; Number of read loops for average calculation (Max
 TEMPCEXT        = 1.00       ; temperature compensation External sensor
 TEMPCINT        = 1.00       ; temperature compensation Scale-H40A sensor
 TEMPCHIVE       = 1.00       ; temperature compensation InternalHive sensor
+
+[WIFI]      ; Client side Wifi settings
+WIFISSID        = 'sssss'			; Client/Server Wifi SSID (32 By.)
+WIFIKEY         = 'ppppppppp'		; Client/Server Wifi KEY (32 By.)
 
 [WEBUI]
 AUTOUPDATE      = 1                 ; init automatic update of FTP-& web site (=0 disabled)
