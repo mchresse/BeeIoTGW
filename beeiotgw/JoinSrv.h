@@ -47,7 +47,7 @@ protected:
 //******************************************************************************
 private:
 	gwbind_t	& gwt;
-	modemcfg_t	* gwhwset;
+//	modemcfg_t	* gwhwset;
 	int			mactive;		// Max. number of detected active modems for RX/TX
 	struct timeval now;			// current tstamp used each time a time check is done
 	char		TimeString[128];// contains formatted Timestamp string

@@ -261,16 +261,16 @@ char	sbuf[MAXMSGLEN];
 	if (cfgini->loranumchn > MAXGW) {	// limit user channel ID to MAX supported in code
 		cfgini->loranumchn = MAXGW;
 	}
-	gwtab.gwset = new modemcfg_t[cfgini->loranumchn];	// get space for # of supported Gateway cfg sets
 	gwtab.nmodemsrv = 0;	// by now no active modems
 
 	// Initialize GW Config table for max. # of GW (=modem) slots (virtual)
 	for(int i = 0; i < cfgini->loranumchn; i++){
 		gwtab.modem[i] = (Radio*)NULL;		// [n+1] set to NULL
 
-		gwtab.gwset[i].modemid	= i;		// for i==0: single Modem mode: but multi GWids assigned
-		gwtab.gwset[i].gwid		= GWIDx - i;// set default GWID (for multi mode only)
-		setmodemcfg(&gwtab.gwset[i]);		// set iopins[] GPIO values & chncfgid
+		gwtab.gwset[i] = new modemcfg_t;	// get space for supported Gateway cfg set
+		gwtab.gwset[i]->modemid	= i;		// for i==0: single Modem mode: but multi GWids assigned
+		gwtab.gwset[i]->gwid		= GWIDx - i;// set default GWID (for multi mode only)
+		setmodemcfg(gwtab.gwset[i]);		// set iopins[] GPIO values & chncfgid
 	} // end of gwset[] init loop	
 
 	// Statistic counter: to be initialized/updated once per MsgQueue 
@@ -381,7 +381,8 @@ void BIoT_die(int rc){
 	delete gwtab.nws;
 //	delete[] gwtab.modem;	// all modem are deleted implicit by ~NwSrv()
 	delete gwtab.gwq;
-	delete[] gwtab.gwset;
+	delete gwtab.gwset[0];
+	delete gwtab.gwset[1];
 	exit(rc);
 }
 

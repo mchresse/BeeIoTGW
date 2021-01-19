@@ -119,7 +119,7 @@ static const u2_t LORA_TXDONE_FIXUP = us2osticks(43);
 // - Assign ISR to IRQ mapping table and activate ISR by ISR-level Semaphore=0
 //******************************************************************************
 Radio::Radio(gwbind_t & gwtab, int mid) : gwt(gwtab) {
-	modemp = &gwtab.gwset[mid];		// get modem settings for this new instance
+	modemp = gwt.gwset[mid];		// get modem settings for this new instance
 	gwt.modem[mid] = this;			// save new Modem Instance Ptr. to Instance Index in global Binding table
 	mset.modemid = modemp->modemid;	// save mid per instance locally (should be identical as mid)
 
@@ -155,7 +155,7 @@ Radio::Radio(gwbind_t & gwtab, int mid) : gwt(gwtab) {
 	//   in RXonly mode we would have to add: IRQ_LORA_HEADER_MASK
 	writeReg(LORARegIrqFlagsMask, ~(IRQ_LORA_RXDONE_MASK|IRQ_LORA_CRCERR_MASK)); // for RXDone
 
-	// ToDo: this table is for future use: not used by isr_init() by now!
+	// used by isr_init() for IO assignment: gwt.modem[mid]->dioISR[dio]
 	dioISR = new IrqHandler[3];	// set mapping table of DIO0..2 ISR function ptr
 	dioISR[0] = &Radio::MyIRQ0;
 	dioISR[1] = &Radio::MyIRQ1;
@@ -219,7 +219,7 @@ Radio::~Radio(){
 //******************************************************************************
 void Radio::SetupRadio(void) {
 	
-	setchannelconfig(modemp->chncfgid);	// Get modem channel cfg set "JOIN default" from user ini file
+	setchannelconfig(modemp->chncfgid);	// Get modem channel cfg set as assigned by LORAxCHANNEL-value in config.ini file
 	chncfg_t *ccfg = &mset.chncfg;		// temp. ptr. to new intialized local modem channel cfg. set for further modem init
 	
 	// Reset all Channel config parameters to BeeIoT-WAN defaults:
@@ -773,7 +773,11 @@ chncfg_t *ccfg;	// temp. ptr on Channel config set of modem
 
 		printf(" IOPin-DIO2: %i   ",	(int) modemp->iopins.sxdio2);
 		printf(" IH: %i           ",	(int) ccfg->ih);
-		printf(" GWQueue*   %p len:%i\n", mset.gwq, mset.gwq->MsgQueueSize());
+		printf(" GWQueue*   %p (len:%i)\n", mset.gwq, mset.gwq->MsgQueueSize());
+
+		printf(" ISR0*: %p    ",		this->dioISR[0]);
+		printf(" ISR1*: %p    ",		this->dioISR[1]);
+		printf(" ISR2*: %p\n",			this->dioISR[2]);
 		
 	}
 } // end of PrintModemStatus()
@@ -791,7 +795,7 @@ chncfg_t *ccfg;	// temp. ptr on Channel config set of modem
 //*************************************************************
 void Radio::PrintLoraStatus(int logtype){
 	printf("---------------------------------------------------------------\n");
-	printf("LoRa Modem Register Status:     Version: 0x%2X", readReg(RegVersion));
+	printf("LoRa Modem%i Register Status:     Version: 0x%2X", modemp->modemid, readReg(RegVersion));
 
 	if(logtype == LOGSTAT || logtype == LOGALL){
 		printf("  LoRa Modem OpMode : 0x%02X\n",readReg(RegOpMode));
@@ -1130,7 +1134,7 @@ chncfg_t * ccfg = &mset.chncfg;
 		flags = readReg(LORARegIrqFlags);
 
 		tstamp = (unsigned long)(now.tv_sec*1000000 + now.tv_usec); // get TimeStamp in u_sec
-		BHLOG(LOGLORAW) printf("  IRQ[Mod%i]-DIO%i<%s>: LoRa-IRQ flags: 0x%02X - Mask:0x%02X: ", 
+		BHLOG(LOGLORAW) printf("  IRQ Modem%i-DIO%i<%s>: LoRa-IRQ flags: 0x%02X - Mask:0x%02X: ", 
 			(int)this->mset.modemid, (unsigned char)dio, TimeString, (unsigned char)flags, (unsigned char)readReg(LORARegIrqFlagsMask));
 
 		// This flags are not really of interest for us here
@@ -1312,8 +1316,9 @@ chncfg_t * ccfg = &mset.chncfg;
 
 
 
-void Radio::MyIRQ0(void) {
-  BHLOG(LOGLORAR) printf("\nIRQ[%i] at DIO 0 (level %i)\n", (int) mset.modemid,(unsigned char) mset.irqlevel);
+void Radio::MyIRQ0(void) {	
+	BHLOG(LOGLORAR) printf("\nIRQ[%i] at DIO 0 (level %i)\n", (int) mset.modemid,(unsigned char) mset.irqlevel);
+//	BHLOG(LOGLORAR) printf("  (%p:%p)---\n", this, this->dioISR[0]);
   if (mset.irqlevel==0) {
 	hal_disableIRQs();
 	myradio_irq_handler(0);
@@ -1324,6 +1329,7 @@ void Radio::MyIRQ0(void) {
 
 void Radio::MyIRQ1(void) {
   BHLOG(LOGLORAR) printf("\nIRQ[%i] at DIO 1 (level %i)\n", (int) mset.modemid,(unsigned char) mset.irqlevel);
+//	BHLOG(LOGLORAR) printf("  (%p:%p)---\n", this, this->dioISR[1]);
   if (mset.irqlevel==0){
 	hal_disableIRQs();
     myradio_irq_handler(1);
@@ -1333,6 +1339,7 @@ void Radio::MyIRQ1(void) {
 
 void Radio::MyIRQ2(void) {
   BHLOG(LOGLORAR) printf("\nIRQ[%i] at DIO 2 (level %i)\n", (int) mset.modemid,(unsigned char) mset.irqlevel);
+//	BHLOG(LOGLORAR) printf("  (%p:%p)---\n", this, this->dioISR[2]);
   if (mset.irqlevel==0){
 	hal_disableIRQs();
     myradio_irq_handler(2);
@@ -1356,6 +1363,7 @@ void Radio::hal_enableIRQs (void) {
 
 void Radio::Radio_AttachIRQ(uint8_t irq_pin, int irqtype, void (*ISR_callback)(void)){
     wiringPiISR(irq_pin, irqtype, ISR_callback);	// C-function call
+	BHLOG(LOGLORAR) printf("  ISR_AttachIRQ: Modem->%p   Pin%i -> ISR->%p\n", this, irq_pin, ISR_callback);
 }
 
 // Assign interrupt handler to IRQ GPIO port
@@ -1372,17 +1380,16 @@ void isr_init(modemcfg_t * mod) {
 	//		lora->Radio_AttachIRQ(pins->sxdio0, INT_EDGE_RISING, []{gwtab.modem[mid]->MyIRQ0();} );
 
 	switch (mid){
+		// with BEE RPi HAT board only DIO0 lines are connected as IRQ source of each modem.
 	case 0:
 		lora->Radio_AttachIRQ(pins->sxdio0, INT_EDGE_RISING, []{gwtab.modem[0]->MyIRQ0();} );
-		lora->Radio_AttachIRQ(pins->sxdio1, INT_EDGE_RISING, []{gwtab.modem[0]->MyIRQ1();} );
-		lora->Radio_AttachIRQ(pins->sxdio2, INT_EDGE_RISING, []{gwtab.modem[0]->MyIRQ2();} );
-		BHLOG(LOGLORAW) printf("  ISR_Init(%i): --- ISR on DIO0+1+2 assigned ---\n", (int) mid);
+//		lora->Radio_AttachIRQ(pins->sxdio1, INT_EDGE_RISING, []{gwtab.modem[0]->MyIRQ1();} );
+//		lora->Radio_AttachIRQ(pins->sxdio2, INT_EDGE_RISING, []{gwtab.modem[0]->MyIRQ2();} );
 		break;
 	case 1:
 		lora->Radio_AttachIRQ(pins->sxdio0, INT_EDGE_RISING, []{gwtab.modem[1]->MyIRQ0();} );
-		lora->Radio_AttachIRQ(pins->sxdio1, INT_EDGE_RISING, []{gwtab.modem[1]->MyIRQ1();} );
-		lora->Radio_AttachIRQ(pins->sxdio2, INT_EDGE_RISING, []{gwtab.modem[1]->MyIRQ2();} );
-		BHLOG(LOGLORAW) printf("  ISR_Init(%i): --- ISR on DIO0+1+2 assigned ---\n", (int) mid);
+//		lora->Radio_AttachIRQ(pins->sxdio1, INT_EDGE_RISING, []{gwtab.modem[1]->MyIRQ1();} );
+//		lora->Radio_AttachIRQ(pins->sxdio2, INT_EDGE_RISING, []{gwtab.modem[1]->MyIRQ2();} );
 		break;
 	// Unfortunately this case list must be expanded manually to keep  static expressions.
 	// only MAXGW entries supported

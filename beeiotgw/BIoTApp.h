@@ -67,7 +67,6 @@ private:
 
 	// private ptr to the global BIoT GW instances & settings
 	gwbind_t	&gwt;
-	modemcfg_t	* gwhwset;
 
 	// Status Housekeeping
 	int			nnodes;			// Number of detected active BIoT Nodes

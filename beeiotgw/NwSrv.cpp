@@ -75,7 +75,7 @@ extern nodedb_t	NDB[];		// if 'NDB[x].nodeinfo.version == 0' => empty entry
 //  throw(EX_NWSRV_INIT)	Constructor failed
 //
 NwSrv::NwSrv(gwbind_t &gwtab, int nmodem): gwt(gwtab){	
-	gwhwset = gwt.gwset;
+//	gwhwset = gwt.gwset;
 
 	// get current timestamp
 	gettimeofday(&now, 0);
@@ -103,6 +103,7 @@ NwSrv::NwSrv(gwbind_t &gwtab, int nmodem): gwt(gwtab){
 	// Create LoRa modem objects
 	for(mid; mid < nmodem; mid++){	// Min. 1 channel -> for JOIN needed
 		try{
+			BHLOG(LOGBH) printf("NwS: Probe for Gateway=Modem %i: \n", mid);
 			gwt.modem[mid] = new Radio(gwt, mid);  // instantiate LoRa Port[mid]
 		} catch (int excode){
 				switch(excode){
@@ -129,7 +130,7 @@ NwSrv::NwSrv(gwbind_t &gwtab, int nmodem): gwt(gwtab){
 	mactive = mid;
 	gwt.nmodemsrv = mactive;
 
-	BHLOG(LOGLORAW) printf("NwS: LoRa Gateway Setup Done for %i modem\n", mactive);
+	BHLOG(LOGLORAW) printf("NwS: LoRa Gateway Setup Done for %i modem(s)\n", mactive);
 } // end of NwSrv Constructor
 
 //*****************************************************************************
@@ -178,12 +179,14 @@ int NwSrv::NwNodeScan(void) {
 	  Current_RSSI      : 0x00  IRQ Level         : 0  
 	*/
 	// print status of default Join Modem (typ. the first one used)
-	gwt.modem[gwt.joindef]->PrintModemStatus(LOGALL);
-	gwt.modem[gwt.joindef]->PrintLoraStatus(LOGALL);
-	
+	for(int mid=0; mid < mactive; mid++){// ... for all discovered modems
+		BHLOG(LOGBH) printf("NwS: ****************************** Config-Status Modem %i ********************************\n", mid);
+		gwt.modem[mid]->PrintModemStatus(LOGALL);
+		gwt.modem[mid]->PrintLoraStatus(LOGALL);
+	}
 	gettimeofday(&now, 0);
 	strftime(TimeString, 80, "%d-%m-%y %H:%M:%S", localtime(&now.tv_sec));
-	BHLOG(LOGBH) printf("NwS:********************************************************************\n");
+	BHLOG(LOGBH) printf("NwS:************************************************************************************\n");
     BHLOG(LOGLORAW) printf("  NwS<%s>:  Start waiting for LoRa Node Packets in Contiguous Mode on all channels\n",
 		TimeString);
 

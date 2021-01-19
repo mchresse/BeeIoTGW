@@ -136,7 +136,6 @@ static char description[64] = "BIoT WAN Gateway";		// used for free form descrip
 //***************************************************************************
 // AppSrv Constructor
 AppSrv::AppSrv(gwbind_t &gwtab): gwt(gwtab) {
-	gwhwset = gwt.gwset;
 	// Init housekeeping status params -> upd. during runtime
 	nnodes = 0;
 	TimeString[0] = 0;

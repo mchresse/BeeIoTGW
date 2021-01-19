@@ -145,7 +145,7 @@ private:
 	//
 	gwbind_t & gwt;	// reference to global Gateway Service binding table
 
-	// *ModemP: ptr to global modem core configuration table defined in main()-init_all()
+	// *ModemP: ptr to global modem related configuration set defined in main()-init_all()
 	modemcfg_t* modemp;		// major static input for Radio constructor
 	
 	// internal modem channel configuration settings for runtime usage

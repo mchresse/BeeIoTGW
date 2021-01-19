@@ -96,12 +96,12 @@ class AppSrv;
 typedef struct {
 	int			nmodemsrv;	// number of served modems after activated NwService
 	int			joindef;	// default JOIN modem ID (init by cfgini.loradefchn)
+	modemcfg_t	* gwset[MAXGW];	// Table of GateWay assigned modem config sets for Radio Instantiation
 	Radio		* modem[MAXGW];	// ptr to modem-instance list -> set by main.initall()
 	MsgQueue	* gwq;		// ptr to modem Msg Queue for all GW channels
 	NwSrv		* nws;		// ptr to the one and only Network service instance
 	JoinSrv		* jsrv;		// ptr to the one and only Join Service instance
 	AppSrv		* apps;		// ptr to the one and only App-Services instance
-	modemcfg_t	* gwset;	// Table of GateWay/Modem related config sets for Radio Instantiation
 
 	// Statistic: to be initialize/updated by radio layer during rx/tx package handling
     uint32_t cp_nb_rx_rcv;	// # received packages

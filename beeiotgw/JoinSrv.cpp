@@ -100,9 +100,9 @@ static nodewltable_t WLTab[MAXNODES+2]={			// +2 for dummy JOIN lines ID=0,n
 	1, 0, 0,										// reportfrq, joinflag, chncfg
 //---------------------------------------------------
 // 4: BeeIoT ESP32-WROOM32:	MAC: 2C:2B:16:28:6F:24 	// Beehive Weight cell test Module 3
-	NODEID4, GWID1,	0, BIoT_EUID,					// ndid, gwid, mid, AppEUI: BIoT
+	NODEID4, GWID2,	1, BIoT_EUID,					// ndid, gwid, mid, AppEUI: BIoT
 	0x2C, 0x2B, 0x16, 0xFF, 0xFE, 0x28, 0x6F, 0x24, // DevEUI 
-	1, 0, 0,										// reportfrq, joinflag, chncfg
+	1, 0, 1,										// reportfrq, joinflag, chncfg
 //---------------------------------------------------
 // 5: fill in more nodes here ...
 //---------------------------------------------------
@@ -116,7 +116,7 @@ uint8_t  NwSKey[16]	= { 0xDD, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x
 //***************************************************************************
 // JoinSrv Constructor
 JoinSrv::JoinSrv(gwbind_t &gwtab, int nmodem): gwt(gwtab), mactive(nmodem){
-	gwhwset = gwt.gwset;
+//	gwhwset = gwt.gwset;
 	nodedb_t * pndb;
 
 	// Preset all NDB[] entries
