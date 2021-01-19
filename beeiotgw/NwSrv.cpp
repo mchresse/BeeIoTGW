@@ -357,14 +357,16 @@ ackbcn_t * pbcn;			// ptr on Beacon ack. frame
 			BHLOG(LOGLORAW) printf("  BeeIoTParse: Node registered but not joined yet (NodeID:0x%02X) -> Request a RE-JOIN\n", 
 				(unsigned char)mystatus.hd.sendID);
 			needaction = CMD_REJOIN;	// Request JOIN command from Node
-			// but we return a positive ack
+			// return rejoin request ´to retrieve right config set again 
 			BeeIoTFlow(needaction, &mystatus, mystatus.hd.sendID-NODEIDBASE, 0);
-			rc=-3;
 			gwt.cp_nb_rx_ok++;		// incr. # of correct received packages	
 			return(rc);
 		}else if(rc == -4){
 			BHLOG(LOGLORAW) printf("  BeeIoTParse: Node joined but not using assigned GWID 0x%02X -> should rejoin\n", 
 				(unsigned char)mystatus.hd.destID);					
+			needaction = CMD_REJOIN;	// Request JOIN command from Node
+			// return rejoin request ´to retrieve right config set again 
+			BeeIoTFlow(needaction, &mystatus, mystatus.hd.sendID-NODEIDBASE, 0);
 			gwt.cp_nb_rx_ok++;		// incr. # of correct received packages	
 			return(rc);			
 		}else if (rc == -5 || rc == -6){
