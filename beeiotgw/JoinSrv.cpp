@@ -344,8 +344,8 @@ int JoinSrv::JS_ValidatePkg(beeiotpkg_t* mystatus){
 	// -> will be parsed later by detected nodeid
 	if(mystatus->hd.cmd == CMD_REJOIN){
 		if(mystatus->hd.destID != (GWIDx-gwt.joindef)){ // calculate user-default JOIN channel
-			// No negative GWID check for REJOIN: accept REJOIN request 
-			// allowed via all GWIDs but response is done by Default-GW only.
+			// No negative GWID check for REJOIN: accept REJOIN request anyhow
+			// allowed via all GWIDs but response is send by Default-GW to retrieved Client ID only.
 			// for cleaner process: Node should always use GWIDx also for REJOIN
 			BHLOG(LOGLORAW) printf("  JS_ValidateNode: Warning: Wrong GWID used for REJOIN: 0x%02X\n", (unsigned char) mystatus->hd.destID);
 		}
@@ -363,7 +363,7 @@ int JoinSrv::JS_ValidatePkg(beeiotpkg_t* mystatus){
 	// 6. No (RE-)JOIN package...then GW-ID must fit to NDB assignment
 	if(NDB[ndid].nodecfg.gwid != mystatus->hd.destID){
 		// this joined node is (still) not using the assigned GWID
-		// pkg rejected -> request a rejoin
+		// pkg rejected -> request a rejoin needed
 		BHLOG(LOGLORAW) printf("  JS_ValidateNode: joined node is (still) not using the assigned GWID (0x%02X) -> should rejoin", (unsigned char) mystatus->hd.destID);
 		rc=-4;
 		return(rc);
