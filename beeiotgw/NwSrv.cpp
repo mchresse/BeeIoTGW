@@ -655,14 +655,17 @@ Radio *			Modem;	// Ptr on Modem used for transmission
 	}
 	
 	// Do final TX for all CMD cases: Select assigned modem handle
-	mid = pndb->msg.mid;		// get node pkg used  ModemID
-	if(mid >= mactive){			// if mid is out of active modem scope (should never happen!)
-		BHLOG(LOGLORAW) printf("\n  BIoTFlow: ################# Force mid:%i to default-mid:%i ###################\n\n", mid, pndb->middef);
-		mid = pndb->middef;		// error recovery: limit modemid to assigned JOIN default.
-		pndb->msg.mid = mid;	// safe state for next time also
-		// t.b.d.: there must be a wrong ID handling with NDB->mid ?
-	}
-	
+	if((action == CMD_CONFIG) || (ndid == 0)){
+		mid = gwt.joindef;			// we answer on a JOIN request -> Use JOIN Modem only.
+	}else{
+		mid = pndb->msg.mid;		// get node pkg used  ModemID
+		if(mid >= mactive){			// if mid is out of active modem scope (should never happen!)
+			BHLOG(LOGLORAW) printf("\n  BIoTFlow: ################# Force mid:%i to default-mid:%i ###################\n\n", mid, pndb->middef);
+			mid = pndb->middef;		// error recovery: limit modemid to assigned JOIN default.
+			pndb->msg.mid = mid;	// safe state for next time also
+			// t.b.d.: there must be a wrong ID handling with NDB->mid ?
+		}
+	}	
 	BHLOG(LOGLORAR) printf("  BIoTFlow: TX[%i] GWID:0x%02X -> NodeID:0x%02X, CMD:0x%02X len:%i via Modem%i\n", 
 			(int)actionpkg.hd.pkgid, (unsigned char)actionpkg.hd.sendID, (unsigned char)actionpkg.hd.destID, 
 			(unsigned char)actionpkg.hd.cmd, (int)actionpkg.hd.frmlen, (int)mid);

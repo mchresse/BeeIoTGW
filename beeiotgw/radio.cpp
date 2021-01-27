@@ -896,7 +896,7 @@ void Radio::txlora (byte* frame, byte dataLen) {
 	gettimeofday(&mset.now, NULL);
     mset.txstart = (uint32_t)(mset.now.tv_sec*1000000 + mset.now.tv_usec); // get TimeStamp in seconds
 	BHLOG(LOGLORAR) printf("    txlora(): TX pkg sent (len=0x%02X) -> TX Mode entered\n", (unsigned char) dataLen);
-	BHLOG(LOGLORAR) printf("    <%ul> TXMODE, freq=%ul, len=%d, SF=%d, BW=%d, CR=4/%d, IH=%d\n",
+	BHLOG(LOGLORAR) printf("    <%ul> TXMODE, freq=%u, len=%d, SF=%d, BW=%d, CR=4/%d, IH=%d\n",
             (unsigned long) mset.txstart, (unsigned long) ccfg->freq, (unsigned int)dataLen, (unsigned int)ccfg->sf+6,
 			(unsigned char) ccfg->bw == BW125 ? 125 : (ccfg->bw == BW250 ? 250 : 500),
 			(unsigned char) ccfg->cr == CR_4_5 ? 5 : (ccfg->cr == CR_4_6 ? 6 : (ccfg->cr == CR_4_7 ? 7 : 8)),
@@ -1016,7 +1016,7 @@ chncfg_t *ccfg = &mset.chncfg;
 
 	gettimeofday(&mset.now, NULL);
     uint32_t tstamp = (uint32_t)(mset.now.tv_sec*1000000 + mset.now.tv_usec); // get TimeStamp in seconds
-	BHLOG(LOGLORAR) printf("    <%u> RXMODE:%d, freq=%ul,SF=%d, BW=%d, CR=4/%d, IH=%d\n",
+	BHLOG(LOGLORAR) printf("    <%u> RXMODE:%d, freq=%u,SF=%d, BW=%d, CR=4/%d, IH=%d\n",
 			(unsigned long)tstamp, (unsigned int)rxmode, (unsigned long)ccfg->freq, (unsigned char)ccfg->sf+6,
 			(unsigned char)ccfg->bw == BW125 ? 125 : (ccfg->bw == BW250 ? 250 : 500),
 			(unsigned char)ccfg->cr == CR_4_5 ? 5 : (ccfg->cr == CR_4_6 ? 6 : (ccfg->cr == CR_4_7 ? 7 : 8)), 

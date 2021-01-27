@@ -141,7 +141,7 @@ JoinSrv::JoinSrv(gwbind_t &gwtab, int nmodem): gwt(gwtab), mactive(nmodem){
 		pndb->nodecfg.vmajor		= BIoT_VMAJOR;		// Major + Minor version: Vx.y
 		pndb->nodecfg.vminor		= BIoT_VMINOR;
 		pndb->nodecfg.verbose		= lflags;			// finally set by CONFIG command
-		pndb->nodecfg.channelidx	= WLTab[i].chncfg;	// start with channelid of modem 0
+		pndb->nodecfg.channelidx	= WLTab[i].chncfg;	// cfg.-channelid of modem
 		pndb->nodecfg.freqsensor	= WLTab[i].reportfrq; // [min] reporting frequence of status pkg.
 		pndb->nodecfg.nonce			= 0;
 
@@ -212,10 +212,12 @@ int  rc =0;
 		return(rc); // nothing more to do => DevEUI unknown -> have to reject this join request
 	}
 	if(pwltab->joined){		// already joined known node ?	-> was a rejoin ?
-		BHLOG(LOGLORAW) printf("  RegisterNode: Node found in WLTable[%d] -> and already joined\n", (int) ndid);
 		// assumed NDB[] was already initialized with this node till last session
 		pndb = & NDB[ndid];							// get pointer to already initialized NDB entry
+		BHLOG(LOGLORAW) printf("  RegisterNode: Node found in WLTable[%d] -> joined on modem %i (chn%i)\n",
+				(int) ndid, pndb->middef, pndb->nodecfg.channelidx);
 		pndb->nodecfg.channelidx= pwltab->chncfg;	// but we start with default Channel IDX again
+		pndb->middef = pwltab->mid;					// and default modem
 		
 		// may be node wants to rejoin to another AppID
 		memcpy(&pndb->nodeinfo.joinEUI, &pjoin->info.joinEUI, 8);
@@ -249,7 +251,7 @@ int  rc =0;
 	pndb->nodeinfo.vminor	= pjoin->info.vminor;
 
 	pndb->nodecfg.verbose	= (u2_t)lflags;			// get same GW verbose mode for client too
-	pndb->nodecfg.channelidx= 0;					// we start with default Channel IDX = 0
+	pndb->nodecfg.channelidx= pwltab->chncfg;;		// we start with default Channel IDX
 	pndb->nodecfg.gwid		= pwltab->gwid;			// store predefined GW (ModemID = gwid - GWIDx)
 	pndb->nodecfg.nodeid	= pwltab->nodeid;
 	pndb->nodecfg.freqsensor= cfgini->biot_loopwait;// [min] loop time of sensor status reports in Seconds (from config.ini)
@@ -261,7 +263,7 @@ int  rc =0;
 	pndb->msg.retries		= 0;
 	pndb->msg.pkgid			= 0;	// last msg idx => no msg received yet
 	// FrmID & PkgID are handled/checked identical !
-	pndb->msg.mid			= 0;	// pkg-mid: redefined by each new package on which channel it came in
+	pndb->msg.mid			= 0;	// pkg-mid: will be redefined by each new package on which channel it came in
 	pndb->middef			= pwltab->mid;	// get default Modem ID from WL Table; used by ???
 	pndb->pwltab			= pwltab;	// back link to WL Table
 
@@ -329,7 +331,7 @@ int JoinSrv::JS_ValidatePkg(beeiotpkg_t* mystatus){
 				// Validate Pkg with Pkg-MIC integrity check
 				// ... Also for JOIN requests
 				if(JS_ValidateMic(mystatus, CMD_JOIN, ndid) < 0){ // Pkg Integrity by MIC o.k. ?
-					// PKG data is corrupted !
+					// PKG payload data is corrupted !
 					rc=-3;	// JOIN pkg corrupt -> initiate a rejoin request
 					return(rc);
 				}
@@ -337,6 +339,7 @@ int JoinSrv::JS_ValidatePkg(beeiotpkg_t* mystatus){
 			return(0);
 		}
 		// Known but not joined -> Node should initiate a JOIN request first -> rejected
+		NDB[ndid].msg.mid = WLTab[ndid].mid;	// preset default MID -> will be redefined by RegisterNode()
 		rc=-3;
 		return(rc);
 	}
@@ -409,7 +412,7 @@ int JoinSrv::JS_ValidatePkg(beeiotpkg_t* mystatus){
 
 //***************************************************************************
 // JoinSrv_ValidateMic()
-// Check Pkg-integrity by deluivered MIC
+// Check Pkg-integrity by delivered MIC
 // 1. Create MIC based on known pkg & client session attributed
 // 2. Compare created MIC with given MIC (last bytes of pkg. data)
 // INPUT:
