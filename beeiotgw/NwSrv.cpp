@@ -620,7 +620,13 @@ Radio *			Modem;	// Ptr on Modem used for transmission
 
 		// setup pkg header
 		pcfg->hd.destID = pkg->hd.sendID;	// The BeeIoT node is the messenger
-		pcfg->hd.sendID = (u1_t) (GWIDx-gwt.joindef);	// New sender: its me on Def.JOIN channel
+		if(pkg->hd.cmd == CMD_REJOIN){		// REJOIN simply requests reactivation by latest CFGchannel settings
+ 			pcfg->hd.sendID = (u1_t) pkg->hd.destID;	// new sender: addressed GW of last package
+			// expecting the node will recfg. himself by all config data settings incl. default GWID
+		}else{	
+			// assumed initiator: CMD_JOIN request
+			pcfg->hd.sendID = (u1_t) (GWIDx-gwt.joindef); // New sender: its me on Def.JOIN channel		
+		}
 		pcfg->hd.cmd	= action;			// get our action command
 		pcfg->hd.pkgid	= pkg->hd.pkgid;	// get last pkgid
 		pcfg->hd.frmlen = sizeof(devcfg_t); // 

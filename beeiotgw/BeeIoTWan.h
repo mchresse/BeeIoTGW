@@ -23,7 +23,7 @@ using namespace std;
 // BIoT Version Format: maj.min	>	starting with V1.0
 // - used for protocol backward compat. and pkg evaluation
 #define BIoT_VMAJOR		1		// Major version
-#define BIoT_VMINOR		3		// Minor
+#define BIoT_VMINOR		4		// Minor
 // History:
 // Version Date		Comment:
 // 1.0	01.01.2020	Initial setup
@@ -32,7 +32,13 @@ using namespace std;
 //					PkgHD: Framelen: 2 Byte -> for 16bit payload size
 //					Event CMD definition
 // 1.3	02.05.2020  Add Beacon CMD + Ack
-
+// 1.4  25.11.2020	Change I2C Bus detection from Wire -> I2DDev driver lib
+//					implemented new driver for DS3231, ADS1115 & MAX123x support
+//					LoRa Protocol delivers MIC value -> checked on GW side
+//					Add ESP32 ChipID Detection by eFuse bitmap data
+//					Shorten WAITRX1PKG Window 3->1 sec.
+// 1.5  28.01.2021  Add new RESET command
+//
 //***********************************************
 // LoRa MAC Presets
 //***********************************************
@@ -111,6 +117,7 @@ enum {
 	CMD_BEACON,		// Send beacon e.g. for distance test
 	CMD_ACKBCN,		// Beacon Acknowledge -> delivers RSSI & SNR
 	CMD_TIME,		// Request curr. time values from partner side
+	CMD_RESET,		// Reset GW->Node: reset counter, clear SD, initiate JOIN
 	CMD_NOP			// do nothing -> for xfer test purpose
 };
 #ifndef BEEIOT_ACTSTRINGS
@@ -130,6 +137,7 @@ const char * beeiot_ActString[] = {
 	[CMD_BEACON]	= "BEACON",
 	[CMD_ACKBCN]	= "ACKBEACON",
 	[CMD_TIME]		= "GETTIME",
+	[CMD_RESET]		= "RESET",
 	[CMD_NOP]		= "NOP"
 };
 #endif
@@ -248,12 +256,13 @@ typedef struct {
 #define BEEIOT_MAXDSD		BEEIOT_DLEN-1	// length of raw data
 
 //***************************
-// ACK & RETRY & NOP - CMD Pkg:
+// ACK & RETRY & NOP & RESET - CMD Pkg:
 // use always std. header type: "beeiot_header_t" only with length=0
 
 //***************************
 // EVENT-CMD Pkg:
-// for exceptional events; but normally event status is derived from LogSTatus on GW/AppSrv side
+// for exceptional events; 
+// but normally event status is derived from LogSTatus on GW/AppSrv side
 enum {
 	EV_BATTERY = 0,
 	EV_WEIGHT,
