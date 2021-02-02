@@ -325,7 +325,7 @@ int JoinSrv::JS_ValidatePkg(beeiotpkg_t* mystatus){
 
 	
 	// 4. Compare Pkg Header with corresponding WLTab[] and NDB[] entries
-	ndid = mystatus->hd.sendID - NODEIDBASE;	// extract NDB index
+	ndid = mystatus->hd.sendID - NODEIDBASE;	// extract mutual NDB index
 	if(!WLTab[ndid].joined){ // This Node is known/registered but not joined yet ?
 		if(mystatus->hd.sendID == NODEIDBASE && mystatus->hd.cmd == CMD_JOIN){
 				// Validate Pkg with Pkg-MIC integrity check

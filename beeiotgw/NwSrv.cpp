@@ -343,7 +343,7 @@ ackbcn_t * pbcn;			// ptr on Beacon ack. frame
 	// now check real data: MIC & Header first -> JOIN server
 	rc = gwt.jsrv->JS_ValidatePkg(&mystatus);
 	if(rc < 0){
-	// no valid Node packet header -> Header IDs unknown or Node not joined yet
+		// no valid Node packet header -> Header IDs unknown or Node not joined yet
 		if (rc == -1 || rc == -2){ // -1: -> GWID;  -2: -> NodeID
 			BHLOG(LOGLORAW) printf("  BeeIoTParse: Unknown Node/GW (NodeID:0x%02X -> GWID: 0x%02X) -> packet rejected\n", 
 					(unsigned char)mystatus.hd.sendID, (unsigned char)mystatus.hd.destID);		
@@ -397,7 +397,9 @@ ackbcn_t * pbcn;			// ptr on Beacon ack. frame
 			rc=0;
 			return(rc);
 		}
-		gwt.jsrv->NDB[ndid].msg.mid = mid;	// safe mid for any later action
+		// For all NDB[>0]: NDB entry might not be initialized yet if no msg received before
+		// Preset Last-Msg MID in advance
+		gwt.jsrv->NDB[ndid].msg.mid = mid;	// safe last used mid for any further action
 	}else{ // for JOIN always NDBID=0 is used.
 		gwt.jsrv->NDB[0].msg.mid = gwt.jsrv->NDB[0].middef; // use JOIN default modem ID as mid
 	}
@@ -575,6 +577,7 @@ Radio *			Modem;	// Ptr on Modem used for transmission
 	case CMD_RETRY: // fall thru by intention ==> like CMD_ACK
 	case CMD_ACK:	// by intention do nothing but ACK
 	case CMD_ACKBCN:// Beacon ACK
+	case CMD_RESET: // Reset Node -> implicite new JOIN cycle on def. channel + selftest
 		
 		// give node some time to recover from SendMsg before 
 		delay(RXACKGRACETIME);
@@ -619,14 +622,15 @@ Radio *			Modem;	// Ptr on Modem used for transmission
 		pcfg = (beeiot_cfg_t*) & actionpkg;	// use generic pkg space for CONFIG pkg
 
 		// setup pkg header
-		pcfg->hd.destID = pkg->hd.sendID;	// The BeeIoT node is the messenger
-		if(pkg->hd.cmd == CMD_REJOIN){		// REJOIN simply requests reactivation by latest CFGchannel settings
+		if(pkg->hd.cmd == CMD_REJOIN){
+			// REJOIN simply requests assigned CONFIG settings -> answer via last known cfg-channel
  			pcfg->hd.sendID = (u1_t) pkg->hd.destID;	// new sender: addressed GW of last package
-			// expecting the node will recfg. himself by all config data settings incl. default GWID
-		}else{	
-			// assumed initiator: CMD_JOIN request
-			pcfg->hd.sendID = (u1_t) (GWIDx-gwt.joindef); // New sender: its me on Def.JOIN channel		
+			// expecting the node will reconfig. himself by all new config data settings incl. default GWID
+		}else{
+			// assumed initiator: CMD_JOIN request: communication only via default JOIN GW
+			pcfg->hd.sendID = (u1_t) (GWIDx-gwt.joindef); // New sender: default modem channel of GW
 		}
+		pcfg->hd.destID = pkg->hd.sendID;	// The BeeIoT node is the messenger
 		pcfg->hd.cmd	= action;			// get our action command
 		pcfg->hd.pkgid	= pkg->hd.pkgid;	// get last pkgid
 		pcfg->hd.frmlen = sizeof(devcfg_t); // 
@@ -648,7 +652,7 @@ Radio *			Modem;	// Ptr on Modem used for transmission
 		pcfg->cfg.day		= tval->tm_mday;
 		pcfg->cfg.hour		= tval->tm_hour;
 		pcfg->cfg.min		= tval->tm_min;
-		pcfg->cfg.sec		= tval->tm_sec+3;			// sec. + CONFIG xfer correction
+		pcfg->cfg.sec		= tval->tm_sec+2;			// sec. + CONFIG xfer correction
 		
 		pkglen = BIoT_HDRLEN + sizeof(devcfg_t) + BIoT_MICLEN;	// Cfg-Payload + BIOT Header
 		BHLOG(LOGLORAR) hexdump((byte*) &actionpkg, pkglen);
