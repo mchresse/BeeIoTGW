@@ -343,24 +343,27 @@ int JoinSrv::JS_ValidatePkg(beeiotpkg_t* mystatus){
 		rc=-3;
 		return(rc);
 	}
-	// 5. Hint: A REJOIN PKG is bypassed as normal CMD package 
-	// -> will be parsed later by detected nodeid
-	if(mystatus->hd.cmd == CMD_REJOIN){
+	// 5. Node is joined already -> a fully defined NDB[] is expected
+	// take ndid as valid by now
+	if( (mystatus->hd.cmd == CMD_REJOIN) ||
+		(mystatus->hd.cmd == CMD_JOIN ) ){
+		//    Hint: A (RE-)JOIN PKG is bypassed as normal CMD package 
+		// -> will be parsed later by detected nodeid
 		if(mystatus->hd.destID != (GWIDx-gwt.joindef)){ // calculate user-default JOIN channel
-			// No negative GWID check for REJOIN: accept REJOIN request anyhow
-			// allowed via all GWIDs but response is send by Default-GW to retrieved Client ID only.
-			// for cleaner process: Node should always use GWIDx also for REJOIN
-			BHLOG(LOGLORAW) printf("  JS_ValidateNode: Warning: Wrong GWID used for REJOIN: 0x%02X\n", (unsigned char) mystatus->hd.destID);
+			// No negative GWID check for RE-/JOIN: request will be accepted anyhow, just a warning
+			// RE-/JOIN is allowed here via all GWIDs but response is sent by Default-GW to retrieved Client ID only.
+			// for cleaner process: Node should always use GWIDx also for RE-/JOIN
+			BHLOG(LOGLORAW) printf("  JS_ValidateNode: Warning: Wrong GWID used for already joined Node: 0x%02X\n", (unsigned char) mystatus->hd.destID);
 		}
 			// Validate Pkg with Pkg-MIC integrity check
-			// ... Also for JOIN requests
+			// ... Also for RE-/JOIN requests
 			if(JS_ValidateMic(mystatus, CMD_JOIN, ndid) < 0){ // Pkg Integrity by MIC o.k. ?
 				// PKG data is corrupted !
 				rc=-3;	// JOIN pkg corrupt -> initiate a rejoin request
 				return(rc);
 			}
 			// o.k. Node is already joined and requests reactivation -> lets do it...
-			return(0);	// forget ndid by now to bypass to the JOIN process by BIOTPARSE -> RegisterNode() will find it again
+			return(0);	// bypass to the JOIN process by BIOTPARSE -> RegisterNode() will find node again
 	}
 	
 	// 6. No (RE-)JOIN package...then GW-ID must fit to NDB assignment

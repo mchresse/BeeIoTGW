@@ -199,7 +199,7 @@ int NwSrv::NwNodeScan(void) {
 	for(int mid=0; mid < maxmod; mid++){// ... for all discovered modems
 		count++;
 		if(count%(10*10) == (10*10-1)){	// all 10 sec.
-			printf("* ");
+			printf("%i ", mid);
 		}
 		if(count%(2*600) == (2*600-1)){	// each 2. minute
 			printf(" %i\n", count);
@@ -386,8 +386,8 @@ ackbcn_t * pbcn;			// ptr on Beacon ack. frame
 	// Validate NwServer process flow:
 	// - update MsgBuffer-HD by pkgid (could not be done by ISR yet)
 	msg->setpkgid_ack(mystatus.hd.pkgid,0);	
-	// - If we already know this BeeIoT Package: check the msgid
-	if(ndid != 0){ // to be skipped during (RE-)JOIN request (ndid==0)
+	// - If we already knew this BeeIoT Package: check the msg-id
+	if(ndid != 0){		// Duplicate Check for data packages only
 		if(mystatus.hd.pkgid == gwt.jsrv->NDB[ndid].msg.pkgid){	// do we have already received this pkgid from this node ?
 			BHLOG(LOGLORAW) printf("  BeeIoTParse: package (%d) duplicated -> package dropped ->send ACK\n\n", (unsigned char) mystatus.hd.pkgid); // yes	
 			// may be last ACK got lost, do it once again
@@ -401,7 +401,7 @@ ackbcn_t * pbcn;			// ptr on Beacon ack. frame
 		// Preset Last-Msg MID in advance
 		gwt.jsrv->NDB[ndid].msg.mid = mid;	// safe last used mid for any further action
 	}else{ // for JOIN always NDBID=0 is used.
-		gwt.jsrv->NDB[0].msg.mid = gwt.jsrv->NDB[0].middef; // use JOIN default modem ID as mid
+		gwt.jsrv->NDB[0].msg.mid = gwt.jsrv->NDB[0].middef; // preset JOIN default modem ID as mid
 	}
 	
 	// is it a direct command for the NwServer ?
@@ -416,47 +416,33 @@ ackbcn_t * pbcn;			// ptr on Beacon ack. frame
 		BHLOG(LOGLORAW) printf("=> Done.\n");	
 		rc= 0;	
 		break;
-	case CMD_JOIN:// Node to register for data collection
+	case CMD_REJOIN:	// Node was registered -> reactivate for data collection
+		// intentionally fall through to JOIN
+	case CMD_JOIN:		// Node to register for data collection
 		gettimeofday(&now, 0);
 		strftime(TimeString, 80, "%d-%m-%y %H:%M:%S", localtime(&now.tv_sec));
-		BHLOG(LOGLORAW) printf("  BeeIoTParse: Node JOIN Requested, MsgID: 0x%02X, at %s\n",
+		if(mystatus.hd.cmd == CMD_JOIN){
+			BHLOG(LOGLORAW) printf("  BeeIoTParse: Node JOIN Requested, MsgID: 0x%02X, at %s\n",
 				(unsigned char)mystatus.hd.pkgid, TimeString);
+		}else{
+			BHLOG(LOGLORAW) printf("  BeeIoTParse: Node REJOIN Requested, MsgID: 0x%02X, at %s\n", 
+				(unsigned char) mystatus.hd.pkgid, TimeString);			
+		}
+			
 		BHLOG(LOGLORAR) hexdump((unsigned char*) &mystatus, pkglen);
 
-		rc = gwt.jsrv->JS_RegisterNode(&mystatus);	// evaluate by WLTable and create NDB[] entry
+		rc = gwt.jsrv->JS_RegisterNode(&mystatus);	// evaluate by WLTable and create/preset NDB[]
 		if(rc >= 0){
 			ndid = rc;	// get index of new NDB-entry 
 			BHLOG(LOGLORAW) printf("  BeeIoTParse: New Node%i Send CONFIG (with new channel data) as ACK\n",ndid);
 			// give node some time to recover from SendMsg before 
 			delay(MSGRX1DELAY);
-			needaction = CMD_CONFIG; // acknowledge JOIN request
+			needaction = CMD_CONFIG; // acknowledge (RE-)JOIN request
 			BeeIoTFlow(needaction, &mystatus, ndid, 0);
-			BHLOG(LOGLORAW) printf("  => JOIN Done.\n");	
+			BHLOG(LOGLORAW) printf("  => RE-/JOIN Done.\n");	
 			rc= 0;	
 		}else{
-			BHLOG(LOGLORAW) printf("  BeeIoTParse: JOIN failed (rc=%i)\n", rc);
-			rc=-7;
-		}
-		break;
-	case CMD_REJOIN:	// Node was registered -> reactivate for data collection
-		gettimeofday(&now, 0);
-		strftime(TimeString, 80, "%d-%m-%y %H:%M:%S", localtime(&now.tv_sec));
-		BHLOG(LOGLORAW) printf("  BeeIoTParse: Node REJOIN Requested, MsgID: 0x%02X, at %s\n", 
-				(unsigned char) mystatus.hd.pkgid, TimeString);
-		BHLOG(LOGLORAR) hexdump((unsigned char*) &mystatus, pkglen);
-
-		rc = gwt.jsrv->JS_RegisterNode(&mystatus);	// evaluate by WLTable and existing NDB[] entry
-		if(rc >= 0){	// successfully reactivated
-			ndid = rc;	// get idx of known NDB-entry 
-			BHLOG(LOGLORAW) printf("  BeeIoTParse: Node Reactivated: Just Send CONFIG (with new channel data) as ACK\n");
-			// give node some time to recover from SendMsg before 
-			delay(MSGRX1DELAY);
-			needaction = CMD_CONFIG; // acknowledge JOIN request
-			BeeIoTFlow(needaction, &mystatus, ndid, 0);
-			BHLOG(LOGLORAW) printf("  => REJOIN Done.\n");	
-			rc= 0;	
-		}else{
-			BHLOG(LOGLORAW) printf("  BeeIoTParse: REJOIN failed (rc=%i)\n", rc);
+			BHLOG(LOGLORAW) printf("  BeeIoTParse: RE-/JOIN failed (rc=%i)\n", rc);
 			rc=-7;
 		}
 		break;
@@ -589,14 +575,14 @@ Radio *			Modem;	// Ptr on Modem used for transmission
 		pack->cmd	= action;			 // get our action command
 		pack->pkgid = pkg->hd.pkgid;	 // get last pkg msgid
 		pack->res	= 0;
-		if(action == CMD_ACKBCN){
+		if(action == CMD_ACKBCN){  // If BEACON Mode send Ack-data as well
 			// assumed pbcn data is already defined by caller: e.g. rssi & snr
 			memcpy(&actionpkg.data, &pkg->data, sizeof(ackbcn_t));
 			// ToDO: add MIC field at end of actionpkg.data
 			pack->frmlen= sizeof(ackbcn_t);	// length of ackbcn data only
 			pkglen = BIoT_HDRLEN + pack->frmlen + BIoT_MICLEN;// just the BeeIoT header + MIC			
 			BHLOG(LOGLORAR) hexdump((byte*) &actionpkg, pkglen);
-		}else{
+		}else{  // Send ACK only
 			pack->frmlen= 0;				 // send BeeIoT header for ACK only
 			pkglen = BIoT_HDRLEN+BIoT_MICLEN;// just the BeeIoT header + MIC
 			// ToDO: add MIC field at end of actionpkg.data
