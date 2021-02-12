@@ -80,6 +80,7 @@ extern int AppGH		(int ndid, char* data, byte len, int mid);	// GreenHouse Contr
 // NODEIDBASE+0 to be used by new node for JOIN communication -> else rejected !
 
 static nodewltable_t WLTab[MAXNODES+2]={			// +2 for dummy JOIN lines ID=0,n
+// Active entries are defined/overwritten in the constructor by cfgini-Data !
 
 	// 0: Dummy start marker of table (NODEID == 0x00 -> used for JOIN requests => don't change)
 	NODEIDBASE, GWIDx, 0,  0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0,  1,0,0,
@@ -102,7 +103,7 @@ static nodewltable_t WLTab[MAXNODES+2]={			// +2 for dummy JOIN lines ID=0,n
 // 4: BeeIoT ESP32-WROOM32:	MAC: 2C:2B:16:28:6F:24 	// Beehive Weight cell test Module 3
 	NODEID4, GWID2,	1, BIoT_EUID,					// ndid, gwid, mid, AppEUI: BIoT
 	0x2C, 0x2B, 0x16, 0xFF, 0xFE, 0x28, 0x6F, 0x24, // DevEUI 
-	1, 0, 1,										// reportfrq, joinflag, chncfg
+	1, 0, 0,										// reportfrq, joinflag, chncfg
 //---------------------------------------------------
 // 5: fill in more nodes here ...
 //---------------------------------------------------
@@ -112,12 +113,96 @@ static nodewltable_t WLTab[MAXNODES+2]={			// +2 for dummy JOIN lines ID=0,n
 
 uint8_t  NwSKey[16]	= { 0xDD, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F};
 
+#define  NAPPID	4
+byte  appid[NAPPID][LENJOINEUI] = {BIoT_EUID, TURTLE_EUID, GH_EUID,  0,0,0,0,0,0,0,0};
+
 
 //***************************************************************************
 // JoinSrv Constructor
 JoinSrv::JoinSrv(gwbind_t &gwtab, int nmodem): gwt(gwtab), mactive(nmodem){
 //	gwhwset = gwt.gwset;
 	nodedb_t * pndb;
+	int nid, i;
+	byte * p1;
+	byte * p2;
+	
+	// Update WLTab[] entries by pconfig data
+	nid = 1;
+	WLTab[nid].joined	= 0;
+	WLTab[nid].nodeid	= NODEIDBASE + nid;
+	WLTab[nid].gwid		= GWIDx-cfgini->nd1_gwid;
+	WLTab[nid].mid		= cfgini->nd1_gwid-1;
+	WLTab[nid].chncfg	= gwtab.gwset[WLTab[nid].mid]->chncfgid;	// get Radio channel cfg of current Gateway
+	WLTab[nid].reportfrq= cfgini->nd1_freport;
+	WLTab[nid].joined	= 0;
+	if(cfgini->nd1_appeui > NAPPID)
+		cfgini->nd1_appeui = 1;
+	memcpy(&WLTab[nid].AppEUI, &appid[cfgini->nd1_appeui-1][0], LENJOINEUI);
+
+	p1= (byte *) &cfgini->nd1_deveuiup;
+	p2= (byte *) &cfgini->nd1_deveuilo;
+	for (i=0;i<4; i++){
+		WLTab[nid].DevEUI[i]	= (byte) p1[3-i];
+		WLTab[nid].DevEUI[4+i]	= (byte) p2[3-i];
+	}
+	
+	nid = 2;
+	WLTab[nid].nodeid = NODEIDBASE + nid;
+	WLTab[nid].gwid	= GWIDx-cfgini->nd2_gwid;
+	WLTab[nid].mid	= cfgini->nd2_gwid-1;
+	WLTab[nid].chncfg = gwtab.gwset[WLTab[nid].mid]->chncfgid;	// get Radio channel cfg of current Gateway
+	WLTab[nid].reportfrq = cfgini->nd2_freport;
+	WLTab[nid].joined = 0;
+	if(cfgini->nd2_appeui > NAPPID)
+		cfgini->nd2_appeui = 1;
+	memcpy(&WLTab[nid].AppEUI, &appid[cfgini->nd2_appeui-1][0], LENJOINEUI);
+	p1= (byte *) &cfgini->nd2_deveuiup;
+	p2= (byte *) &cfgini->nd2_deveuilo;
+	for (i=0;i<4; i++){
+		WLTab[nid].DevEUI[i]	= (byte) p1[3-i];
+		WLTab[nid].DevEUI[4+i]	= (byte) p2[3-i];
+	}
+	
+	nid = 3;
+	WLTab[nid].nodeid = NODEIDBASE + nid;
+	WLTab[nid].gwid	= GWIDx-cfgini->nd3_gwid;
+	WLTab[nid].mid	= cfgini->nd3_gwid-1;
+	WLTab[nid].chncfg = gwtab.gwset[WLTab[nid].mid]->chncfgid;	// get Radio channel cfg of current Gateway
+	WLTab[nid].reportfrq = cfgini->nd3_freport;
+	WLTab[nid].joined = 0;
+	if(cfgini->nd3_appeui > NAPPID)
+		cfgini->nd3_appeui = 1;
+	memcpy(&WLTab[nid].AppEUI, &appid[cfgini->nd3_appeui-1][0], LENJOINEUI);
+	p1= (byte *) &cfgini->nd3_deveuiup;
+	p2= (byte *) &cfgini->nd3_deveuilo;
+	for (i=0;i<4; i++){
+		WLTab[nid].DevEUI[i]	= (byte) p1[3-i];
+		WLTab[nid].DevEUI[4+i]	= (byte) p2[3-i];
+	}
+	
+	nid = 4;
+	WLTab[nid].nodeid = NODEIDBASE + nid;
+	WLTab[nid].gwid	= GWIDx-cfgini->nd4_gwid;
+	WLTab[nid].mid	= cfgini->nd4_gwid-1;
+	WLTab[nid].chncfg = gwtab.gwset[WLTab[nid].mid]->chncfgid;	// get Radio channel cfg of current Gateway
+	WLTab[nid].reportfrq = cfgini->nd4_freport;
+	WLTab[nid].joined = 0;
+	if(cfgini->nd4_appeui > NAPPID)
+		cfgini->nd4_appeui = 1;
+	memcpy(&WLTab[nid].AppEUI, &appid[cfgini->nd4_appeui-1][0], LENJOINEUI);
+	p1= (byte *) &cfgini->nd4_deveuiup;
+	p2= (byte *) &cfgini->nd4_deveuilo;
+	for (i=0;i<4; i++){
+		WLTab[nid].DevEUI[i]	= (byte) p1[3-i];
+		WLTab[nid].DevEUI[4+i]	= (byte) p2[3-i];
+	}
+	
+	nid = 5;
+	WLTab[nid].nodeid = 0;	// flag table end here
+	WLTab[nid].gwid	= 0;
+	WLTab[nid].mid	= 0;
+	WLTab[nid].reportfrq = 0;
+	WLTab[nid].joined = 0;
 
 	// Preset all NDB[] entries
 	// Init NodeDB[] for new node registrations:

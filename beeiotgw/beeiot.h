@@ -109,7 +109,8 @@ typedef struct {
     uint32_t cp_up_pkt_fwd;	// # of sent status packages to REST/WEb service
     uint32_t cp_nb_rx_bad;	// # of invalid RX packages
     uint32_t cp_nb_rx_crc;	// # of RX packages /w CRC error
-}gwbind_t;
+}
+gwbind_t;
 
 
 // Radio-Modem internal used config channel set

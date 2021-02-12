@@ -137,7 +137,51 @@ configuration* pconfig = (configuration*) inibuf;
 		} else if (MATCH("HWCONFIG", "GPS0RXD")) {
 			pconfig->gps0RX = atoi(value);
 
-    } else 
+		} else if (MATCH("HWCONFIG", "ND1_GWID")) {
+			pconfig->nd1_gwid = atoi(value);
+		} else if (MATCH("HWCONFIG", "ND1_APPEUI")) {
+			pconfig->nd1_appeui = atoi(value);
+		} else if (MATCH("HWCONFIG", "ND1_DEVEUI1")) {
+			pconfig->nd1_deveuiup = strtoul(value, NULL, 16);
+		} else if (MATCH("HWCONFIG", "ND1_DEVEUI2")) {
+			pconfig->nd1_deveuilo = strtoul(value, NULL, 16);
+		} else if (MATCH("HWCONFIG", "ND1_FREPORT")) {
+			pconfig->nd1_freport = atoi(value);
+
+		} else if (MATCH("HWCONFIG", "ND2_GWID")) {
+			pconfig->nd2_gwid = atoi(value);
+		} else if (MATCH("HWCONFIG", "ND2_APPEUI")) {
+			pconfig->nd2_appeui = atoi(value);
+		} else if (MATCH("HWCONFIG", "ND2_DEVEUI1")) {
+			pconfig->nd2_deveuiup = strtoul(value, NULL, 16);
+		} else if (MATCH("HWCONFIG", "ND2_DEVEUI2")) {
+			pconfig->nd2_deveuilo = strtoul(value, NULL, 16);
+		} else if (MATCH("HWCONFIG", "ND2_FREPORT")) {
+			pconfig->nd2_freport = atoi(value);
+
+		} else if (MATCH("HWCONFIG", "ND3_GWID")) {
+			pconfig->nd3_gwid = atoi(value);
+		} else if (MATCH("HWCONFIG", "ND3_APPEUI")) {
+			pconfig->nd3_appeui = atoi(value);
+		} else if (MATCH("HWCONFIG", "ND3_DEVEUI1")) {
+			pconfig->nd3_deveuiup = strtoul(value, NULL, 16);
+		} else if (MATCH("HWCONFIG", "ND3_DEVEUI2")) {
+			pconfig->nd3_deveuilo = strtoul(value, NULL, 16);
+		} else if (MATCH("HWCONFIG", "ND3_FREPORT")) {
+			pconfig->nd3_freport = atoi(value);
+
+		} else if (MATCH("HWCONFIG", "ND4_GWID")) {
+			pconfig->nd4_gwid = atoi(value);
+		} else if (MATCH("HWCONFIG", "ND4_APPEUI")) {
+			pconfig->nd4_appeui = atoi(value);
+		} else if (MATCH("HWCONFIG", "ND4_DEVEUI1")) {
+			pconfig->nd4_deveuiup = strtoul(value, NULL, 16);
+		} else if (MATCH("HWCONFIG", "ND4_DEVEUI2")) {
+			pconfig->nd4_deveuilo = strtoul(value, NULL, 16);
+		} else if (MATCH("HWCONFIG", "ND4_FREPORT")) {
+			pconfig->nd4_freport = atoi(value);
+
+	} else 
 		if (       MATCH("BEEIOT", "BHLOOPWAIT")) {
 			pconfig->biot_loopwait = atoi(value);
 		} else if (MATCH("BEEIOT", "BEEIOTHOME")) {

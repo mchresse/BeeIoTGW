@@ -309,6 +309,7 @@ char	sbuf[MAXMSGLEN];
 	gwtab.nmodemsrv = gwtab.nws->NwSrvModems();	// get # of active modems by NwSrv
 	if(cfgini->loradefchn > gwtab.nmodemsrv) {   // User def.JOIN modem ID > out of range?
 		cfgini->loradefchn = 0;	// overrule it by internal default: 0
+		
 	}
 	gwtab.joindef = cfgini->loradefchn;	// get user default JOIN modem id
 	
