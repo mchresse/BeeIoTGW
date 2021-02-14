@@ -269,7 +269,6 @@ char	sbuf[MAXMSGLEN];
 
 		gwtab.gwset[i] = new modemcfg_t;	// get space for supported Gateway cfg set
 		gwtab.gwset[i]->modemid	= i;		// for i==0: single Modem mode: but multi GWids assigned
-		gwtab.gwset[i]->gwid		= GWIDx - i;// set default GWID (for multi mode only)
 		setmodemcfg(gwtab.gwset[i]);		// set iopins[] GPIO values & chncfgid
 	} // end of gwset[] init loop	
 

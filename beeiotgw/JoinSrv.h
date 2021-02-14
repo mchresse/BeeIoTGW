@@ -34,6 +34,7 @@ public:
 	
 	//*****************************************
 	// JOINSrv API member function prototypes
+	void	JS_Cfg2Wlt		(void);	// Init WLTab[] by cfgini GWset data
 
 	// Initialize complete NDB[] table
 	void	JS_InitNDB		(void);

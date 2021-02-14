@@ -80,7 +80,6 @@ typedef struct {
 // Global Modem descriptor
 typedef struct{
 	uint8_t		modemid;	// index of modem instance	-> set by main() cfgini
-	uint8_t		gwid;		// modem corresponding default Pkg GWIDx (only for multi channel mode)
 	uint8_t		chncfgid;	// ID of channel configuration set
 	iopins_t	iopins;		// GPIO port definition	-> set by main() cfgini
 }modemcfg_t;

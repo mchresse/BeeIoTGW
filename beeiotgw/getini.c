@@ -139,6 +139,8 @@ configuration* pconfig = (configuration*) inibuf;
 
 		} else if (MATCH("HWCONFIG", "ND1_GWID")) {
 			pconfig->nd1_gwid = atoi(value);
+		} else if (MATCH("HWCONFIG", "ND1_MID")) {
+			pconfig->nd1_mid = atoi(value);
 		} else if (MATCH("HWCONFIG", "ND1_APPEUI")) {
 			pconfig->nd1_appeui = atoi(value);
 		} else if (MATCH("HWCONFIG", "ND1_DEVEUI1")) {
@@ -150,6 +152,8 @@ configuration* pconfig = (configuration*) inibuf;
 
 		} else if (MATCH("HWCONFIG", "ND2_GWID")) {
 			pconfig->nd2_gwid = atoi(value);
+		} else if (MATCH("HWCONFIG", "ND2_MID")) {
+			pconfig->nd2_mid = atoi(value);
 		} else if (MATCH("HWCONFIG", "ND2_APPEUI")) {
 			pconfig->nd2_appeui = atoi(value);
 		} else if (MATCH("HWCONFIG", "ND2_DEVEUI1")) {
@@ -161,6 +165,8 @@ configuration* pconfig = (configuration*) inibuf;
 
 		} else if (MATCH("HWCONFIG", "ND3_GWID")) {
 			pconfig->nd3_gwid = atoi(value);
+		} else if (MATCH("HWCONFIG", "ND3_MID")) {
+			pconfig->nd3_mid = atoi(value);
 		} else if (MATCH("HWCONFIG", "ND3_APPEUI")) {
 			pconfig->nd3_appeui = atoi(value);
 		} else if (MATCH("HWCONFIG", "ND3_DEVEUI1")) {
@@ -172,6 +178,8 @@ configuration* pconfig = (configuration*) inibuf;
 
 		} else if (MATCH("HWCONFIG", "ND4_GWID")) {
 			pconfig->nd4_gwid = atoi(value);
+		} else if (MATCH("HWCONFIG", "ND4_MID")) {
+			pconfig->nd4_mid = atoi(value);
 		} else if (MATCH("HWCONFIG", "ND4_APPEUI")) {
 			pconfig->nd4_appeui = atoi(value);
 		} else if (MATCH("HWCONFIG", "ND4_DEVEUI1")) {

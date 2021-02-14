@@ -93,24 +93,28 @@ typedef struct{
 
 	// Node Registration table
 	int	nd1_gwid;		// LoRa-Client1 GWID
+	int	nd1_mid;		// LoRa Client1 Modem assigned to GWID
 	int nd1_appeui;		// LoRa-Client1 APP-EUI
 	ulong nd1_deveuiup;	// LoRa-Client1 DEV-EUI upper
 	ulong nd1_deveuilo;	// LoRa-Client1 DEV-EUI lower
 	int nd1_freport;	// LoRa Client1 Status Report Frq.in Min.
 
 	int	nd2_gwid;		// LoRa-Client2 GWID
+	int	nd2_mid;		// LoRa Client2 Modem assigned to GWID
 	int nd2_appeui;		// LoRa-Client2 APP-EUI
 	ulong nd2_deveuiup;	// LoRa-Client2 DEV-EUI upper
 	ulong nd2_deveuilo;	// LoRa-Client2 DEV-EUI lower
 	int nd2_freport;	// LoRa Client2 Status Report Frq.in Min.
 
 	int	nd3_gwid;		// LoRa-Client3 GWID
+	int	nd3_mid;		// LoRa Client3 Modem assigned to GWID
 	int nd3_appeui;		// LoRa-Client3 APP-EUI
 	ulong nd3_deveuiup;	// LoRa-Client3 DEV-EUI upper
 	ulong nd3_deveuilo;	// LoRa-Client3 DEV-EUI lower
 	int nd3_freport;	// LoRa Client3 Status Report Frq.in Min.
 
 	int	nd4_gwid;		// LoRa-Client4 GWID
+	int	nd4_mid;		// LoRa Client4 Modem assigned to GWID
 	int nd4_appeui;		// LoRa-Client4 APP-EUI
 	ulong nd4_deveuiup;	// LoRa-Client4 DEV-EUI upper
 	ulong nd4_deveuilo;	// LoRa-Client4 DEV-EUI lower

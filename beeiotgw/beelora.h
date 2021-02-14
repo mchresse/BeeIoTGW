@@ -57,8 +57,12 @@ enum {	NODEID1=NODEIDBASE+1, NODEID2, NODEID3, NODEID4, NODEID5,
 };	// Transfer IDs of LoRa Clients
 
 // GWIDx (enum base) already defined in BeeIoTWAN.h
-#define GWID1		GWIDx-1		// Transfer ID of first gateway (backup srv.,  SDLog)
-#define GWID2		GWIDx-2		// Transfer ID of second gateway (backup srv., FW upd.)
+enum {	GWID0=GWIDx,	// default JOIN GW ID -> fallback if comm. loss
+		GWID1=GWIDx-1,	// Transfer ID of first gateway (Data Srv.,  SDLog)
+		GWID2=GWIDx-2,	// Transfer ID of second gateway (backup srv., FW upd.)
+		GWID3=GWIDx-3,  // Future use
+		GWID4=GWIDx-4	// Future use
+};
 
 // Max. time a TX request is waiting for TXDone
 #define MAXTXTO		40			// TX TO at n x MAX_PAYLOAD_LENGTH in ms: 40 x 0x80ms = 5sec.

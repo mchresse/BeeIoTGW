@@ -266,6 +266,8 @@ int NwSrv::NwNodeScan(void) {
 					cfgini = pcfg;	// we have a new config parameter set
 					lflags	= (unsigned int) cfgini->biot_verbose;	// get the custom verbose mode again
 					cfgini->loranumchn = mactive;	// limit # of supp. modems to what have been discovered
+					gwt.jsrv->JS_Cfg2Wlt();			// get GW Data set from cfgini to WLTab[]
+					// NDB will get updated at Re-/JOIN action on each node
 				} // (new) valid cfg-data available
 			}
 			count = 0;
@@ -596,7 +598,7 @@ Radio *			Modem;	// Ptr on Modem used for transmission
 		pack = (beeiot_header_t*) & actionpkg;
 		// lets acknowledge action cmd related to received package to sender
 		pack->destID = pkg->hd.sendID;	 // The BeeIoT node is the messenger
-		pack->sendID = (u1_t) (GWIDx-gwt.joindef);	// New sender: its me on Def.JOIN channel
+		pack->sendID = (u1_t) (GWID0);	// New sender: its me on Def.JOIN channel
 		pack->cmd	 = action;			 // get our action command
 		pack->pkgid  = pkg->hd.pkgid;	 // get last pkgid
 		pack->frmlen = 0;				 // send BeeIoT header for ACK only
@@ -617,7 +619,7 @@ Radio *			Modem;	// Ptr on Modem used for transmission
 			// expecting the node will reconfig. himself by all new config data settings incl. default GWID
 		}else{
 			// assumed initiator: CMD_JOIN request: communication only via default JOIN GW
-			pcfg->hd.sendID = (u1_t) (GWIDx-gwt.joindef); // New sender: default modem channel of GW
+			pcfg->hd.sendID = (u1_t) (GWID0); // New sender: default modem channel of GW
 		}
 		pcfg->hd.destID = pkg->hd.sendID;	// The BeeIoT node is the messenger
 		pcfg->hd.cmd	= action;			// get our action command

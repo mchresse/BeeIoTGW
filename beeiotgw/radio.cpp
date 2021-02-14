@@ -753,11 +753,10 @@ chncfg_t *ccfg;	// temp. ptr on Channel config set of modem
 		ccfg = &mset.chncfg;
 		printf(" GPIO Pinning:   ");
 		printf(" ChannelConfig[%i]",	(unsigned char) modemp->chncfgid);
-		printf(" ChipType:  0x%02X\n",	(unsigned char)mset.chiptype);
+		printf(" ChipType:  0x%02X    ",	(unsigned char)mset.chiptype);
+		printf(" Frq: %.3fMHz\n",		(float) ccfg->freq/1000000);
 		
 		printf(" IOPin-  CS: %i   ",	(int) modemp->iopins.sxcs);
-		printf(" Frq: %.3fMHz ",		(float) ccfg->freq/1000000);
-		printf(" ModemGWID: 0x%02X\n",	(unsigned char) modemp->gwid);
 
 		printf(" IOPin- RST: %i   ",	(int) modemp->iopins.sxrst);
 		printf(" SF: %i           ",	(int) ccfg->sf+6);
