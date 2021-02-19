@@ -198,7 +198,9 @@ int NwSrv::NwNodeScan(void) {
   int mid=0;
   
   while(1) { // start NwService loop (endless)
-		mcount++; count[0]++; count[1]++;
+	for(mid=0; mid<maxmod; mid++){
+		mcount++; 
+		count[mid] += maxmod;	// ensure counting in loop speed for all modems
 
 		if(mcount%(10*10) == (10*10-1)){	// all 10 sec.
 			printf("%i ", mid);
@@ -209,21 +211,13 @@ int NwSrv::NwNodeScan(void) {
 		if(mcount >  ((cfgini->biot_loopwait+2)*600)){		// def. loop time + 2 minutes
 			mcount=0;	// reset master counter just for print out adjustment
 		}
-		if(count[0] >  ((cfgini->biot_loopwait+2)*600)){	// def. loop time + 2 minutes
+		if(count[mid] >  ((cfgini->biot_loopwait+2)*600)){	// def. loop time + 2 minutes
 			// Reset modem0 to default config
-			gwt.modem[0]->PrintModemStatus(LOGALL);
-			gwt.modem[0]->PrintLoraStatus(LOGALL);
-			gwt.modem[0]->SetupRadio();		// if FSK recovery needed: better is reset complete Modem
-			count[0]=0; 
-			mcount=0;
-		}
-		if(count[1] >  ((cfgini->biot_loopwait+2)*600)){	// def. loop time + 2 minutes
-			// Reset modem0 to default config
-			gwt.modem[1]->PrintModemStatus(LOGALL);
-			gwt.modem[1]->PrintLoraStatus(LOGALL);
-			gwt.modem[1]->SetupRadio();		// if FSK recovery needed: better is reset complete Modem
-			count[1]=0;
-			mcount=0;
+			gwt.modem[mid]->PrintModemStatus(LOGALL);
+			gwt.modem[mid]->PrintLoraStatus(LOGALL);
+			gwt.modem[mid]->SetupRadio();		// if FSK recovery needed: better is reset complete Modem
+			count[mid]=0; 
+			mcount=0;	// readjust counter display only
 		}
 		
 		// Process NwS-Queue:
@@ -238,7 +232,7 @@ int NwSrv::NwNodeScan(void) {
 			BHLOG(LOGLORAW) gwt.gwq->PrintStatus();	// get MsgQueue STatus
 
 			MsgBuffer * msg = &(gwt.gwq->GetMsg());	// get ptr on queued MsgBuffer
-			mid=msg->getmid();	// get modem id of last message
+			mid=msg->getmid();	// get modem id of last message as higher prio for next loop
 
 			int rc = BeeIoTParse(msg);	// Start parsing payload data of msg	
 			if( rc < 0){
@@ -255,11 +249,11 @@ int NwSrv::NwNodeScan(void) {
 			BHLOG(LOGBH) printf("  NwSrv: LoraStatistic - Rcv:%u, Bad:%u, CRC:%u, O.K:%u, Fwd:%u\n",
 				gwt.cp_nb_rx_rcv, gwt.cp_nb_rx_bad, gwt.cp_nb_rx_crc, 
 				gwt.cp_nb_rx_ok, gwt.cp_up_pkt_fwd);
-			count[mid]=0;
+			count[mid]=0;	// just reset counter of last serving modem by msg
 			mcount =0;
 		}
 		
-		// set last active modem to RXCont mode again
+		// set last active modem to RXCont mode again, and in follow loops the other
 		omstatus = gwt.modem[mid]->getopmode();
 		if((omstatus & OPMODE_RX)!= OPMODE_RX){	
 			if(mid==0){ // get new config only by status change of def. JOIN modem
@@ -297,7 +291,8 @@ int NwSrv::NwNodeScan(void) {
 			strftime(TimeString, 80, "%d-%m-%y %H:%M:%S", localtime(&now.tv_sec));
 			BHLOG(LOGBH) printf("\nNwS: %s: *************** Waiting for a new BIoTWAN package **************\n", TimeString);
 		}
-
+	} // end of modem loop
+	
 	// if all modems failed working => exit/die
 	if(!mactive){
 		gettimeofday(&now, 0);

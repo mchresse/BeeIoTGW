@@ -425,8 +425,8 @@ int JoinSrv::JS_ValidatePkg(beeiotpkg_t* mystatus){
 	// 4. Compare Pkg Header with corresponding WLTab[] and NDB[] entries
 	ndid = mystatus->hd.sendID - NODEIDBASE;	// extract mutual NDB index
 	if(!WLTab[ndid].joined){ // This Node is known/registered but not joined yet ?
-		if(   mystatus->hd.sendID == NODEIDBASE && 
-			((mystatus->hd.cmd == CMD_REJOIN) ||(mystatus->hd.cmd == CMD_JOIN ))){
+		// Not joined &  CMD==JOIN: NODEIDBASE-ID request 
+		if( mystatus->hd.sendID == NODEIDBASE && mystatus->hd.cmd == CMD_JOIN ){
 				// Validate Pkg with Pkg-MIC integrity check
 				// ... Also for JOIN requests
 				if(JS_ValidateMic(mystatus, CMD_JOIN, ndid) < 0){ // Pkg Integrity by MIC o.k. ?
@@ -438,6 +438,7 @@ int JoinSrv::JS_ValidatePkg(beeiotpkg_t* mystatus){
 			return(0);
 		}
 		// Known but not joined -> Node should initiate a JOIN request first -> rejected
+		// Not joined &  any CMD: any Node ID allowed but new JOIN requested (e.g. GW was restarted)
 		rc=-3;
 		return(rc);
 	}
