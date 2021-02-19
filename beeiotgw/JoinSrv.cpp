@@ -155,7 +155,7 @@ JoinSrv::JoinSrv(gwbind_t &gwtab, int nmodem): gwt(gwtab), mactive(nmodem){
 		pndb->msg.retries			= 0;
 		pndb->msg.rssi				= 0;
 		pndb->msg.snr				= 0;	
-		pndb->msg.mid				= 0;	// mid of retrieved Pkg: to be used for any answer pkg
+		pndb->msg.mid				= WLTab[i].mid;	// preset MID even /wo any prev. package
 		if (WLTab[i].nodeid == 0){	// end of pre init field for WLTab reached ?
 			memset(&WLTab[i], 0, sizeof(nodewltable_t));	// reset all remaining fields
 		}
@@ -425,7 +425,8 @@ int JoinSrv::JS_ValidatePkg(beeiotpkg_t* mystatus){
 	// 4. Compare Pkg Header with corresponding WLTab[] and NDB[] entries
 	ndid = mystatus->hd.sendID - NODEIDBASE;	// extract mutual NDB index
 	if(!WLTab[ndid].joined){ // This Node is known/registered but not joined yet ?
-		if(mystatus->hd.sendID == NODEIDBASE && mystatus->hd.cmd == CMD_JOIN){
+		if(   mystatus->hd.sendID == NODEIDBASE && 
+			((mystatus->hd.cmd == CMD_REJOIN) ||(mystatus->hd.cmd == CMD_JOIN ))){
 				// Validate Pkg with Pkg-MIC integrity check
 				// ... Also for JOIN requests
 				if(JS_ValidateMic(mystatus, CMD_JOIN, ndid) < 0){ // Pkg Integrity by MIC o.k. ?
@@ -437,7 +438,6 @@ int JoinSrv::JS_ValidatePkg(beeiotpkg_t* mystatus){
 			return(0);
 		}
 		// Known but not joined -> Node should initiate a JOIN request first -> rejected
-		NDB[ndid].msg.mid = WLTab[ndid].mid;	// preset default MID -> will be redefined by RegisterNode()
 		rc=-3;
 		return(rc);
 	}

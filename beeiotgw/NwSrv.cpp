@@ -192,28 +192,38 @@ int NwSrv::NwNodeScan(void) {
 
   // run forever: wait for incoming packages via radio_irq_handler()
   int maxmod = mactive;	// get # of active modems only once
-  int count =0;
+  int mcount =0;		// loop master counter
+  int count[MAXGW]={0,0};	// loop counter per modem
   byte omstatus =0;
-
+  int mid=0;
+  
   while(1) { // start NwService loop (endless)
-	for(int mid=0; mid < maxmod; mid++){// ... for all discovered modems
-		count++;
-		if(count%(10*10) == (10*10-1)){	// all 10 sec.
+		mcount++; count[0]++; count[1]++;
+
+		if(mcount%(10*10) == (10*10-1)){	// all 10 sec.
 			printf("%i ", mid);
 		}
-		if(count%(2*600) == (2*600-1)){	// each 2. minute
-			printf(" %i\n", count);
+		if(mcount%(2*600) == (2*600-1)){	// each 2. minute
+			printf(" %i\n", mcount);
 		}
-		if(count >  ((cfgini->biot_loopwait+2)*600)){		// each loop + 2 minutes
-			// Reset all modems to default config
-			for(int x=0; x<maxmod; x++){
-				gwt.modem[x]->PrintModemStatus(LOGALL);
-				gwt.modem[x]->PrintLoraStatus(LOGALL);
-	//			if(!gwt.modem[x]->ChkLoraMode()){	// if no Lora Mode -> recover from FSK Mode
-					gwt.modem[x]->SetupRadio();	// FSK recovery needed: reset complete Modem
-	//			}
-			}
-			count=0;
+		if(mcount >  ((cfgini->biot_loopwait+2)*600)){		// def. loop time + 2 minutes
+			mcount=0;	// reset master counter just for print out adjustment
+		}
+		if(count[0] >  ((cfgini->biot_loopwait+2)*600)){	// def. loop time + 2 minutes
+			// Reset modem0 to default config
+			gwt.modem[0]->PrintModemStatus(LOGALL);
+			gwt.modem[0]->PrintLoraStatus(LOGALL);
+			gwt.modem[0]->SetupRadio();		// if FSK recovery needed: better is reset complete Modem
+			count[0]=0; 
+			mcount=0;
+		}
+		if(count[1] >  ((cfgini->biot_loopwait+2)*600)){	// def. loop time + 2 minutes
+			// Reset modem0 to default config
+			gwt.modem[1]->PrintModemStatus(LOGALL);
+			gwt.modem[1]->PrintLoraStatus(LOGALL);
+			gwt.modem[1]->SetupRadio();		// if FSK recovery needed: better is reset complete Modem
+			count[1]=0;
+			mcount=0;
 		}
 		
 		// Process NwS-Queue:
@@ -228,6 +238,7 @@ int NwSrv::NwNodeScan(void) {
 			BHLOG(LOGLORAW) gwt.gwq->PrintStatus();	// get MsgQueue STatus
 
 			MsgBuffer * msg = &(gwt.gwq->GetMsg());	// get ptr on queued MsgBuffer
+			mid=msg->getmid();	// get modem id of last message
 
 			int rc = BeeIoTParse(msg);	// Start parsing payload data of msg	
 			if( rc < 0){
@@ -236,7 +247,7 @@ int NwSrv::NwNodeScan(void) {
 				// BHLOG(LOGLORAR) gwt.gwq->PrintStatus();		
 				// BHLOG(LOGLORAR) gwt.modem[mid]->PrintLoraStatus(LOGALL);		
 			}
-
+			
 			// Remove parsed package from Queue
 			gwt.gwq->PopMsg();
 			BHLOG(LOGLORAW) gwt.gwq->PrintStatus();
@@ -244,10 +255,11 @@ int NwSrv::NwNodeScan(void) {
 			BHLOG(LOGBH) printf("  NwSrv: LoraStatistic - Rcv:%u, Bad:%u, CRC:%u, O.K:%u, Fwd:%u\n",
 				gwt.cp_nb_rx_rcv, gwt.cp_nb_rx_bad, gwt.cp_nb_rx_crc, 
 				gwt.cp_nb_rx_ok, gwt.cp_up_pkt_fwd);
-			count =0;
+			count[mid]=0;
+			mcount =0;
 		}
 		
-		// activate modem to RXCont mode
+		// set last active modem to RXCont mode again
 		omstatus = gwt.modem[mid]->getopmode();
 		if((omstatus & OPMODE_RX)!= OPMODE_RX){	
 			if(mid==0){ // get new config only by status change of def. JOIN modem
@@ -270,8 +282,7 @@ int NwSrv::NwNodeScan(void) {
 					// NDB will get updated at Re-/JOIN action on each node
 				} // (new) valid cfg-data available
 			}
-			count = 0;
-
+			
 			// Start LoRa Modem: in continuous read mode again
 			BHLOG(LOGLORAR) printf("  NwS: Enter RX_Cont Mode for Lora Modem%i (omstatus=%02X)\n", mid, (unsigned char)omstatus);
 			int rc = gwt.modem[mid]->startrx(RXMODE_SCAN, 0);	// RX in RX_CONT Mode
@@ -279,13 +290,15 @@ int NwSrv::NwNodeScan(void) {
 				gwt.modem[mid]->SetupRadio();	// FSK recovery needed: reset complete Modem
 				gwt.modem[mid]->startrx(RXMODE_SCAN, 0);	// retry RX CONT Mode
 			}
+			count[mid]=0;
 			delay(500);		// wait some time (500ms) till status gets active
 			// ISR is now waiting for DIO0 port change
 			gettimeofday(&now, 0);
 			strftime(TimeString, 80, "%d-%m-%y %H:%M:%S", localtime(&now.tv_sec));
 			BHLOG(LOGBH) printf("\nNwS: %s: *************** Waiting for a new BIoTWAN package **************\n", TimeString);
 		}
-	} // end of Modem-Loop
+
+	// if all modems failed working => exit/die
 	if(!mactive){
 		gettimeofday(&now, 0);
 		strftime(TimeString, 80, "%d-%m-%y %H:%M:%S", localtime(&now.tv_sec));
@@ -362,28 +375,35 @@ ackbcn_t * pbcn;			// ptr on Beacon ack. frame
 			BHLOG(LOGLORAW) printf("  BeeIoTParse: Node registered but not joined yet (NodeID:0x%02X) -> Request a RE-JOIN\n", 
 				(unsigned char)mystatus.hd.sendID);
 			needaction = CMD_REJOIN;	// Request JOIN command from Node
+			ndid = mystatus.hd.sendID - NODEIDBASE;
+			gwt.jsrv->NDB[ndid].msg.mid = mid;	// safe last used mid for any further action
 			// return rejoin request ´to retrieve right config set again 
-			BeeIoTFlow(needaction, &mystatus, mystatus.hd.sendID-NODEIDBASE, 0);
+			BeeIoTFlow(needaction, &mystatus, ndid, 0);
 			gwt.cp_nb_rx_ok++;		// incr. # of correct received packages	
 			return(rc);
 		}else if(rc == -4){
 			BHLOG(LOGLORAW) printf("  BeeIoTParse: Node joined but not using assigned GWID 0x%02X -> should rejoin\n", 
 				(unsigned char)mystatus.hd.destID);					
 			needaction = CMD_REJOIN;	// Request JOIN command from Node
+			ndid = mystatus.hd.sendID - NODEIDBASE;
+			gwt.jsrv->NDB[ndid].msg.mid = mid;	// safe last used mid for any further action
 			// return rejoin request ´to retrieve right config set again 
-			BeeIoTFlow(needaction, &mystatus, mystatus.hd.sendID-NODEIDBASE, 0);
+			BeeIoTFlow(needaction, &mystatus, ndid, 0);
 			gwt.cp_nb_rx_ok++;		// incr. # of correct received packages	
 			return(rc);			
 		}else if (rc == -5 || rc == -6){
 			// wrong Framelen detected -> request RETRY
 			BHLOG(LOGLORAW) printf("  BeeIoTParse: Wrong Framelen 0x%02X or payload corrupted (rc:%i)-> requesting a RETRY\n",
 				(unsigned char)mystatus.hd.frmlen, rc);
-			BeeIoTFlow(CMD_RETRY, &mystatus, mystatus.hd.sendID-NODEIDBASE, 0);
+			ndid = mystatus.hd.sendID - NODEIDBASE;
+			gwt.jsrv->NDB[ndid].msg.mid = mid;	// safe last used mid for any further action
+			BeeIoTFlow(CMD_RETRY, &mystatus, ndid, 0);
 			gwt.cp_nb_rx_bad++;	// bad pkg
 			return(rc);
 		}
 	}
 	ndid = rc;	// we received Node-ID of curr. Pkg from JS
+	gwt.jsrv->NDB[ndid].msg.mid = mid;	// safe last used mid for any further action
 	// For (RE-)JOIN Request ndid is set to 0 by JS !
 
 	gwt.cp_nb_rx_ok++;			// incr. # of correct received packages	
