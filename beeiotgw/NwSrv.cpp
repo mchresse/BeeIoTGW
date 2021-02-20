@@ -200,7 +200,7 @@ int NwSrv::NwNodeScan(void) {
   while(1) { // start NwService loop (endless)
 	for(mid=0; mid<maxmod; mid++){
 		mcount++; 
-		count[mid] += maxmod;	// ensure counting in loop speed for all modems
+		count[mid]++;	// ensure modem will be reset once
 
 		if(mcount%(10*10) == (10*10-1)){	// all 10 sec.
 			printf("%i ", mid);
