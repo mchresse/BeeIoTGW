@@ -206,7 +206,7 @@ int NwSrv::NwNodeScan(void) {
 			printf("%i ", mid);
 		}
 		if(mcount%(2*600) == (2*600-1)){	// each 2. minute
-			printf(" %i\n", mcount);
+			printf(" %i\n    ", mcount);
 		}
 		if(mcount >  ((cfgini->biot_loopwait+2)*600)){		// def. loop time + 2 minutes
 			mcount=0;	// reset master counter just for print out adjustment
@@ -223,6 +223,7 @@ int NwSrv::NwNodeScan(void) {
 		// Process NwS-Queue:
 		// Check RX Queue Status (len>0) and process each package accordingly
 		while(gwt.gwq->MsgQueueSize() > 0){	// Do we have a package in the RX Queue ?
+			BHLOG(LOGBH) printf("\n");	// new line after counting line
 			gettimeofday(&now, 0);		// get current timestamp
 			strftime(TimeString, 80, "%d-%m-%y %H:%M:%S", localtime(&now.tv_sec));
 
@@ -246,7 +247,7 @@ int NwSrv::NwNodeScan(void) {
 			gwt.gwq->PopMsg();
 			BHLOG(LOGLORAW) gwt.gwq->PrintStatus();
 
-			BHLOG(LOGBH) printf("  NwSrv: LoraStatistic - Rcv:%u, Bad:%u, CRC:%u, O.K:%u, Fwd:%u\n",
+			BHLOG(LOGBH) printf("  NwSrv: LoraStatistic - Rcv:%u, Bad:%u, CRC:%u, O.K:%u, AppFwd:%u\n",
 				gwt.cp_nb_rx_rcv, gwt.cp_nb_rx_bad, gwt.cp_nb_rx_crc, 
 				gwt.cp_nb_rx_ok, gwt.cp_up_pkt_fwd);
 			count[mid]=0;	// just reset counter of last serving modem by msg
@@ -273,6 +274,8 @@ int NwSrv::NwNodeScan(void) {
 					lflags	= (unsigned int) cfgini->biot_verbose;	// get the custom verbose mode again
 					cfgini->loranumchn = mactive;	// limit # of supp. modems to what have been discovered
 					gwt.jsrv->JS_Cfg2Wlt();			// get GW Data set from cfgini to WLTab[]
+					BHLOG(LOGBH) printf("    NwS: Parse Config file again: Verbose:%i, #Modems:%i (C%i,C%i)\n",
+							lflags, cfgini->loranumchn,cfgini->lora0channel, cfgini->lora1channel);
 					// NDB will get updated at Re-/JOIN action on each node
 				} // (new) valid cfg-data available
 			}
@@ -289,7 +292,7 @@ int NwSrv::NwNodeScan(void) {
 			// ISR is now waiting for DIO0 port change
 			gettimeofday(&now, 0);
 			strftime(TimeString, 80, "%d-%m-%y %H:%M:%S", localtime(&now.tv_sec));
-			BHLOG(LOGBH) printf("\nNwS: %s: *************** Waiting for a new BIoTWAN package **************\n", TimeString);
+			BHLOG(LOGBH) printf("\nNwS: %s: *************** Waiting for a new BIoTWAN package **************\n    ", TimeString);
 		}
 	} // end of modem loop
 	
@@ -297,7 +300,7 @@ int NwSrv::NwNodeScan(void) {
 	if(!mactive){
 		gettimeofday(&now, 0);
 		strftime(TimeString, 80, "%d-%m-%y %H:%M:%S", localtime(&now.tv_sec));
-		printf("\nNwS: %s: No active LoRa Modem left -> Stop Server Scan\n", TimeString);
+		printf("NwS: %s: No active LoRa Modem left -> Stop Server Scan\n", TimeString);
 		return(-1);
 	}
 

@@ -370,7 +370,7 @@ int  rc =0;
 	pndb->AppSKey[0] = 0;
 	pndb->NwSKey[0]  = 0;
 
-    BHLOG(LOGLORAW) printf("  Node Joined now!  -> assigned: GWID:0x%02X, NodeID:0x%02X, ", 
+    BHLOG(LOGBH) printf("  Node Joined now!  -> assigned: GWID:0x%02X, NodeID:0x%02X, ", 
 				(unsigned char) pwltab->gwid, (unsigned char)pwltab->nodeid);
 	BHLOG(LOGLORAW) Printhex((byte*)& pndb->DevAddr, 4,  "DevAddr: 0x", 4); 
 	BHLOG(LOGLORAW) printf("\n");
@@ -381,7 +381,7 @@ int  rc =0;
     BHLOG(LOGLORAW) Printhex( pndb->AppSKey, 16,         "   AppSKEY: 0x-", 2);
 	BHLOG(LOGLORAW) printf("\n");
     BHLOG(LOGLORAW) Printhex( pndb->NwSKey,  16,         "    NwSKEY: 0x-", 2);
-	BHLOG(LOGLORAW) printf("\n");
+	BHLOG(LOGBH) printf("\n");
 
 	return(ndid);
 }
@@ -469,7 +469,7 @@ int JoinSrv::JS_ValidatePkg(beeiotpkg_t* mystatus){
 	if(NDB[ndid].nodecfg.gwid != mystatus->hd.destID){
 		// this joined node is (still) not using the assigned GWID
 		// pkg rejected -> request a rejoin needed
-		BHLOG(LOGLORAW) printf("  JS_ValidateNode: joined node is (still) not using the assigned GWID (0x%02X) -> should rejoin", (unsigned char) mystatus->hd.destID);
+		BHLOG(LOGLORAW) printf("  JS_ValidateNode: joined node is (still) not using the assigned GWID (0x%02X) -> should rejoin\n", (unsigned char) mystatus->hd.destID);
 		rc=-4;
 		return(rc);
 	}

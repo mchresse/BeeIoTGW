@@ -194,7 +194,7 @@ int AppSrv::AppProxy(int ndid, char * framedata, byte framelen, int mid){
 			rc = AppGH (ndid, framedata, framelen, mid);
 			break;
 		default:	// no match in APP function EUID table found
-			BHLOG(LOGBIOT) printf("  JS_AppProxy: wrong App JOIN EUI idx %i\n", idx);
+			BHLOG(LOGBH) printf("  JS_AppProxy: wrong App JOIN EUI idx %i\n", idx);
 			return(-99);
 	}
 
@@ -220,21 +220,21 @@ int AppSrv::AppBIoT	(int ndid, char* data, byte len, int mid){
 	nodedb_t *pndb = &gwt.jsrv->NDB[ndid]; // ptr to NDB[ndid]
 
     if(data && len == 0){    // prevent NULL ptr. and bitlen=0
-        BHLOG(LOGBH) printf("  AppBIoT: Wrong input data (%p, %i)\n", data, (int)len);
+        BHLOG(LOGBIOT) printf("  AppBIoT: Wrong input data (%p, %i)\n", data, (int)len);
         return(-99);        // wrong input data
     }
 
 	// get current timestamp
 	gettimeofday(&now, 0);
 	strftime(TimeString, 80, "%Y-%m-%d %H:%M:%S", localtime(&now.tv_sec));
-    BHLOG(LOGBH) printf("  AppBIoT: %s -Processing Sensor data (len:%i) of BIoT-Node: 0x%02X\n", 
+    BHLOG(LOGBH) printf("\n  AppBIoT: %s -Processing Sensor data (len:%i) of BIoT-Node: 0x%02X\n", 
 				TimeString, (int)len, (unsigned char) pndb->nodecfg.nodeid);
 
     idx = 0; // start with first entry (by now the only one)
 
     data[len-2]=0;	// limit string by EOL -> set new end marker (and cut off EOL:0D0A)
-    BHLOG(LOGBH) printf("    Status: %s ", data); // to be checked if it is a string
-    BHLOG(LOGBH) printf("%iBy.\n", (int) len);
+    BHLOG(LOGBIOT) printf("    Status Node0x%02X: %s ",(unsigned char) pndb->nodecfg.nodeid, data); // to be checked if it is a string
+    BHLOG(LOGBIOT) printf("%iBy.\n", (int) len);
 
     // parse sensor status stream for whitespace chars conflicting with sscanf()
     for(int i=0; i<strlen(data); i++){
@@ -303,7 +303,7 @@ int AppSrv::AppBIoT	(int ndid, char* data, byte len, int mid){
 */
         gwt.cp_up_pkt_fwd++;	// Statistic: incr. # of forwarded status packages
 
-		// ToDo: if add. Message to Node: prepare in TXBUFFER
+		// ToDo: if add. Message to Node: prepare in TXBUFFER here
 		// rc = 1; / Let NwSrv send it back to Node
 		
 		return(rc);
@@ -315,7 +315,7 @@ int AppSrv::AppBIoT	(int ndid, char* data, byte len, int mid){
 // Analyzing Turtle House Sensor data
 //
 int AppSrv::AppTurtle (int ndid, char* data, byte len, int mid){
-	BHLOG(LOGBH) printf("  AppTurtle: Processing new Sensor Status data (len:%i)\n", (int)len);
+	BHLOG(LOGTURTLE) printf("  AppTurtle: Processing new Sensor Status data (len:%i)\n", (int)len);
 
 	return(0);
 }
@@ -325,7 +325,7 @@ int AppSrv::AppTurtle (int ndid, char* data, byte len, int mid){
 // Analyzing GH House Sensor data
 //
 int AppSrv::AppGH (int ndid, char* data, byte len, int mid){
-	BHLOG(LOGBH) printf("  AppGH: Processing new Sensor Status data (len:%i)\n", (int)len);
+	BHLOG(LOGGH) printf("  AppGH: Processing new Sensor Status data (len:%i)\n", (int)len);
 
 	return(0);
 }
