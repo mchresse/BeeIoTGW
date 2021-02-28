@@ -149,6 +149,8 @@ configuration* pconfig = (configuration*) inibuf;
 			pconfig->nd1_deveuilo = strtoul(value, NULL, 16);
 		} else if (MATCH("HWCONFIG", "ND1_FREPORT")) {
 			pconfig->nd1_freport = atoi(value);
+		} else if (MATCH("HWCONFIG", "ND1_WCALIB")) {
+			pconfig->nd1_wcalib = atoi(value);
 
 		} else if (MATCH("HWCONFIG", "ND2_GWID")) {
 			pconfig->nd2_gwid = atoi(value);
@@ -162,6 +164,8 @@ configuration* pconfig = (configuration*) inibuf;
 			pconfig->nd2_deveuilo = strtoul(value, NULL, 16);
 		} else if (MATCH("HWCONFIG", "ND2_FREPORT")) {
 			pconfig->nd2_freport = atoi(value);
+		} else if (MATCH("HWCONFIG", "ND2_WCALIB")) {
+			pconfig->nd2_wcalib = atoi(value);
 
 		} else if (MATCH("HWCONFIG", "ND3_GWID")) {
 			pconfig->nd3_gwid = atoi(value);
@@ -175,6 +179,8 @@ configuration* pconfig = (configuration*) inibuf;
 			pconfig->nd3_deveuilo = strtoul(value, NULL, 16);
 		} else if (MATCH("HWCONFIG", "ND3_FREPORT")) {
 			pconfig->nd3_freport = atoi(value);
+		} else if (MATCH("HWCONFIG", "ND3_WCALIB")) {
+			pconfig->nd3_wcalib = atoi(value);
 
 		} else if (MATCH("HWCONFIG", "ND4_GWID")) {
 			pconfig->nd4_gwid = atoi(value);
@@ -188,7 +194,8 @@ configuration* pconfig = (configuration*) inibuf;
 			pconfig->nd4_deveuilo = strtoul(value, NULL, 16);
 		} else if (MATCH("HWCONFIG", "ND4_FREPORT")) {
 			pconfig->nd4_freport = atoi(value);
-
+		} else if (MATCH("HWCONFIG", "ND4_WCALIB")) {
+			pconfig->nd4_wcalib = atoi(value);
 	} else 
 		if (       MATCH("BEEIOT", "BHLOOPWAIT")) {
 			pconfig->biot_loopwait = atoi(value);
@@ -204,24 +211,6 @@ configuration* pconfig = (configuration*) inibuf;
 			pconfig->biot_actionIOfailure = atoi(value);
 		} else if (MATCH("BEEIOT", "VERBOSE")) {
 			pconfig->biot_verbose = atoi(value);
-    } else 
-		if (       MATCH("HX711", "TARA")) {
-			pconfig->hxtara = atol(value);
-		} else if (MATCH("HX711", "TARASET")) {
-			pconfig->hxtaraset = atoi(value);
-		} else if (MATCH("HX711", "REFKG")) {
-			pconfig->hxrefkg = atol(value);
-		} else if (MATCH("HX711", "TEMPCOMP")) {
-			pconfig->hxtempcomp = atof(value);
-		} else if (MATCH("HX711", "NSAMPLES")) {
-			pconfig->hxnsamples = atoi(value);
-    } else 
-		if (       MATCH("ONEWIRE", "TEMPCINT")) {
-			pconfig->owtcint = atof(value);
-		} else if (MATCH("ONEWIRE", "TEMPCEXT")) {
-			pconfig->owtcext = atof(value);
-		} else if (MATCH("ONEWIRE", "TEMPCHIVE")) {
-			pconfig->owtchive = atof(value);
     } else 
 		if (       MATCH("WIFI", "WIFISSID")) {
 			strcpy(pconfig->wifi_ssid,value);
@@ -447,23 +436,25 @@ FILE *	bhcfg;
 	}	// else new file created
 
 	strcpy(cfgline[0],  "; BeeIoT Gateway&Server config file for first runtime initialization\n");
-	strcpy(cfgline[1],  "; 01.02.2020\n");
-	strcpy(cfgline[2],  "VERSION = '2.2'\n");
-        strcpy(cfgline[3],  "VMAJOR	= 1		; Major Version of BIoTWAN Protocol\n");
-	strcpy(cfgline[4],  "VMINOR	= 0		; Minor Version of BIoTWAN Protocol\n");
+	strcpy(cfgline[1],  "; 28.02.2021\n");
+	strcpy(cfgline[2],  "VERSION = '2.5'\n");
+    strcpy(cfgline[3],  "VMAJOR	= 1		; Major Version of BIoTWAN Protocol\n");
+	strcpy(cfgline[4],  "VMINOR	= 4		; Minor Version of BIoTWAN Protocol\n");
 	strcpy(cfgline[5],  "\n");
 	strcpy(cfgline[6],  "; BeeIoT Server configuration runtime parameters\n");
 	strcpy(cfgline[7],  "; This file can be modified during runtime of beeiotgw !\n");
 	strcpy(cfgline[8],  "; All Values are parsed cyclic during runtime right after the wait loop.\n");
-	strcpy(cfgline[9], "\n");
-	strcpy(cfgline[10], "[HWCONFIG]                 ; wPi configuration settings\n");
-	strcpy(cfgline[11], "LORANUMCHN	 1		; only one LORA channel supported > single chn. gateway\n");
-	strcpy(cfgline[12], "LORADEFCHN	 0		; Default LORA Channel for JOIN REQUEST\n");
-	strcpy(cfgline[13], "; LoRa Port0 > Dragino LoRa Hat GPIO ports of SX1276 + GPS chip\n");
-	strcpy(cfgline[14], "LORA0CS		= 6	; GPIO 25  	Pin 22\n");
-	strcpy(cfgline[15], "LORA0MOSI	= 12	; GPIO 10 	MOSI Pin 19\n");
-	strcpy(cfgline[16], "LORA0MISO	= 13	; GPIO 9  	MISO Pin 21\n");
-	strcpy(cfgline[17], "LORA0SCK	= 14	; GPIO 11 	SCLK Pin 23 \n");
+	strcpy(cfgline[9],  "\n");
+	strcpy(cfgline[10], "[HWCONFIG]         ; wPi configuration settings\n");
+	strcpy(cfgline[11], "LORANUMCHN	 2		; only one LORA channel supported > single chn. gateway\n");
+	strcpy(cfgline[12], "LORADEFCHN	 0		; Default LORA Channel for JOIN REQUEST\n\n");
+
+	strcpy(cfgline[13], "LORAxMISO	= 13	; GPIO 9 	MISO Pin 21\n");
+	strcpy(cfgline[14], "LORAxMOSI	= 12	; GPIO 10  	MOSI Pin 19\n");
+	strcpy(cfgline[15], "LORAxSCK	= 14	; GPIO 11 	SCLK Pin 23 \n\n");
+
+	strcpy(cfgline[16], "; LoRa Port0 >wPi#:       BCM:	J40:	=> Radio Modem 0\n");
+	strcpy(cfgline[17], "LORA0CS	= 6	; GPIO 25  	Pin 22\n");
 	strcpy(cfgline[18], "LORA0RST	= 0	; GPIO 0	Pin 11\n");
 	strcpy(cfgline[19], "LORA0DIO0	= 7	; GPIO 4	Pin 7\n");
 	strcpy(cfgline[20], "LORA0DIO1	= 4	; GPIO 23	Pin 16\n");
@@ -471,70 +462,106 @@ FILE *	bhcfg;
 	strcpy(cfgline[22], "LORA0DIO3	= -1	; GPIO x	Pin x\n");
 	strcpy(cfgline[23], "LORA0DIO4	= -1	; GPIO x	Pin x\n");
 	strcpy(cfgline[24], "LORA0DIO5	= -1	; GPIO x	Pin x\n");
-	strcpy(cfgline[25], "GPS0TXD	= 15	; GPIO 15 	TxD	of GPS module\n");
-	strcpy(cfgline[26], "GPS0RXD	= 16	; GPIO 16 	RxD of GPS module\n");
-	strcpy(cfgline[27], "\n");
-	strcpy(cfgline[28], "; Component enabler\n");
-	strcpy(cfgline[29], "HCLORA     = 1     ; =1 LoRa Port sending enabled\n");
-	strcpy(cfgline[30], "HCLORAWAN  = 0	; =0 BIoTWAN protocol enabled, =1 LoRaWAN enable (not supp. yet)\n");
-	strcpy(cfgline[31], "HCGPS      = 0	; =1 GPS module enabled\n");
-	strcpy(cfgline[32], "HCLOCWEB   = 1	; =1 Activate local Webpage date preparation at BEEIOTWEB\n");
-	strcpy(cfgline[33], "HCREMWEB   = 1	; =1 Activate remote Webpage date preparation at EXFTPURL > EXFTPPATH\n");
-	strcpy(cfgline[34], "\n");
-	strcpy(cfgline[35], "[BEEIOT]   ; Init of Main Loop\n");
-	strcpy(cfgline[36], "BHLOOPWAIT = 600           ; loop wait time in Sec. (600 = 10Min.)\n");
-	strcpy(cfgline[37], "BEEIOTHOME = /home/pi/share/biot  ; Home path for beeiotgw housekeeping data\n");
-	strcpy(cfgline[38], "LOGFILE    = biot.txt      ; log file name (/w extension)\n");
-	strcpy(cfgline[39], "CSVFILE    = biotlog       ; *.csv data log file name (/wo extension): results in beeiotlogYYYY.csv\n");
-	strcpy(cfgline[40], "CSVDAYS    = biotdays      ; *.csv file of daily statistic summary (/wo extension)\n");
-	strcpy(cfgline[41], "ACTIOFAIL  = 1             ; allowed action on IO Error: 0= no Action, 1= exit, 2=reboot\n");
-	strcpy(cfgline[42], "VERBOSE	= 1             ; verbose levels +1=main flow + 2=OneWire + 4=hx711 + 8 ePaper\n");
-        strcpy(cfgline[43], "                           ; 16=LANcfg + 32=SDCard + 64=ADS + 128=SPI Port\n");
-        strcpy(cfgline[44], "                           ; 256=Lora-Radio + 512=Lora-BIoTWAN-Protocol\n");
-	strcpy(cfgline[45], "[HX711]    ; Init of Weight scale ADC\n");
-	strcpy(cfgline[46], "TARA       = 297570        ; Calibration for 0 kg\n");
-	strcpy(cfgline[47], "TARASET    = 0             ; =1 TARA reset by last measured weight level -> at next loop\n");
-	strcpy(cfgline[48], "REFKG      = 44000         ; weight scale reference value of 1kg\n");
-	strcpy(cfgline[49], "TEMPCOMP   = 1.0           ; Temp. compensation factor per Grad\n");
-	strcpy(cfgline[50], "NSAMPLES   = 1             ; Number of read loops for average calculation (2..100)\n"); 
-	strcpy(cfgline[51], "\n");
+	strcpy(cfgline[25], "LORA0CHANNEL= 0	; Channel cfg. set (see BeeIoTWAN.h)\n\n");
 
-	strcpy(cfgline[52], "[ONEWIRE]  ; Init of One-Wire devices\n");
-	strcpy(cfgline[53], "TEMPCEXT     = 1.00        ; temperature compensation External sensor\n");
-	strcpy(cfgline[54], "TEMPCINT     = 1.00        ; temperature compensation Internal sensor\n");
-	strcpy(cfgline[55], "TEMPCHIVE    = 1.00        ; temperature compensation Hive1 sensor\n");
-	strcpy(cfgline[56], "\n");
+	strcpy(cfgline[26], "; LoRa Port1 >wPi#:	      BCM:	J40:	=> Radio Modem 1\n");
+	strcpy(cfgline[27], "LORA1CS		= 21	; GPIO 5  	Pin 29	NSS1\n");
+	strcpy(cfgline[28], "LORA1RST	= 22	; GPIO 6	Pin 31	Reset1\n");
+	strcpy(cfgline[29], "LORA1DIO0	= 23	; GPIO 13	Pin 33	DIO0-1\n");
+	strcpy(cfgline[30], "LORA1DIO1	= -1	; GPIO x	Pin x	DIO1-1 n.c.\n");
+	strcpy(cfgline[31], "LORA1DIO2	= -1	; GPIO x	Pin x	DIO2-1 n.c.\n");
+	strcpy(cfgline[32], "LORA1DIO3	= -1	; GPIO x	Pin x	DIO3-1 n.c.\n");
+	strcpy(cfgline[33], "LORA1DIO4	= -1	; GPIO x	Pin x	DIO4-1 n.c.\n");
+	strcpy(cfgline[34], "LORA1DIO5	= -1	; GPIO x	Pin x	DIO5-1 n.c.\n");
+	strcpy(cfgline[35], "LORA1CHANNEL= 1		; Channel cfg. set (see BeeIoTWAN.h)\n\n");
 
-	strcpy(cfgline[57], "[WEBUI]\n");
-	strcpy(cfgline[58], "AUTOUPDATE  = 0                 ; =1 automatic update of website\n");
-	strcpy(cfgline[59], "BEEIOTWEB   = /var/www/html/beeiot   ; root path to webserver home of beeiot for log & data files\n");
-	strcpy(cfgline[60], "BEEKEEPER   = 'UserName'        ; Full name of Owner/User/BeeKeeper\n");
-	strcpy(cfgline[61], "LOCDAT1     = '-Garten-'        ; Location of BeeHive1\n");
-	strcpy(cfgline[62], "LOCDAT2     = 'Strasse'         ; Street\n");
-	strcpy(cfgline[63], "LOCPLZ      = 'PLZ'             ; ZIP code of location (also fro weather data from web)\n");
-	strcpy(cfgline[64], "LOCDAT3     = 'Ort'             ; location name\n");
-	strcpy(cfgline[65], "PICSMALL    = BeeIoT_Picture_compressed.jpg ; Pic of BeeHive (compressed) used as WebLogo\n");
-	strcpy(cfgline[66], "PICLARGE    = BeeIoT_Picture.jpg ; Pix of Beehive full size\n");
-	strcpy(cfgline[67], "WEBDEFFILE  = index.html        ; default Web index file to be updated\n");
-	strcpy(cfgline[68], "NOTICEFILE  = beenote.txt       ; text file of service notices for logging\n");
-	strcpy(cfgline[69], "ALARMON     = 0                 ; =1 Global 'ALARM enabled' for security/events\n");
-	strcpy(cfgline[70], "ALARMWEIGHT = 0                 ; Alarm on Weight change > 50% in 5 seconds: thieve\n");
-	strcpy(cfgline[71], "                                ; =0 disabled, 1..99% enabled, typical 50(%)\n");
-	strcpy(cfgline[72], "ALARMSWARM  = 0                 ; Alarm on weight change > 10% in 10 minutes: swarm\n");
-	strcpy(cfgline[73], "                                ; =0 disabled, 1..99% enabled, typical 10(%)\n");
-	strcpy(cfgline[74], "ALARMBATT1  = 0                 ; =0 disabled; 1..100% enabled, typical 100(%)= 4.2V->Max\n");
-	strcpy(cfgline[75], "ALARMBATT2  = 0                 ; =0 disabled; 1..100% enabled, typical 0(%)= 3.3V ->Off\n");
-	strcpy(cfgline[76], "\n");
+	strcpy(cfgline[36], "GPS0TXD	= 15	; GPIO 15 	TxD	of GPS module\n");
+	strcpy(cfgline[37], "GPS0RXD	= 16	; GPIO 16 	RxD of GPS module\n\n");
 
-	strcpy(cfgline[77], "[EXPORT]\n");
-	strcpy(cfgline[78], "EXFTPURL    = <ftp URL>         ; FTP site URL for upload of raw logger data from BEELOGWEB\n");
-	strcpy(cfgline[79], "EXFTPPORT   = 21                ; Portnumber of URL (used as string)\n");
-	strcpy(cfgline[80], "EXFTPPATH   = imkerei/beelog    ; relative FTP path to URL\n");
-	strcpy(cfgline[81], "EXFTPPROXY  =                   ; If needed: FTP proxy server; set '' if no proxy needed\n");
-	strcpy(cfgline[82], "EXFTPPROXYPORT =                ; used proxy port (used as string)\n");
-	strcpy(cfgline[83], "EXFTPUSER   =                   ;no user name for FTP access (get pwd by dialogue or local .netrc file)\n");
-	strcpy(cfgline[84], "BKUPPATH    = /home/pi/share/beeiot ; Backup file path (local or remote)\n");
-	strcpy(cfgline[85], "BKUPFILE    = beeiot            ; name of config/log backup file at BKUPPATH -> beeiotlogYYYY.bak\n");
+	strcpy(cfgline[38], "; LoRa Client Registration:\n");
+	strcpy(cfgline[39], "; Node 1: BeeIoT ESP32-WROOM32:	MAC: 24:6F:28:D5:8A:DC	default: BeeHive Weightcell #1\n");
+	strcpy(cfgline[40], "ND1_GWID	= 1		; GW ID relative to GWIDx (1..LORANUMCHN)\n");
+	strcpy(cfgline[41], "ND1_MID		= 0		; Assign physical Radio Modem to virt. GW\n");
+	strcpy(cfgline[42], "ND1_APPEUI  = 1		; 1= BIOT, 2= TURTLE, 3= GH\n");
+	strcpy(cfgline[43], "ND1_DEVEUI1 = DC8AD5FF	; Unique DEVEUI of Node Upper Long\n");
+	strcpy(cfgline[44], "ND1_DEVEUI2 = FE286F24	; Unique DEVEUI of Node Lower Long\n");
+	strcpy(cfgline[45], "ND1_FREPORT = 10	; Report Frequency in Minutes\n");
+	strcpy(cfgline[46], "ND1_WCALIB	= 0		; Weight Cell calibration (absolute +/-)\n\n");
+
+	strcpy(cfgline[47], "; Node 2: ESP32-WROVERB: MAC 24:6F:28:F0:0D:AC		beacon test Module 1\n");
+	strcpy(cfgline[48], "ND2_GWID	= 1		; GW ID relative to GWIDx (1..LORANUMCHN)\n");
+	strcpy(cfgline[49], "ND2_MID		= 0		; Assign physical Radio Modem to virt. GW\n");
+	strcpy(cfgline[50], "ND2_APPEUI  = 1		; 1= BIOT, 2= TURTLE, 3= GH\n");
+	strcpy(cfgline[51], "ND2_DEVEUI1 = AC0DF0FF	; Unique DEVEUI of Node Upper Long\n");
+	strcpy(cfgline[52], "ND2_DEVEUI2 = FE286F24	; Unique DEVEUI of Node Lower Long\n");
+	strcpy(cfgline[53], "ND2_FREPORT = 1	    ; Report Frequency in Minutes\n");
+	strcpy(cfgline[54], "ND2_WCALIB	= 0		; Weight Cell calibration (absolute +/-)\n\n");
+
+	strcpy(cfgline[55], "; Node 3: BeeIoT ESP32-WROOM32:	MAC: 94:FE:8A:B5:AA:8C	Beacon test Module 2\n");
+	strcpy(cfgline[56], "ND3_GWID	= 1		; GW ID relative to GWIDx (1..LORANUMCHN)\n");
+	strcpy(cfgline[57], "ND3_MID		= 0		; Assign physical Radio Modem to virt. GW\n");
+	strcpy(cfgline[58], "ND3_APPEUI  = 1		; 1= BIOT, 2= TURTLE, 3= GH\n");
+	strcpy(cfgline[59], "ND3_DEVEUI1 = 94FE8AFF	; Unique DEVEUI of Node Upper Long\n");
+	strcpy(cfgline[60], "ND3_DEVEUI2 = FEB5AA8C	; Unique DEVEUI of Node Lower Long\n");
+	strcpy(cfgline[61], "ND3_FREPORT = 1	    ; Report Frequency in Minutes\n");
+	strcpy(cfgline[62], "ND3_WCALIB	= 0		; Weight Cell calibration (absolute +/-)\n\n");
+
+	strcpy(cfgline[63], "; Node 4: BeeIoT ESP32-WROOM32:	MAC: 2C:2B:16:28:6F:24 	Beehive Weight cell test Module 3\n");
+	strcpy(cfgline[64], "ND4_GWID	= 2		; GW ID relative to GWIDx (1..LORANUMCHN)\n");
+	strcpy(cfgline[65], "ND4_MID		= 1		; Assign physical Radio Modem to virt. GW\n");
+	strcpy(cfgline[66], "ND4_APPEUI  = 1		; 1= BIOT, 2= TURTLE, 3= GH\n");
+	strcpy(cfgline[67], "ND4_DEVEUI1 = 2C2B16FF	; Unique DEVEUI of Node Upper Long\n");
+	strcpy(cfgline[68], "ND4_DEVEUI2 = FE286F24	; Unique DEVEUI of Node Lower Long\n");
+	strcpy(cfgline[69], "ND4_FREPORT = 10	; Report Frequency in Minutes\n");
+	strcpy(cfgline[70], "ND4_WCALIB	= 0		; Weight Cell calibration (absolute +/-)\n\n");
+
+	strcpy(cfgline[71], "; Component enabler\n");
+	strcpy(cfgline[72], "HCLORA       = 1   ; =1 LoRa Port sending enabled\n");
+	strcpy(cfgline[73], "HCLORAWAN    = 0	; =0 BIoTWAN protocol enabled, =1 LoRaWAN enable (not supp. yet)\n");
+	strcpy(cfgline[74], "HCWIFICLIENT = 1	; =1 Client (!) onboard Wifi to be used\n");
+	strcpy(cfgline[75], "HCGPS        = 0	; =1 GPS module enabled\n");
+	strcpy(cfgline[76], "HCLOCWEB     = 1	; =1 Activate local Webpage date preparation at BEEIOTWEB\n");
+	strcpy(cfgline[77], "HCREMWEB     = 1	; =1 Activate remote Webpage date preparation at EXFTPURL > EXFTPPATH\n\n");
+	strcpy(cfgline[78], "[BEEIOT]   ; Init of Main Loop\n");
+	strcpy(cfgline[79], "BHLOOPWAIT = 10            ; loop wait time in Minutes\n");
+	strcpy(cfgline[80], "BEEIOTHOME = /home/pi/biot ; Home path for beeiotgw housekeeping data\n");
+	strcpy(cfgline[81], "LOGFILE    = beeiot.txt    ; log file name (/w extension)\n");
+	strcpy(cfgline[82], "CSVFILE    = beeiotlog     ; *.csv data log file name (/wo extension): results in beeiotlogYYYY.csv\n");
+	strcpy(cfgline[83], "CSVDAYS    = beeiotdays    ; *.csv file of daily statistic summary (/wo extension)\n");
+	strcpy(cfgline[84], "ACTIOFAIL  = 1             ; allowed action on IO Error: 0= no Action, 1= exit, 2=reboot\n");
+	strcpy(cfgline[85], "VERBOSE	= 1             ; verbose levels +1=main flow + 2=OneWire + 4=hx711 + 8 ePaper\n");
+    strcpy(cfgline[86], "                           ; 16=LANcfg + 32=SDCard + 64=ADS + 128=SPI Port\n");
+    strcpy(cfgline[87], "                           ; 256=Lora-Radio + 512=Lora-BIoTWAN-Protocol\n\n");
+
+	strcpy(cfgline[88], "[WEBUI]\n");
+	strcpy(cfgline[89], "AUTOUPDATE  = 0                 ; =1 automatic update of website\n");
+	strcpy(cfgline[90], "BEEIOTWEB   = /var/www/html/beeiot   ; root path to webserver home of beeiot for log & data files\n");
+	strcpy(cfgline[91], "BEEKEEPER   = 'UserName'        ; Full name of Owner/User/BeeKeeper\n");
+	strcpy(cfgline[92], "LOCDAT1     = '-Garten-'        ; Location of BeeHive1\n");
+	strcpy(cfgline[93], "LOCDAT2     = 'Strasse'         ; Street\n");
+	strcpy(cfgline[94], "LOCPLZ      = 'PLZ'             ; ZIP code of location (also fro weather data from web)\n");
+	strcpy(cfgline[95], "LOCDAT3     = 'Ort'             ; location name\n");
+	strcpy(cfgline[96], "PICSMALL    = BeeIoT_Picture_compressed.jpg ; Pic of BeeHive (compressed) used as WebLogo\n");
+	strcpy(cfgline[97], "PICLARGE    = BeeIoT_Picture.jpg ; Pix of Beehive full size\n");
+	strcpy(cfgline[98], "WEBDEFFILE  = index.html        ; default Web index file to be updated\n");
+	strcpy(cfgline[99], "NOTICEFILE  = beenote.txt       ; text file of service notices for logging\n");
+	strcpy(cfgline[100], "ALARMON     = 0                 ; =1 Global 'ALARM enabled' for security/events\n");
+	strcpy(cfgline[101], "ALARMWEIGHT = 0                 ; Alarm on Weight change > 50% in 5 seconds: thieve\n");
+	strcpy(cfgline[102], "                                ; =0 disabled, 1..99% enabled, typical 50(%)\n");
+	strcpy(cfgline[103], "ALARMSWARM  = 0                 ; Alarm on weight change > 10% in 10 minutes: swarm\n");
+	strcpy(cfgline[104], "                                ; =0 disabled, 1..99% enabled, typical 10(%)\n");
+	strcpy(cfgline[105], "ALARMBATT1  = 0                 ; =0 disabled; 1..100% enabled, typical 100(%)= 4.2V->Max\n");
+	strcpy(cfgline[106], "ALARMBATT2  = 0                 ; =0 disabled; 1..100% enabled, typical 0(%)= 3.3V ->Off\n\n");
+
+	strcpy(cfgline[107], "[EXPORT]\n");
+	strcpy(cfgline[108], "EXFTPURL    = <ftp URL>         ; FTP site URL for upload of raw logger data from BEELOGWEB\n");
+	strcpy(cfgline[109], "EXFTPPORT   = 21                ; Portnumber of URL (used as string)\n");
+	strcpy(cfgline[110], "EXFTPPATH   = imkerei/beelog    ; relative FTP path to URL\n");
+	strcpy(cfgline[111], "EXFTPPROXY  =                   ; If needed: FTP proxy server; set '' if no proxy needed\n");
+	strcpy(cfgline[112], "EXFTPPROXYPORT =                ; used proxy port (used as string)\n");
+	strcpy(cfgline[113], "EXFTPUSER   =                   ;no user name for FTP access (get pwd by dialogue or local .netrc file)\n");
+	strcpy(cfgline[114], "BKUPPATH    = /home/pi/beeiot   ; Backup file path (local or remote)\n");
+	strcpy(cfgline[115], "BKUPFILE    = beeiot.bak        ; name of config/log backup file at BKUPPATH -> beeiotlogYYYY.bak\n");
 	
 	for (i=0; i<NEWCFGLINEMAX; i++){	// write all cfglines to new cfg file
 		fwrite(cfgline[i],sizeof(unsigned char), strlen(cfgline[i]), bhcfg) ;

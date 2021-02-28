@@ -113,34 +113,5 @@ u4_t os_aes (u1_t mode, xref2u1_t buf, u2_t len);
 //unsigned long os_aes (byte mode, long * buf, int len);
 #endif
 
-
-
-//******************************************************************
-// NodeWLTable -> manually preset for reference of join requests
-typedef struct{
-	byte	nodeid;		// Node ID (base: NODEIDBASE + 0...MAXNODES)
-	byte	gwid;		// GW ID   (base: GWIDx - 0...MAXGW) 
-	byte	mid;		// Modem ID(base: 0...mactive) -> NwSrv (initial)
-	byte	AppEUI[LENJOINEUI];	// corresponding unique AppEUI of serving App
-	byte	DevEUI[LENDEVEUI];	// Node unique DevEUI
-	byte	reportfrq;	// [min] Frequency of Status data reports
-	bool	joined;		// == 0 Node has not been joined; ==1 joined
-	byte	chncfg;		// channel config idx to txchntab[]
-} nodewltable_t;
-
-// NodeDB[] typeset
-typedef struct{
-	msghd_t msg;		// runtime data of last received message of node -> use this mid for answer pkg
-	nodewltable_t * pwltab; // ptr to corresponding WL node table
-	joinpar_t	nodeinfo;	// Node info descriptor
-	devcfg_t	nodecfg;	// parameter set for node side runtime config.
-	byte		AppSKey[LENAPPSKEY];
-	byte		NwSKey[LENNWSKEY];
-	devaddr_t	DevAddr;
-	byte		middef;		// Default Modem ID from WLTab[] corresponding to nodecfg.gwid
-	// but GW is always in slave mode -> only pkg sent as answer pkg (see msg.mid above)
-} nodedb_t;
-
-
 #endif /* BEELORA_H */
 

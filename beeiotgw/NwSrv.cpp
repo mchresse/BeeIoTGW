@@ -288,7 +288,7 @@ int NwSrv::NwNodeScan(void) {
 				gwt.modem[mid]->startrx(RXMODE_SCAN, 0);	// retry RX CONT Mode
 			}
 			count[mid]=0;
-			delay(500);		// wait some time (500ms) till status gets active
+
 			// ISR is now waiting for DIO0 port change
 			gettimeofday(&now, 0);
 			strftime(TimeString, 80, "%d-%m-%y %H:%M:%S", localtime(&now.tv_sec));
@@ -367,37 +367,27 @@ ackbcn_t * pbcn;			// ptr on Beacon ack. frame
 			BHLOG(LOGLORAR) hexdump((unsigned char*) &mystatus, MAX_PAYLOAD_LENGTH);
 			BHLOG(LOGLORAR) printf("\n");
 			// ignore this package: no action
-			gwt.cp_nb_rx_bad++;	// bad pkg
+			gwt.cp_nb_rx_bad++;					// bad pkg
 			return(rc);
 		}else if (rc == -3) {
 			BHLOG(LOGLORAW) printf("  BeeIoTParse: Node registered but not joined yet (NodeID:0x%02X) -> Request a RE-JOIN\n", 
 				(unsigned char)mystatus.hd.sendID);
-			needaction = CMD_REJOIN;	// Request JOIN command from Node
-<<<<<<< HEAD
+			needaction = CMD_REJOIN;			// Request JOIN command from Node
 			ndid = mystatus.hd.sendID - NODEIDBASE;
 			gwt.jsrv->NDB[ndid].msg.mid = mid;	// safe last used mid for any further action
 			// return rejoin request ´to retrieve right config set again 
 			BeeIoTFlow(needaction, &mystatus, ndid, 0);
-=======
-			// request rejoin to ensure join status on both sides and sync assigned config set
-			BeeIoTFlow(needaction, &mystatus, mystatus.hd.sendID-NODEIDBASE, 0);
->>>>>>> master
-			gwt.cp_nb_rx_ok++;		// incr. # of correct received packages	
+			gwt.cp_nb_rx_ok++;					// incr. # of correct received packages	
 			return(rc);
 		}else if(rc == -4){
 			BHLOG(LOGLORAW) printf("  BeeIoTParse: Node joined but not using assigned GWID 0x%02X -> should rejoin\n", 
 				(unsigned char)mystatus.hd.destID);					
-			needaction = CMD_REJOIN;	// Request JOIN command from Node
-<<<<<<< HEAD
+			needaction = CMD_REJOIN;			// Request JOIN command from Node
 			ndid = mystatus.hd.sendID - NODEIDBASE;
 			gwt.jsrv->NDB[ndid].msg.mid = mid;	// safe last used mid for any further action
 			// return rejoin request ´to retrieve right config set again 
 			BeeIoTFlow(needaction, &mystatus, ndid, 0);
-=======
-			// request rejoin to ensure join status on both sides and sync assigned config set
-			BeeIoTFlow(needaction, &mystatus, mystatus.hd.sendID-NODEIDBASE, 0);
->>>>>>> master
-			gwt.cp_nb_rx_ok++;		// incr. # of correct received packages	
+			gwt.cp_nb_rx_ok++;					// incr. # of correct received packages	
 			return(rc);			
 		}else if (rc == -5 || rc == -6){
 			// wrong Framelen detected -> request RETRY

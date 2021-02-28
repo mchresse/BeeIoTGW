@@ -6,10 +6,10 @@
 ;===============================================================================
 
 ; BeeIoT Gateway&Server config file for first runtime initialization 
-; 01.02.2020
-VERSION = 2.3		; Version of Config.INI File Format
+; 28.02.2021
+VERSION = 2.5	; Version of Config.INI File Format
 VMAJOR	= 1		; Major Version of BIoTWAN Protocol
-VMINOR	= 2		; Minor Version of BIoTWAN Protocol
+VMINOR	= 4		; Minor Version of BIoTWAN Protocol
 
 ; BeeIoT Server configuration runtime parameters
 ; This file can be modified during runtime of beeiotgw !
@@ -60,7 +60,6 @@ LORA1CHANNEL= 1		; Channel cfg. set (see BeeIoTWAN.h)
 GPS0TXD		= 15	; GPIO 14 	Pin  8 TxD	of GPS module
 GPS0RXD		= 16	; GPIO 15 	Pin 10 RxD  of GPS module
 
-
 ; LoRa Client Registration:
 ; Node 1: BeeIoT ESP32-WROOM32:	MAC: 24:6F:28:D5:8A:DC	default: BeeHive Weightcell #1
 ND1_GWID	= 1		; GW ID relative to GWIDx (1..LORANUMCHN)
@@ -69,6 +68,7 @@ ND1_APPEUI  = 1		; 1= BIOT, 2= TURTLE, 3= GH
 ND1_DEVEUI1 = DC8AD5FF	; Unique DEVEUI of Node Upper Long
 ND1_DEVEUI2 = FE286F24	; Unique DEVEUI of Node Lower Long
 ND1_FREPORT = 10	; Report Frequency in Minutes
+ND1_WCALIB	= 0		; Weight Cell calibration (absolute +/-)
 
 ;---------------------------------------------------
 ; Node 2: ESP32-WROVERB: MAC 24:6F:28:F0:0D:AC		beacon test Module 1
@@ -78,6 +78,7 @@ ND2_APPEUI  = 1		; 1= BIOT, 2= TURTLE, 3= GH
 ND2_DEVEUI1 = AC0DF0FF	; Unique DEVEUI of Node Upper Long
 ND2_DEVEUI2 = FE286F24	; Unique DEVEUI of Node Lower Long
 ND2_FREPORT = 1	    ; Report Frequency in Minutes
+ND2_WCALIB	= 0		; Weight Cell calibration (absolute +/-)
 
 ;---------------------------------------------------
 ; Node 3: BeeIoT ESP32-WROOM32:	MAC: 94:FE:8A:B5:AA:8C	Beacon test Module 2
@@ -87,6 +88,7 @@ ND3_APPEUI  = 1		; 1= BIOT, 2= TURTLE, 3= GH
 ND3_DEVEUI1 = 94FE8AFF	; Unique DEVEUI of Node Upper Long
 ND3_DEVEUI2 = FEB5AA8C	; Unique DEVEUI of Node Lower Long
 ND3_FREPORT = 1	    ; Report Frequency in Minutes
+ND3_WCALIB	= 0		; Weight Cell calibration (absolute +/-)
 
 ;---------------------------------------------------
 ; Node 4: BeeIoT ESP32-WROOM32:	MAC: 2C:2B:16:28:6F:24 	Beehive Weight cell test Module 3
@@ -96,14 +98,7 @@ ND4_APPEUI  = 1		; 1= BIOT, 2= TURTLE, 3= GH
 ND4_DEVEUI1 = 2C2B16FF	; Unique DEVEUI of Node Upper Long
 ND4_DEVEUI2 = FE286F24	; Unique DEVEUI of Node Lower Long
 ND4_FREPORT = 10	; Report Frequency in Minutes
-
-
-; Component enabler
-HCLORA          = 1     ; =1 LoRa Port sending enabled
-HCLORAWAN       = 0	; =0 BIoTWAN protocol enabled, =1 LoRaWAN enable (not supp. yet)
-HCGPS           = 0	; =1 GPS module enabled
-HCLOCWEB        = 1	; =1 Activate local Webpage date preparation at BEEIOTWEB
-HCREMWEB        = 1	; =1 Activate remote Webpage date preparation at EXFTPURL > EXFTPPATH
+ND4_WCALIB	= 0		; Weight Cell calibration (absolute +/-)
 
 
 [BEEIOT]   ; Init of Main Programm
@@ -117,25 +112,13 @@ VERBOSE         = 1          ; verbose levels +1=main flow + 2=OneWire + 4=hx711
                              ; 16=LANcfg + 32=SDCard + 64=ADS + 128=SPI Port
                              ; 256=Lora-Radio + 512=Lora-BIoTWAN-Protocol
 
-[HX711]    ; Init of Weight scale ADC
-TARA            = 297570     ; Calibration for 0 kg (offset of cover weight = ~6,75kg)
-TARASET         = 0          ; =1 TARA reset by last measured weight level -> at next loop
-REFKG           = 44000      ; weight scale reference value of 1kg of Bosche H40A with 2mV/V sensibility
-TEMPCOMP        = 1.0        ; Temp. compensation factor per Grad           
-NSAMPLES        = 1          ; Number of read loops for average calculation (Max Range 2..100)
-
-[ONEWIRE]  ; Init of One-Wire Temp.-devices
-TEMPCEXT        = 1.00       ; temperature compensation External sensor
-TEMPCINT        = 1.00       ; temperature compensation Scale-H40A sensor
-TEMPCHIVE       = 1.00       ; temperature compensation InternalHive sensor
-
 [WIFI]      ; Client side Wifi settings
 WIFISSID        = 'sssss'			; Client/Server Wifi SSID (32 By.)
 WIFIKEY         = 'ppppppppp'		; Client/Server Wifi KEY (32 By.)
 
 [WEBUI]
 AUTOUPDATE      = 1                 ; init automatic update of FTP-& web site (=0 disabled)
-BEELOGWEB       = /var/www/beelog   ; root path to webserver home of beelog for log & data files
+BEELOGWEB       = /var/www/beeiot   ; root path to webserver home of beelog for log & data files
 BEEKEEPER       = 'xxx'             ; Full name of Owner/User/BeeKeeper (not used yet)
 LOCDAT1         = '-Garten-'        ; Location of BeeHive1 (not used yet)
 LOCDAT2         = 'xxx'             ; Street (not used yet)

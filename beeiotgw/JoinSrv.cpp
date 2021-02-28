@@ -82,39 +82,46 @@ extern int AppGH		(int ndid, char* data, byte len, int mid);	// GreenHouse Contr
 static nodewltable_t WLTab[MAXNODES+2]={			// +2 for dummy JOIN lines ID=0,n
 // Active entries are defined/overwritten in the constructor by cfgini-Data !
 
-	// 0: Dummy start marker of table (NODEID == 0x00 -> used for JOIN requests => don't change)
-	NODEIDBASE, GWID0, 0,  0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0,  1,0,0,
+// 0: Dummy start marker of table 
+// (NODEID == 0x00 -> used for JOIN requests only => don't change)
+	NODEIDBASE, GWID0, 0,  0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0,  10,0,0,0,
 //---------------------------------------------------
 // 1: BeeIoT ESP32-WROOM32:	MAC: 24:6F:28:D5:8A:DC	// default: BeeHive Weightcell #1
 	NODEID1, GWID1,	0, BIoT_EUID,					// ndid, gwid, mid, AppEUI: BIoT
 	0xDC, 0x8A, 0xD5, 0xFF, 0xFE, 0x28, 0x6F, 0x24, // DevEUI 
-	10, 0, 0,										// reportfrq, joinflag, chncfg
+	10, 0, 0, 0,									// reportfrq, joinflag, chncfg
 //---------------------------------------------------
 // 2: ESP32-WROVERB: MAC 24:6F:28:F0:0D:AC			// beacon test Module 1
 	NODEID2, GWID1,	0, BIoT_EUID,					// ndid, gwid, mid, AppEUI: BIoT
 	0xAC, 0x0D, 0xF0, 0xFF, 0xFE, 0x28, 0x6F, 0x24, // DevEUI
-	1, 0, 0,										// reportfrq, joinflag, chncfg
+	1, 0, 0, 0,										// reportfrq, joinflag, chncfg
 //---------------------------------------------------
 // 3: BeeIoT ESP32-WROOM32:	MAC: 94:FE:8A:B5:AA:8C	// Beacon test Module 2
 	NODEID3, GWID1,	0, BIoT_EUID,					// ndid, gwid, mid, AppEUI: BIoT
 	0x94, 0xFE, 0x8A, 0xFF, 0xFE, 0xB5, 0xAA, 0x8C, // DevEUI 
-	1, 0, 0,										// reportfrq, joinflag, chncfg
+	1, 0, 0, 0,										// reportfrq, joinflag, chncfg
 //---------------------------------------------------
 // 4: BeeIoT ESP32-WROOM32:	MAC: 2C:2B:16:28:6F:24 	// Beehive Weight cell test Module 3
 	NODEID4, GWID2,	0, BIoT_EUID,					// ndid, gwid, mid, AppEUI: BIoT
 	0x2C, 0x2B, 0x16, 0xFF, 0xFE, 0x28, 0x6F, 0x24, // DevEUI 
-	10, 0, 0,										// reportfrq, joinflag, chncfg
+	10, 0, 0, 0,									// reportfrq, joinflag, chncfg
 //---------------------------------------------------
-// 5: fill in more nodes here ...
+// 5: fill in more nodes here ... ( but add in config.ini as well)
 //---------------------------------------------------
 // N: Dummy end marker of table (NODEID == 0x00)
-	0x00, 0x00, 0x00, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0,  0,0,0,
-};//-------------------------------------------------
+	0x00, 0x00, 0x00, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0,  0,0,0,0,
+//---------------------------------------------------
+};
 
-uint8_t  NwSKey[16]	= { 0xDD, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F};
+uint8_t  NwSKey[16]	= {0xDD, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F};
 
 #define  NAPPID	4
-byte  appid[NAPPID][LENJOINEUI] = {BIoT_EUID, TURTLE_EUID, GH_EUID,  0,0,0,0,0,0,0,0};
+byte  appid[NAPPID][LENJOINEUI] = {
+	BIoT_EUID,		// BeeIot Weight cell
+	TURTLE_EUID,	// Turtle House monitoring
+	GH_EUID,		// Plant house  monitoring
+	0,0,0,0,0,0,0,0,
+};
 
 
 //***************************************************************************
@@ -138,9 +145,11 @@ JoinSrv::JoinSrv(gwbind_t &gwtab, int nmodem): gwt(gwtab), mactive(nmodem){
 		pndb->nodeinfo.devEUI[3]	= 0;
 		pndb->nodeinfo.frmid[0]		= 0;
 		pndb->nodeinfo.frmid[1]		= 0;		
-											// Default MID: init by RegisterNode (from WL-Table)
+		// Default MID: init by RegisterNode (from WL-Table)
 		pndb->middef				= 0;	// this mid is not used for communication /w node: use msg.mid
 											// because GW answers always in slave mode on received msg
+		pndb->wcalib				= WLTab[i].wcalib;	// get static Weight cell calib value for daily work
+
 		pndb->nodecfg.gwid			= WLTab[i].gwid;
 		pndb->nodecfg.nodeid		= WLTab[i].nodeid;
 		pndb->nodecfg.vmajor		= BIoT_VMAJOR;		// Major + Minor version: Vx.y
@@ -194,6 +203,7 @@ void JoinSrv::JS_Cfg2Wlt(void){
 	WLTab[nid].mid		= cfgini->nd1_mid;
 	WLTab[nid].chncfg	= gwt.gwset[WLTab[nid].mid]->chncfgid;	// get Radio channel cfg of current Gateway
 	WLTab[nid].reportfrq= cfgini->nd1_freport;
+	WLTab[nid].wcalib	= cfgini->nd1_wcalib;
 	if(cfgini->nd1_appeui > NAPPID)
 		cfgini->nd1_appeui = 1;
 	memcpy(&WLTab[nid].AppEUI, &appid[cfgini->nd1_appeui-1][0], LENJOINEUI);
@@ -206,11 +216,12 @@ void JoinSrv::JS_Cfg2Wlt(void){
 	}
 	
 	nid = 2;
-	WLTab[nid].nodeid = NODEIDBASE + nid;
-	WLTab[nid].gwid	= GWIDx-cfgini->nd2_gwid;
-	WLTab[nid].mid	= cfgini->nd2_mid;
-	WLTab[nid].chncfg = gwt.gwset[WLTab[nid].mid]->chncfgid;	// get Radio channel cfg of current Gateway
-	WLTab[nid].reportfrq = cfgini->nd2_freport;
+	WLTab[nid].nodeid	= NODEIDBASE + nid;
+	WLTab[nid].gwid		= GWIDx-cfgini->nd2_gwid;
+	WLTab[nid].mid		= cfgini->nd2_mid;
+	WLTab[nid].chncfg	= gwt.gwset[WLTab[nid].mid]->chncfgid;	// get Radio channel cfg of current Gateway
+	WLTab[nid].reportfrq= cfgini->nd2_freport;
+	WLTab[nid].wcalib	= cfgini->nd2_wcalib;
 	if(cfgini->nd2_appeui > NAPPID)
 		cfgini->nd2_appeui = 1;
 	memcpy(&WLTab[nid].AppEUI, &appid[cfgini->nd2_appeui-1][0], LENJOINEUI);
@@ -222,11 +233,12 @@ void JoinSrv::JS_Cfg2Wlt(void){
 	}
 	
 	nid = 3;
-	WLTab[nid].nodeid = NODEIDBASE + nid;
-	WLTab[nid].gwid	= GWIDx-cfgini->nd3_gwid;
-	WLTab[nid].mid	= cfgini->nd3_mid;
-	WLTab[nid].chncfg = gwt.gwset[WLTab[nid].mid]->chncfgid;	// get Radio channel cfg of current Gateway
-	WLTab[nid].reportfrq = cfgini->nd3_freport;
+	WLTab[nid].nodeid	= NODEIDBASE + nid;
+	WLTab[nid].gwid		= GWIDx-cfgini->nd3_gwid;
+	WLTab[nid].mid		= cfgini->nd3_mid;
+	WLTab[nid].chncfg	= gwt.gwset[WLTab[nid].mid]->chncfgid;	// get Radio channel cfg of current Gateway
+	WLTab[nid].reportfrq= cfgini->nd3_freport;
+	WLTab[nid].wcalib	= cfgini->nd3_wcalib;
 	if(cfgini->nd3_appeui > NAPPID)
 		cfgini->nd3_appeui = 1;
 	memcpy(&WLTab[nid].AppEUI, &appid[cfgini->nd3_appeui-1][0], LENJOINEUI);
@@ -238,11 +250,12 @@ void JoinSrv::JS_Cfg2Wlt(void){
 	}
 	
 	nid = 4;
-	WLTab[nid].nodeid = NODEIDBASE + nid;
-	WLTab[nid].gwid	= GWIDx-cfgini->nd4_gwid;
-	WLTab[nid].mid	= cfgini->nd4_mid;
-	WLTab[nid].chncfg = gwt.gwset[WLTab[nid].mid]->chncfgid;	// get Radio channel cfg of current Gateway
-	WLTab[nid].reportfrq = cfgini->nd4_freport;
+	WLTab[nid].nodeid	= NODEIDBASE + nid;
+	WLTab[nid].gwid		= GWIDx-cfgini->nd4_gwid;
+	WLTab[nid].mid		= cfgini->nd4_mid;
+	WLTab[nid].chncfg	= gwt.gwset[WLTab[nid].mid]->chncfgid;	// get Radio channel cfg of current Gateway
+	WLTab[nid].reportfrq= cfgini->nd4_freport;
+	WLTab[nid].wcalib	= cfgini->nd4_wcalib;
 	if(cfgini->nd4_appeui > NAPPID)
 		cfgini->nd4_appeui = 1;
 	memcpy(&WLTab[nid].AppEUI, &appid[cfgini->nd4_appeui-1][0], LENJOINEUI);
@@ -254,11 +267,12 @@ void JoinSrv::JS_Cfg2Wlt(void){
 	}
 	
 	nid = 5;
-	WLTab[nid].nodeid = 0;	// flag table end here
-	WLTab[nid].gwid	= 0;
-	WLTab[nid].mid	= 0;
-	WLTab[nid].reportfrq = 0;
-	WLTab[nid].joined = 0;
+	WLTab[nid].nodeid	= 0;	// flag table end here
+	WLTab[nid].gwid		= 0;
+	WLTab[nid].mid		= 0;
+	WLTab[nid].reportfrq= 0;
+	WLTab[nid].joined	= 0;
+	WLTab[nid].wcalib	= 0;
 
 } // end of JS_Cfg2Wlt()
 

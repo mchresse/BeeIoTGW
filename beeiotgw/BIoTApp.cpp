@@ -257,31 +257,37 @@ int AppSrv::AppBIoT	(int ndid, char* data, byte len, int mid){
             &(bhdb.dlog[idx].BattLevel),
             &(bhdb.dlog[idx].index),		// Data Msg Index (not Lora Pkg Index !)
             &(bhdb.dlog[idx].comment) );
-            if(strlen(bhdb.date) + strlen(bhdb.time) <= LENTMSTAMP){
-                sprintf(bhdb.dlog[idx].timeStamp, "%s %s", bhdb.date, bhdb.time);
-            }
-	strftime(bhdb.date, LENDATE, "%Y/%M/%D", localtime(&now.tv_sec));
-	strftime(bhdb.time, LENTIME, "%H:%M:%S", localtime(&now.tv_sec));
 
     // is Sensor parameter set complete ?
     if(nparam != BEEIOT_STATUSCNT || nparam == EOF){
-            BHLOG(LOGBH) printf("  AppBIoT: Sensor-Status incomplete, found # of status parameters: %i (expected %i)\n", nparam, BEEIOT_STATUSCNT);
+            BHLOG(LOGBH) printf("  AppBIoT: Sensor-Status incomplete, found %i status parameters (expected %i)\n", nparam, BEEIOT_STATUSCNT);
             // lets acknowledge received package to sender to send it again
             // ToDo: prevent endless Retry loop: only once
-            rc= -1;
+            rc = -1;
             return(rc);
     }
 
     // We have received a complete sensor parameter Set => Store it !
-        // complete DB datarow by Node information
-        bhdb.packid     = (int)0 + (short)pndb->nodeinfo.frmid[0]; // get sequential index of payload packages
+	// complete DB datarow by Node information
+
+		// bhdb.dlog[].timestamp    = timestamp of node sample data
+		if(strlen(bhdb.date) + strlen(bhdb.time) <= LENTMSTAMP){
+			sprintf(bhdb.dlog[idx].timeStamp, "%s %s", bhdb.date, bhdb.time);
+		} 		
+		// bhdb.date + bhdb.time = timestamp of last APP processing 
+		strftime(bhdb.date, LENDATE, "%Y/%M/%D", localtime(&now.tv_sec));
+		strftime(bhdb.time, LENTIME, "%H:%M:%S", localtime(&now.tv_sec));
+
+		bhdb.packid     = (int)0 + (short)pndb->nodeinfo.frmid[0]; // get sequential index of payload packages
         bhdb.loopid     = bhdb.dlog[idx].index;     // MsgID: sensor scan loop counter of sensor data set
         bhdb.ipaddr[0]  = 0;                        // no IP yet
-        memcpy((byte*)&bhdb.BoardID, (byte*) &pndb->nodeinfo.devEUI, sizeof(uint64_t));
-        bhdb.NodeID     = pndb->nodecfg.nodeid; // BIoT network identifier to expand CSV File name
+        bhdb.NodeID     = pndb->nodecfg.nodeid;		// BIoT network identifier to expand CSV File name
+		bhdb.dlog[idx].HiveWeight += pndb->wcalib;	// calibrate weight cell value to final one
 
-        // 1. Forward Data to local Web Service 
-//        BHLOG(LOGBH) printf("  AppBIoT: Forward Data as CSV file to local WebPage\n");		
+        memcpy((byte*)&bhdb.BoardID, (byte*) &pndb->nodeinfo.devEUI, sizeof(uint64_t));
+
+	// 1. Forward Data to local Web Service 
+	//        BHLOG(LOGBH) printf("  AppBIoT: Forward Data as CSV file to local WebPage\n");		
         rc = beecsv(&bhdb); // save it in CSV format first
         if(rc != 0){
             BHLOG(LOGBH) printf("  AppBIoT: CSV file not found (rc=%i)\n", rc);		
@@ -290,7 +296,7 @@ int AppSrv::AppBIoT	(int ndid, char* data, byte len, int mid){
             return(rc);     // frame data accepted, but not forwarded/stored
         }
 
-        // Further Options: Forward dataset to remote WebSpace as CSV file, via FTP, or via MQTT or to TTN
+	// Further Options: Forward dataset to remote WebSpace as CSV file, via FTP, or via MQTT or to TTN
 /*
 	// send TTN status message each STATUSLOOP seconds (untested code)
         gettimeofday(&nowtime, NULL);
