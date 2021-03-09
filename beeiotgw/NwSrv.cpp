@@ -401,6 +401,9 @@ ackbcn_t * pbcn;			// ptr on Beacon ack. frame
 		}
 	}
 	ndid = rc;	// we received Node-ID of curr. Pkg from JS
+
+	// For all NDB[>0]: NDB entry might not be initialized yet if no msg received before
+	// Preset Last-Msg MID in advance
 	gwt.jsrv->NDB[ndid].msg.mid = mid;	// safe last used mid for any further action
 	// For (RE-)JOIN Request ndid is set to 0 by JS !
 
@@ -420,10 +423,8 @@ ackbcn_t * pbcn;			// ptr on Beacon ack. frame
 			rc=0;
 			return(rc);
 		}
-		// For all NDB[>0]: NDB entry might not be initialized yet if no msg received before
-		// Preset Last-Msg MID in advance
-		gwt.jsrv->NDB[ndid].msg.mid = mid;	// safe last used mid for any further action
-	}else{ // for JOIN always NDBID=0 is used.
+		gwt.jsrv->NDB[ndid].msg.pkgid = mystatus.hd.pkgid;	// safe last received pkgid
+	}else{ // for JOIN always NDBID=0 is used and pkgid is not checked
 		gwt.jsrv->NDB[0].msg.mid = gwt.jsrv->NDB[0].middef; // preset JOIN default modem ID as mid
 	}
 	
