@@ -271,7 +271,6 @@ int NwSrv::NwNodeScan(void) {
 					// continue with already buffered cfgini struct data till we have access again
 				}else{
 					cfgini = pcfg;	// we have a new config parameter set
-					lflags	= (unsigned int) cfgini->biot_verbose;	// get the custom verbose mode again
 					cfgini->loranumchn = mactive;	// limit # of supp. modems to what have been discovered
 					gwt.jsrv->JS_Cfg2Wlt();			// get GW Data set from cfgini to WLTab[]
 					BHLOG(LOGBH) printf("    NwS: Parse Config file again: Verbose:%i, #Modems:%i (C%i,C%i)\n",

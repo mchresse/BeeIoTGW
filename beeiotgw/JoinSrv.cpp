@@ -148,15 +148,12 @@ JoinSrv::JoinSrv(gwbind_t &gwtab, int nmodem): gwt(gwtab), mactive(nmodem){
 		// Default MID: init by RegisterNode (from WL-Table)
 		pndb->middef				= 0;	// this mid is not used for communication /w node: use msg.mid
 											// because GW answers always in slave mode on received msg
-		pndb->wcalib				= WLTab[i].wcalib;	// get static Weight cell calib value for daily work
 
 		pndb->nodecfg.gwid			= WLTab[i].gwid;
 		pndb->nodecfg.nodeid		= WLTab[i].nodeid;
 		pndb->nodecfg.vmajor		= BIoT_VMAJOR;		// Major + Minor version: Vx.y
 		pndb->nodecfg.vminor		= BIoT_VMINOR;
 		pndb->nodecfg.verbose		= lflags;			// finally set by CONFIG command
-		pndb->nodecfg.channelidx	= WLTab[i].chncfg;	// cfg.-channelid of modem
-		pndb->nodecfg.freqsensor	= WLTab[i].reportfrq; // [min] reporting frequence of status pkg.
 		pndb->nodecfg.nonce			= 0;
 
 		pndb->msg.ack				= 0;
@@ -164,7 +161,7 @@ JoinSrv::JoinSrv(gwbind_t &gwtab, int nmodem): gwt(gwtab), mactive(nmodem){
 		pndb->msg.retries			= 0;
 		pndb->msg.rssi				= 0;
 		pndb->msg.snr				= 0;	
-		pndb->msg.mid				= WLTab[i].mid;	// preset MID even /wo any prev. package
+
 		if (WLTab[i].nodeid == 0){	// end of pre init field for WLTab reached ?
 			memset(&WLTab[i], 0, sizeof(nodewltable_t));	// reset all remaining fields
 		}
@@ -196,6 +193,8 @@ void JoinSrv::JS_Cfg2Wlt(void){
 	byte * p1;
 	byte * p2;
 	
+	lflags	= (unsigned int) cfgini->biot_verbose;	// get the custom verbose mode
+
 	// Update WLTab[] entries by pconfig data
 	nid = 1;
 	WLTab[nid].nodeid	= NODEIDBASE + nid;
@@ -204,6 +203,10 @@ void JoinSrv::JS_Cfg2Wlt(void){
 	WLTab[nid].chncfg	= gwt.gwset[WLTab[nid].mid]->chncfgid;	// get Radio channel cfg of current Gateway
 	WLTab[nid].reportfrq= cfgini->nd1_freport;
 	WLTab[nid].wcalib	= cfgini->nd1_wcalib;
+	NDB[nid].msg.mid			= WLTab[nid].mid;		// preset MID even /wo any prev. package
+	NDB[nid].nodecfg.channelidx	= WLTab[nid].chncfg;	// cfg.-channelid of modem
+	NDB[nid].nodecfg.freqsensor	= WLTab[nid].reportfrq; // [min] reporting frequence of status pkg.
+	NDB[nid].wcalib				= WLTab[nid].wcalib;	// get static Weight cell calib value for daily work
 	if(cfgini->nd1_appeui > NAPPID)
 		cfgini->nd1_appeui = 1;
 	memcpy(&WLTab[nid].AppEUI, &appid[cfgini->nd1_appeui-1][0], LENJOINEUI);
@@ -222,6 +225,10 @@ void JoinSrv::JS_Cfg2Wlt(void){
 	WLTab[nid].chncfg	= gwt.gwset[WLTab[nid].mid]->chncfgid;	// get Radio channel cfg of current Gateway
 	WLTab[nid].reportfrq= cfgini->nd2_freport;
 	WLTab[nid].wcalib	= cfgini->nd2_wcalib;
+	NDB[nid].msg.mid			= WLTab[nid].mid;		// preset MID even /wo any prev. package
+	NDB[nid].nodecfg.channelidx	= WLTab[nid].chncfg;	// cfg.-channelid of modem
+	NDB[nid].nodecfg.freqsensor	= WLTab[nid].reportfrq; // [min] reporting frequence of status pkg.
+	NDB[nid].wcalib				= WLTab[nid].wcalib;	// get static Weight cell calib value for daily work
 	if(cfgini->nd2_appeui > NAPPID)
 		cfgini->nd2_appeui = 1;
 	memcpy(&WLTab[nid].AppEUI, &appid[cfgini->nd2_appeui-1][0], LENJOINEUI);
@@ -239,6 +246,10 @@ void JoinSrv::JS_Cfg2Wlt(void){
 	WLTab[nid].chncfg	= gwt.gwset[WLTab[nid].mid]->chncfgid;	// get Radio channel cfg of current Gateway
 	WLTab[nid].reportfrq= cfgini->nd3_freport;
 	WLTab[nid].wcalib	= cfgini->nd3_wcalib;
+	NDB[nid].msg.mid			= WLTab[nid].mid;		// preset MID even /wo any prev. package
+	NDB[nid].nodecfg.channelidx	= WLTab[nid].chncfg;	// cfg.-channelid of modem
+	NDB[nid].nodecfg.freqsensor	= WLTab[nid].reportfrq; // [min] reporting frequence of status pkg.
+	NDB[nid].wcalib				= WLTab[nid].wcalib;	// get static Weight cell calib value for daily work
 	if(cfgini->nd3_appeui > NAPPID)
 		cfgini->nd3_appeui = 1;
 	memcpy(&WLTab[nid].AppEUI, &appid[cfgini->nd3_appeui-1][0], LENJOINEUI);
@@ -256,6 +267,10 @@ void JoinSrv::JS_Cfg2Wlt(void){
 	WLTab[nid].chncfg	= gwt.gwset[WLTab[nid].mid]->chncfgid;	// get Radio channel cfg of current Gateway
 	WLTab[nid].reportfrq= cfgini->nd4_freport;
 	WLTab[nid].wcalib	= cfgini->nd4_wcalib;
+	NDB[nid].msg.mid			= WLTab[nid].mid;		// preset MID even /wo any prev. package
+	NDB[nid].nodecfg.channelidx	= WLTab[nid].chncfg;	// cfg.-channelid of modem
+	NDB[nid].nodecfg.freqsensor	= WLTab[nid].reportfrq; // [min] reporting frequence of status pkg.
+	NDB[nid].wcalib				= WLTab[nid].wcalib;	// get static Weight cell calib value for daily work
 	if(cfgini->nd4_appeui > NAPPID)
 		cfgini->nd4_appeui = 1;
 	memcpy(&WLTab[nid].AppEUI, &appid[cfgini->nd4_appeui-1][0], LENJOINEUI);
@@ -272,7 +287,6 @@ void JoinSrv::JS_Cfg2Wlt(void){
 	WLTab[nid].mid		= 0;
 	WLTab[nid].reportfrq= 0;
 	WLTab[nid].joined	= 0;
-	WLTab[nid].wcalib	= 0;
 
 } // end of JS_Cfg2Wlt()
 
