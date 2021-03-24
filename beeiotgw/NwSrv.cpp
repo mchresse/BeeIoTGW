@@ -196,6 +196,7 @@ int NwSrv::NwNodeScan(void) {
   int count[MAXGW]={0,0};	// loop counter per modem
   byte omstatus =0;
   int mid=0;
+  int qlen=0;
   
   while(1) { // start NwService loop (endless)
 	for(mid=0; mid<maxmod; mid++){
@@ -203,10 +204,10 @@ int NwSrv::NwNodeScan(void) {
 		count[mid]++;	// ensure modem will be reset once
 
 		if(mcount%(10*10) == (10*10-1)){	// all 10 sec.
-			printf("%i ", mid);
+			BHLOG(LOGBH) printf("%i ", mid);
 		}
 		if(mcount%(2*600) == (2*600-1)){	// each 2. minute
-			printf(" %i\n    ", mcount);
+			BHLOG(LOGBH) printf(" %i\n    ", mcount);
 		}
 		if(mcount >  ((cfgini->biot_loopwait+2)*600)){		// def. loop time + 2 minutes
 			mcount=0;	// reset master counter just for print out adjustment
@@ -222,12 +223,13 @@ int NwSrv::NwNodeScan(void) {
 		
 		// Process NwS-Queue:
 		// Check RX Queue Status (len>0) and process each package accordingly
-		while(gwt.gwq->MsgQueueSize() > 0){	// Do we have a package in the RX Queue ?
+		qlen = gwt.gwq->MsgQueueSize();
+		while(qlen > 0){	// Do we have a package in the RX Queue ?
 			BHLOG(LOGBH) printf("\n");	// new line after counting line
 			gettimeofday(&now, 0);		// get current timestamp
 			strftime(TimeString, 80, "%d-%m-%y %H:%M:%S", localtime(&now.tv_sec));
 
-			int qlen = gwt.gwq->MsgQueueSize();
+			
 			BHLOG(LOGLORAR) printf("  NwS<%s>: New RX Packet: Parsing MsgQueue[0] (Size:%i)\n", 
 					TimeString, qlen);
 			BHLOG(LOGLORAW) gwt.gwq->PrintStatus();	// get MsgQueue STatus
@@ -252,11 +254,12 @@ int NwSrv::NwNodeScan(void) {
 				gwt.cp_nb_rx_ok, gwt.cp_up_pkt_fwd);
 			count[mid]=0;	// just reset counter of last serving modem by msg
 			mcount =0;
+			qlen = gwt.gwq->MsgQueueSize();
 		}
 		
 		// set last active modem to RXCont mode again, and in follow loops the other
 		omstatus = gwt.modem[mid]->getopmode();
-		if((omstatus & OPMODE_RX)!= OPMODE_RX){	
+		if((omstatus & (OPMODE_LORA+OPMODE_RX))!= (OPMODE_LORA + OPMODE_RX)){	
 			if(mid==0){ // get new config only by status change of def. JOIN modem
 				//re-read config.ini file again (could have been changed in between) 
 				configuration* pcfg;
@@ -283,8 +286,10 @@ int NwSrv::NwNodeScan(void) {
 			BHLOG(LOGLORAR) printf("  NwS: Enter RX_Cont Mode for Lora Modem%i (omstatus=%02X)\n", mid, (unsigned char)omstatus);
 			int rc = gwt.modem[mid]->startrx(RXMODE_SCAN, 0);	// RX in RX_CONT Mode
 			if(rc<0){
+				BHLOG(LOGLORAR) printf("  NwS: FSK recovery needed\n");
 				gwt.modem[mid]->SetupRadio();	// FSK recovery needed: reset complete Modem
 				gwt.modem[mid]->startrx(RXMODE_SCAN, 0);	// retry RX CONT Mode
+				mcount = 0;
 			}
 			count[mid]=0;
 
