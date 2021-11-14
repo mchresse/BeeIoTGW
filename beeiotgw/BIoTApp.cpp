@@ -216,7 +216,9 @@ int AppSrv::AppBIoT	(int ndid, char* data, byte len, int mid){
     int rc = 0;
     int idx;
     int nparam;
-
+	biot_dsensor_t * dsensor;	// ptr on DSENSOR binary Sensor data block
+	struct tm tinfo;
+	
 	nodedb_t *pndb = &gwt.jsrv->NDB[ndid]; // ptr to NDB[ndid]
 
     if(data && len == 0){    // prevent NULL ptr. and bitlen=0
@@ -230,50 +232,84 @@ int AppSrv::AppBIoT	(int ndid, char* data, byte len, int mid){
     BHLOG(LOGBH) printf("\n  AppBIoT: %s -Processing Sensor data (len:%i) of BIoT-Node: 0x%02X\n", 
 				TimeString, (int)len, (unsigned char) pndb->nodecfg.nodeid);
 
-    idx = 0; // start with first entry (by now the only one)
+	idx = 0; // start with first entry (by now the only one)
+	dsensor = (biot_dsensor_t *) data;	// map to binary data format
+	BHLOG(LOGLORAR) hexdump((unsigned char*) dsensor, len);
+	
+	// Received Sensor data in a binary or ASCII data format ?
+	if((len == BIoT_DSENSORLEN - BIoT_NOTICELEN + dsensor->tlen) & (dsensor->crc8 == 0)) {	// t.b.d. real CRC8 calculation
+		BHLOG(LOGBIOT) printf("    BIN-Status Node0x%02X: %s ",(unsigned char) pndb->nodecfg.nodeid, data); // to be checked if it is a string
+		BHLOG(LOGBIOT) printf("%iBy.\n", (int) len);
+			tinfo.tm_year	= dsensor->year2k+100;	// rebase 2000->1900
+			tinfo.tm_mon	= dsensor->month-1;		// 0-11
+			tinfo.tm_mday	= dsensor->day;			// 1-31
+			tinfo.tm_hour	= dsensor->hh;
+			tinfo.tm_min	= dsensor->mm;
+			tinfo.tm_sec	= dsensor->ss;
 
-    data[len-2]=0;	// limit string by EOL -> set new end marker (and cut off EOL:0D0A)
-    BHLOG(LOGBIOT) printf("    Status Node0x%02X: %s ",(unsigned char) pndb->nodecfg.nodeid, data); // to be checked if it is a string
-    BHLOG(LOGBIOT) printf("%iBy.\n", (int) len);
+			snprintf(bhdb.date, LENDATE, "%0.2i/%0.2i/%0.2i", 2000+dsensor->year2k, dsensor->month, dsensor->day);
+			snprintf(bhdb.time, LENTIME, "%0.2i:%0.2i:%0.2i", dsensor->hh, dsensor->mm, dsensor->ss);
+			sprintf(bhdb.dlog[idx].timeStamp, "%s %s", bhdb.date, bhdb.time);
+		
+			bhdb.dlog[idx].HiveWeight	= (float)dsensor->weight/100;	// 10 Gr.->kg
+			bhdb.dlog[idx].TempExtern	= (float)dsensor->text/100;		// C°+2digits
+			bhdb.dlog[idx].TempIntern	= (float)dsensor->tint/100;		// C°+2digits
+			bhdb.dlog[idx].TempHive		= (float)dsensor->thive/100;	// C°+2digits
+			bhdb.dlog[idx].TempRTC		= (float)dsensor->trtc/100;		// C°+2digits
+			bhdb.dlog[idx].ESP3V		= (float)dsensor->board3v/1000;	// mV -> V
+			bhdb.dlog[idx].Board5V		= (float)dsensor->board5v/1000;	// mV -> V
+			bhdb.dlog[idx].BattCharge	= (float)dsensor->battcharge/1000; // mV -> V
+			bhdb.dlog[idx].BattLoad		= (float)dsensor->battload/1000;// mV -> V
+			bhdb.dlog[idx].BattLevel	= dsensor->battlevel;			// in %
+			bhdb.dlog[idx].index		= dsensor->logid;				// LOG Dataset ID
+			strncpy((char*) & bhdb.dlog[idx].comment,(const char *)&dsensor->notice, dsensor->tlen );
+			
+	}else{	// received Sensor data in ASCII Format
 
-    // parse sensor status stream for whitespace chars conflicting with sscanf()
-    for(int i=0; i<strlen(data); i++){
-            if(data[i]== ',' | data[i]== ';')
-                data[i] = ' ';	// and replace them by space
-    }
-    // parse all BeeIoT-WAN status parameters from stream to bhdb-dataset row
-    nparam = sscanf(data, "%s %s %f %f %f %f %f %f %f %f %f %d #%d %s", 
-            bhdb.date,
-            bhdb.time, 
-            & bhdb.dlog[idx].HiveWeight,
-            &(bhdb.dlog[idx].TempExtern),
-            &(bhdb.dlog[idx].TempIntern),
-            &(bhdb.dlog[idx].TempHive),
-            &(bhdb.dlog[idx].TempRTC),
-            &(bhdb.dlog[idx].ESP3V),		// in V !
-            &(bhdb.dlog[idx].Board5V),		// in V !
-            &(bhdb.dlog[idx].BattCharge),   // in V !
-            &(bhdb.dlog[idx].BattLoad),		// in V !
-            &(bhdb.dlog[idx].BattLevel),
-            &(bhdb.dlog[idx].index),		// Data Msg Index (not Lora Pkg Index !)
-            &(bhdb.dlog[idx].comment) );
+		data[len-2]=0;	// limit string by EOL -> set new end marker (and cut off EOL:0D0A)
+		BHLOG(LOGBIOT) printf("    ASCII-Status Node0x%02X: %s ",(unsigned char) pndb->nodecfg.nodeid, data); // to be checked if it is a string
+		BHLOG(LOGBIOT) printf("%iBy.\n", (int) len);
 
-    // is Sensor parameter set complete ?
-    if(nparam != BEEIOT_STATUSCNT || nparam == EOF){
-            BHLOG(LOGBH) printf("  AppBIoT: Sensor-Status incomplete, found %i status parameters (expected %i)\n", nparam, BEEIOT_STATUSCNT);
-            // lets acknowledge received package to sender to send it again
-            // ToDo: prevent endless Retry loop: only once
-            rc = -1;
-            return(rc);
-    }
+		// parse sensor status stream for whitespace chars conflicting with sscanf()
+		for(int i=0; i<strlen(data); i++){
+				if(data[i]== ',' | data[i]== ';')
+					data[i] = ' ';	// and replace them by space
+		}
+		// parse all BeeIoT-WAN status parameters from stream to bhdb-dataset row
+		nparam = sscanf(data, "%s %s %f %f %f %f %f %f %f %f %f %d #%d %s", 
+				bhdb.date,
+				bhdb.time, 
+				& bhdb.dlog[idx].HiveWeight,
+				&(bhdb.dlog[idx].TempExtern),
+				&(bhdb.dlog[idx].TempIntern),
+				&(bhdb.dlog[idx].TempHive),
+				&(bhdb.dlog[idx].TempRTC),
+				&(bhdb.dlog[idx].ESP3V),		// in V !
+				&(bhdb.dlog[idx].Board5V),		// in V !
+				&(bhdb.dlog[idx].BattCharge),   // in V !
+				&(bhdb.dlog[idx].BattLoad),		// in V !
+				&(bhdb.dlog[idx].BattLevel),
+				&(bhdb.dlog[idx].index),		// Data Msg Index (not Lora Pkg Index !)
+				&(bhdb.dlog[idx].comment) );
 
-    // We have received a complete sensor parameter Set => Store it !
-	// complete DB datarow by Node information
+		// is Sensor parameter set complete ?
+		if(nparam != BEEIOT_STATUSCNT || nparam == EOF){
+				BHLOG(LOGBH) printf("  AppBIoT: Sensor-Status incomplete, found %i status parameters (expected %i)\n", nparam, BEEIOT_STATUSCNT);
+				// lets acknowledge received package to sender to send it again
+				// ToDo: prevent endless Retry loop: only once
+				rc = -1;
+				return(rc);
+		}
 
 		// bhdb.dlog[].timestamp    = timestamp of node sample data
 		if(strlen(bhdb.date) + strlen(bhdb.time) <= LENTMSTAMP){
 			sprintf(bhdb.dlog[idx].timeStamp, "%s %s", bhdb.date, bhdb.time);
 		} 		
+	}
+	
+    // We have received a complete sensor parameter Set => Store it !
+	// complete BHDB datarow with Node information
+
 		// bhdb.date + bhdb.time = timestamp of last APP processing 
 		strftime(bhdb.date, LENDATE, "%Y/%M/%D", localtime(&now.tv_sec));
 		strftime(bhdb.time, LENTIME, "%H:%M:%S", localtime(&now.tv_sec));
@@ -282,7 +318,6 @@ int AppSrv::AppBIoT	(int ndid, char* data, byte len, int mid){
         bhdb.loopid     = bhdb.dlog[idx].index;     // MsgID: sensor scan loop counter of sensor data set
         bhdb.ipaddr[0]  = 0;                        // no IP yet
         bhdb.NodeID     = pndb->nodecfg.nodeid;		// BIoT network identifier to expand CSV File name
-		bhdb.dlog[idx].HiveWeight += pndb->wcalib;	// calibrate weight cell value to final one
 
         memcpy((byte*)&bhdb.BoardID, (byte*) &pndb->nodeinfo.devEUI, sizeof(uint64_t));
 

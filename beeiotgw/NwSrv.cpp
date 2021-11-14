@@ -512,6 +512,45 @@ ackbcn_t * pbcn;			// ptr on Beacon ack. frame
 		rc=0;	
 		break;
 
+	case CMD_DSENSOR: // New BeeIoT node sensor data set received
+		// First save dataset to BHDB
+		BHLOG(LOGLORAW) printf("  BeeIoTParse: AppPkg -> Sensor-Data Block received\n");	
+		BHLOG(LOGLORAR) hexdump((unsigned char*) &mystatus, pkglen);
+		
+		// Forward Frame Payload to the assigned AppServer
+		rc = gwt.apps->AppProxy( (int) ndid, (char*) mystatus.data, (byte) mystatus.hd.frmlen, mid);
+
+		// Was FramePayload complete ?
+		if(rc == -1){   // wrong parameter set => request a resend of same message: RETRY
+                    // lets acknowledge received package to sender to send it again
+                    // ToDo: check for endless flow loop: only once
+                    needaction = CMD_RETRY;
+                    BeeIoTFlow(needaction, &mystatus, ndid, 0);  // header can be reused
+                    rc= -4;
+                    break;
+		}else if(rc == -2){
+                    // Binary Sensor data could not be forwarded
+                    rc= -5;
+                    // ToDo: error recovery of CSV file
+                    // AppProblem: no break here -> ACK pkg is needed to Node; Sent data was o.k.
+		}
+
+        BHLOG(LOGLORAW) printf("  BeeIoTParse: Send ACK\n");		
+        needaction = CMD_ACK;	// no saved data, but o.k.
+        BeeIoTFlow(needaction, &mystatus, ndid, 0);  // send ACK in sync mode
+
+        if(rc == 1){
+			BHLOG(LOGLORAW) printf("  BeeIoTParse: Processing RX1 Msg prepared by AppServer\n");		
+			delay(MSGRX1DELAY);		// wait for RX1 window
+			// ToDo: detect addon packages to send in RX1 if any
+			//		E.g.	needaction = CMD_CONFIG;
+			//			BeeIoTFlow(needaction, mystatus, 0);	// hand over mystatus for header data
+		}else{
+			BHLOG(LOGLORAW) printf("  BeeIoTParse: No RX1 Msg requested by AppServer\n");		
+		}
+		rc=0;	
+		break;
+
 	case CMD_GETSDLOG: // SD LOG data package received
 		BHLOG(LOGLORAW) printf("  BeeIoTParse: SDLOG Save command: CMD(%d) not supported yet\n", (unsigned char) mystatus.hd.cmd);		
 		// for test purpose: dump paload in hex format
@@ -667,6 +706,7 @@ Radio *			Modem;	// Ptr on Modem used for transmission
 		pcfg->cfg.hour		= tval->tm_hour;
 		pcfg->cfg.min		= tval->tm_min;
 		pcfg->cfg.sec		= tval->tm_sec+2;			// sec. + CONFIG xfer correction
+		pcfg->cfg.woffset	= pndb->wcalib;				// calibrate weight cell value to final one
 		
 		pkglen = BIoT_HDRLEN + sizeof(devcfg_t) + BIoT_MICLEN;	// Cfg-Payload + BIOT Header
 		BHLOG(LOGLORAR) hexdump((byte*) &actionpkg, pkglen);
