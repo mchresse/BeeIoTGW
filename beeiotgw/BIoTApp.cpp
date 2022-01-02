@@ -248,9 +248,9 @@ int AppSrv::AppBIoT	(int ndid, char* data, byte len, int mid){
 			tinfo.tm_sec	= dsensor->ss;
 
 			snprintf(bhdb.date, LENDATE, "%0.2i/%0.2i/%0.2i", 2000+dsensor->year2k, dsensor->month, dsensor->day);
-			snprintf(bhdb.time, LENTIME, "%0.2i:%0.2i:%0.2i", dsensor->hh, dsensor->mm, dsensor->ss);
-			sprintf(bhdb.dlog[idx].timeStamp, "%s %s", bhdb.date, bhdb.time);
-		
+			snprintf(bhdb.time, LENTIME, "%0.2i:%0.2i", dsensor->hh, dsensor->mm); // no dsensor->ss
+
+			sprintf(bhdb.dlog[idx].timeStamp, "%s %s", bhdb.date, bhdb.time);		
 			bhdb.dlog[idx].HiveWeight	= (float)dsensor->weight/100;	// 10 Gr.->kg
 			bhdb.dlog[idx].TempExtern	= (float)dsensor->text/100;		// C°+2digits
 			bhdb.dlog[idx].TempIntern	= (float)dsensor->tint/100;		// C°+2digits
@@ -301,16 +301,19 @@ int AppSrv::AppBIoT	(int ndid, char* data, byte len, int mid){
 				return(rc);
 		}
 
+		// save sensor sample timestamp as one string: but /wo seconds
 		// bhdb.dlog[].timestamp    = timestamp of node sample data
+		bhdb.time[5]=0;		// limit time string by hours + minutes
+		bhdb.dlog[idx].timeStamp[0]=0;
 		if(strlen(bhdb.date) + strlen(bhdb.time) <= LENTMSTAMP){
 			sprintf(bhdb.dlog[idx].timeStamp, "%s %s", bhdb.date, bhdb.time);
 		} 		
 	}
 	
     // We have received a complete sensor parameter Set => Store it !
-	// complete BHDB datarow with Node information
+	// Now complete BHDB datarow with add. Node information
 
-		// bhdb.date + bhdb.time = timestamp of last APP processing 
+		// Overwrite bhdb.date + bhdb.time now by timestamp of last APP processing
 		strftime(bhdb.date, LENDATE, "%Y/%M/%D", localtime(&now.tv_sec));
 		strftime(bhdb.time, LENTIME, "%H:%M:%S", localtime(&now.tv_sec));
 
@@ -321,7 +324,7 @@ int AppSrv::AppBIoT	(int ndid, char* data, byte len, int mid){
 
         memcpy((byte*)&bhdb.BoardID, (byte*) &pndb->nodeinfo.devEUI, sizeof(uint64_t));
 
-	// 1. Forward Data to local Web Service 
+	// 1. Forward Data to local Log Service 
 	//        BHLOG(LOGBH) printf("  AppBIoT: Forward Data as CSV file to local WebPage\n");		
         rc = beecsv(&bhdb); // save it in CSV format first
         if(rc != 0){
