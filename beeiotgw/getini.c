@@ -211,6 +211,10 @@ configuration* pconfig = (configuration*) inibuf;
 			pconfig->biot_actionIOfailure = atoi(value);
 		} else if (MATCH("BEEIOT", "VERBOSE")) {
 			pconfig->biot_verbose = atoi(value);
+		} else if (MATCH("BEEIOT", "CMDFILE")) {
+			strcpy(pconfig->biot_CMDFILE,value);
+		} else if (MATCH("BEEIOT", "RESULTFILE")) {
+			strcpy(pconfig->biot_RESULTFILE,value);
     } else 
 		if (       MATCH("WIFI", "WIFISSID")) {
 			strcpy(pconfig->wifi_ssid,value);
@@ -403,7 +407,7 @@ int		error;
 * Function: NewINI()
 * Creation: 01.11.2017
 * Author: R.Esser, 2019
-* Creat new config.ini file of Beehive by default parameters
+* Create a new config.ini file of Beehive by default parameters
 * !!! any format change of config ini requires change of this file as well !!!
 *
 * Input :
@@ -532,6 +536,8 @@ FILE *	bhcfg;
 	strcpy(cfgline[85], "VERBOSE	= 1             ; verbose levels +1=main flow + 2=OneWire + 4=hx711 + 8 ePaper\n");
     strcpy(cfgline[86], "                           ; 16=LANcfg + 32=SDCard + 64=ADS + 128=SPI Port\n");
     strcpy(cfgline[87], "                           ; 256=Lora-Radio + 512=Lora-BIoTWAN-Protocol\n\n");
+	strcpy(cfgline[81], "CMDFILE    = beecmd.txt    ; cmd file name (/w extension)\n");
+	strcpy(cfgline[81], "RESULTFILE = beeresult.txt ; result file name (/w extension)\n");
 
 	strcpy(cfgline[88], "[WEBUI]\n");
 	strcpy(cfgline[89], "AUTOUPDATE  = 0                 ; =1 automatic update of website\n");

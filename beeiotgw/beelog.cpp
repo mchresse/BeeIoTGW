@@ -207,3 +207,66 @@ int		idx;
 
 	return(0);	
 }
+
+
+/*******************************************************************************
+* Function: beecmd()
+* Creation: 02.01.2022
+* 
+* Read BEE-CMD File for special command send in a next free RX1 window
+* If result data is expected -> written to BEE-Result file.
+*
+* Input :
+*	none
+*
+* Global:	
+*	cfgini struct	struct of runtime parameters
+*
+* Output:
+*	return		 0 Bee-Cmd file was empty 
+*				>1 special command from command file
+*********************************************************************************
+*/
+int beecmd(void){
+char	cmdline[LOGLINELEN];	// text buffer of command string
+FILE *	bhcmd;					// file handle of cmdfile
+char	filepath[1024];			// file path buffer	
+int		cmdcode=CMD_NOP;
+char	cmd[16];
+int		p1, p2;
+
+	// now read command line from file
+	sprintf(filepath, "%s/%s", cfgini->web_root, cfgini->biot_CMDFILE); 
+		//----- FILE NOT FOUND -----	
+	
+	bhcmd = fopen(filepath, "r+");
+	if(bhcmd == NULL){	// no cmd file found
+		BHLOG(LOGBH)printf("  BeeCmd: File %s not found\n", filepath);
+		return(0);
+	}
+
+	fseek(bhcmd, 0L, SEEK_END);		// check length of file
+	if(ftell(bhcmd) == 0){
+		BHLOG(LOGBH)printf("  BeeCmd: CMD-File empty\n", filepath);
+		fclose(bhcmd);
+		return(0);
+	}
+	// Get 1. (and only !) command line
+	fseek(bhcmd, 0L, SEEK_SET);		// return back to start of file
+	fgets(cmdline, sizeof(cmdline), bhcmd);
+    fclose(bhcmd);
+
+	bhcmd = fopen(filepath, "w"); // empty cmd file content -> has been discovered now
+    fclose(bhcmd);
+
+	// Parse retrieved command line
+    sscanf( cmdline, "%s %d %d", &cmd[0], &p1, &p2 );   // Cmd + params
+		
+	if( strncmp((char *) &cmd, "SD", 2)==0 ||  strncmp((char *)&cmd, "sd", 2)==0){
+		BHLOG(LOGBH)printf("  BeeCmd: CMD: %s  Params: %d %d\n", cmd, p1, p2);
+		return CMD_GETSDLOG;
+	}
+
+	BHLOG(LOGBH)printf("  BeeCmd: No valid CMD string: %s in %s\n", cmdline, filepath);
+	return(0);	
+}

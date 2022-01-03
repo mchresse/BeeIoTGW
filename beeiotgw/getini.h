@@ -140,6 +140,8 @@ typedef struct{
 	char	biot_CSVDAYS[LOGFILELEN];
 	int		biot_actionIOfailure;
 	int		biot_verbose;
+	char	biot_CMDFILE[LOGFILELEN];
+	char	biot_RESULTFILE[LOGFILELEN];
         
     // section WIFI
     char	wifi_ssid[32];                     // Server/client WIFI SSID

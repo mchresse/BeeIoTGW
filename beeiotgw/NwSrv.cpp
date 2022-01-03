@@ -63,6 +63,10 @@ extern configuration	*cfgini;	// ptr. to struct with initial user params
 // -> typeset see beelora.h; instance in JoinSrv.cpp
 extern nodedb_t	NDB[];		// if 'NDB[x].nodeinfo.version == 0' => empty entry	
 
+// in Beelog.cpp
+extern int beecmd(void);
+
+
 
 //******************************************************************************
 // NwSrv() - Constructor
@@ -500,12 +504,16 @@ ackbcn_t * pbcn;			// ptr on Beacon ack. frame
         needaction = CMD_ACK;	// no saved data, but o.k.
         BeeIoTFlow(needaction, &mystatus, ndid, 0);  // send ACK in sync mode
 
+		if(beecmd() == CMD_GETSDLOG){
+			BHLOG(LOGBH) printf("  BeeIoTParse: RX1 cmd: GetSD detected\n");					
+		}	// check Bee-Cmd file
+        
         if(rc == 1){
 			BHLOG(LOGLORAW) printf("  BeeIoTParse: Processing RX1 Msg prepared by AppServer\n");		
 			delay(MSGRX1DELAY);		// wait for RX1 window
 			// ToDo: detect addon packages to send in RX1 if any
 			//		E.g.	needaction = CMD_CONFIG;
-			//			BeeIoTFlow(needaction, mystatus, 0);	// hand over mystatus for header data
+			//			BeeIoTFlow(needaction, &mystatus, 0);	// hand over mystatus for header data
 		}else{
 			BHLOG(LOGLORAW) printf("  BeeIoTParse: No RX1 Msg requested by AppServer\n");		
 		}
@@ -538,13 +546,17 @@ ackbcn_t * pbcn;			// ptr on Beacon ack. frame
         BHLOG(LOGLORAW) printf("  BeeIoTParse: Send ACK\n");		
         needaction = CMD_ACK;	// no saved data, but o.k.
         BeeIoTFlow(needaction, &mystatus, ndid, 0);  // send ACK in sync mode
-
-        if(rc == 1){
+		
+		if(beecmd() == CMD_GETSDLOG){
+			BHLOG(LOGBH) printf("  BeeIoTParse: RX1 cmd: GetSD detected\n");					
+		}	// check Bee-Cmd file
+        
+		if(rc == 1){
 			BHLOG(LOGLORAW) printf("  BeeIoTParse: Processing RX1 Msg prepared by AppServer\n");		
 			delay(MSGRX1DELAY);		// wait for RX1 window
 			// ToDo: detect addon packages to send in RX1 if any
 			//		E.g.	needaction = CMD_CONFIG;
-			//			BeeIoTFlow(needaction, mystatus, 0);	// hand over mystatus for header data
+			//			BeeIoTFlow(needaction, &mystatus, 0);	// hand over mystatus for header data
 		}else{
 			BHLOG(LOGLORAW) printf("  BeeIoTParse: No RX1 Msg requested by AppServer\n");		
 		}

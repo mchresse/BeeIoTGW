@@ -111,6 +111,8 @@ ACTIOFAIL       = 1          ; allowed action on IO Error: 0= no Action, 1= exit
 VERBOSE         = 1          ; verbose levels +1=main flow + 2=OneWire + 4=hx711 + 8 ePaper
                              ; 16=LANcfg + 32=SDCard + 64=ADS + 128=SPI Port
                              ; 256=Lora-Radio + 512=Lora-BIoTWAN-Protocol
+CMDFILE         = beecmd.txt        ; Command file for RX1 response window
+RESULTFILE      = beeresult.txt     ; Result data from RX1-command
 
 [WIFI]      ; Client side Wifi settings
 WIFISSID        = 'sssss'			; Client/Server Wifi SSID (32 By.)

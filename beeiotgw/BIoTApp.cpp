@@ -97,6 +97,7 @@ static int	curlcount;		// count curl-lib ftp xfer calls for debugging reasons
 
 extern int beecsv(dataset * data);
 extern int beelog(char *comment);
+extern int beecmd(void);
 
 //******************************************************************
 // Settings for TTN Upload in JSON format via UDP:
