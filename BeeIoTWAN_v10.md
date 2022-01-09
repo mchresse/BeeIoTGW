@@ -1,4 +1,5 @@
-# BeeIoT-WAN Gateway v1.2
+
+Logging# BeeIoT-WAN Gateway v1.2
 ### Der Gateway zur [BeeIoT Bienenstockwaage](https://github.com/mchresse/BeeIoT/blob/master/BeeIoT_v20.md)
 ##### (based on Raspberry Pi)
 
@@ -8,13 +9,13 @@
 
 ---
 #### Inhaltsverzeichnis:
-- [Einführung](#einführung)
-- [RPi-Gateway Aufbau](#rpi-gateway-aufbau)
+- [**Einführung**](#einführung)
+- [**RPi-Gateway Aufbau**](#rpi-gateway-aufbau)
 	* [RPi-Gateway RadioLayer](#rpi-gateway-radiolayer)
-- [BeeIoT-Client Aufbau](#beeiot-client-aufbau)
+- [**BeeIoT-Client Aufbau**](#beeiot-client-aufbau)
 	+ [Client Function Flow](#client-function-flow)
 	+ [Client Data Security](#client-data-security)
-- [BeeIoT LoRa WAN](#beeiot-lora-wan)
+- [**BeeIoT LoRa WAN**](#beeiot-lora-wan)
 	* [BeeIoTWAN Channel Switch](#beeiotwan-channel-switch)
 	* [BeeIoTWAN Communication packets](#beeiotwan-communication-packets)
 		+ [BeeIoTWAN Base Packet](#beeiotwan-base-packet)
@@ -25,8 +26,9 @@
 		+ [Network Service - class NwSrv](#network-service---class-nwsrv)
 		+ [JOIN Service - class JoinSrv](#join-service---class-joinsrv)
 		+ [Application Services - class AppSrv](#application-services---class-appsrv)
-- [Logging](#logging)
-- [BeeIoT ToDo Liste](#beeiot-todo-liste)
+- [**BIOT Command Interface**](#biot-Command-Interface)
+- [**Logging**](#logging)
+- [**BeeIoT ToDo Liste**](#beeiot-todo-liste)
 <!-- toc -->
 ---
 
@@ -528,6 +530,64 @@ Erfolgreich validierte Daten werden über AppSrv.beecsv() in das Format einer CS
 Alternativ kann diese CSV Datei auch per curl()-FTP an einen externen (Web-) Service zur Weiterverarbeitung (AppSrv.beelog()) übermittelt werden.
 
 Am Ende der Bearbeitung kann der Applikations-Service auch einen Vorschlag für ein RX1 Paket stellen (rc=1), welches als 2. Antwort im RX1 Window an den Client zurückgesendet wird.
+
+## BIOT Command Interface
+Ein File basiertes Kommandointerface erlaubt das Absetzen von EInzelkommandos selektiv an einzelne Nodes. Die Node Selektion findet über die Node ID statt.
+
+In der Config.ini Datei der Section *[BeeIOT]* finden sich die Definitionen für die relevanten Interface files:
+```cpp
+CMDFILE         = beecmd.txt        ; Command file for RX1 response window
+RESULTFILE      = beeresult.txt     ; Result data from RX1-command
+```
+Diese Dateien werden unter *BEEIOTWEB*-Path gesucht (wo auch die CSV datei aktualisiert wird.)
+
+In dem **CMDFile** werden Node spezifische Kommandos in folgendem Format erwartet:
+**	[nodeid] [cmd] [par1] [par2] [par3] **
+Beispiel: 4: SD 1 1 0 
+Die dazugehörige Paketstruktur ist in BIotWan.h definiert: *beeiot_cmd_t*
+
+|Item|Beschreibung|Range| Comments|
+|--|--|--|--|
+|[nodeid] |Die NodeID des ausgewählten Devices: |1 .. 9 |(wird Prg.intern um die NODEIDBASE erweitert)|
+|[cmd]| 2 Zeichen Kürzel für das CMD_xxx Kommando| | Klein- oder Grossschrift erlaubt; aber kein mix.|
+| | SX: Request SD card directory string | SX/sx | |
+| | SD: Request SD card LogData string | SD/sd | |
+| | RS: Reset Node to JOIN MOdequest SD card directory string | RS/rs | |
+|[par1..3]| optionale Parameter per Kommando  | 0..255 | unint8_t Typ|
+
+- **[SX/sx]:** liefert die Darstellung der Directory Struktur. Dabei werden die jeweiligen Directory-Ebenen und deren gefundene Files als jeweilige Text Strings zeilenweise übertragen. In der Paketstruktur beeiot_sddir_t  liefert ein Index: *sddir_seq* den Zeilenindex der übertragenen Strings. 0xFF markiert generell die letzte übertragene Zeile.
+	- **Par1** definiert das rekursive Directory level bis wo gesucht wird.
+		- 1: '/' Root directory
+		- 2..n: weitere Sub Folder Ebenen.
+	- **Par2** Anzahl der zu übertragenen Folder-Strings -> Limit für *sddir_seq*
+	- **Par3** not used
+	- Die dazugehörige Result-Paketstruktur ist in BIotWan.h definiert: *beeiot_sddir_t*
+Die maximale String Länge BIoT_FRAMELEN errechnet sich  (incl EOL) aus:
+		- MAX_PAYLOAD_LENGTH - BIoT_HDRLEN - sddir_seq-length - BIoT_MICLEN
+		- also ca. 128 - 6 - 1 - 4 = 117 Byte (bei BIotWanh.h Version V1.7) 
+	- Die Daten Strings werden sequentiell in der unter RESULTFILE definierten Datei abgelegt.
+	- Die CMDFILE Datei wird nach erfolgreich Übertragung vollständig gelöscht.
+
+- **[SD/sd]** liefert den Inhalt der SDLOGPATH Datei (siehe beeiot.h): "/logdata.txt"
+	- Diese wird bei jedem Sample um die Sensordaten aktualisiert inkl. aller internen Messages, welche ev. zu groß zur stetigen Übertragung sind. Dabei werden die jeweiligen Datenzeilen als Text/Binär Strings übertragen (so wie abgelegt im DSensor2/DataMessage Mode).
+	- In der Paketstruktur beeiot_sd_t  liefert ein 2-ByteIndex: 'sdseq_msb + sdseq_lsb' den Zeilenindex der übertragenen Daten-chunka. 0xFFFF markiert den letzten übertragenen Daten blocks.
+	- **Par1** Anzahl der zu übertragenen Data-Chunks -> Limit für *sdseq counter*
+	- **Par2** not used
+	- **Par3** not used
+	- Die dazugehörige Result-Paketstruktur ist in BIotWan.h definiert: *beeiot_sd_t*
+Die maximale Daten-Chunk Länge (binary, kein EOL Marker !) BIoT_FRAMELEN errechnet sich aus:
+		- MAX_PAYLOAD_LENGTH - BIoT_HDRLEN - 2-Byte-sdseq_seq - BIoT_MICLEN
+		- also ca. 128 - 6 - 2 - 4 = 116 Byte (bei BIotWanh.h Version V1.7)
+	- Die Daten Chunks werden sequentiell in der unter RESULTFILE definierten Datei abgelegt.
+	- Die CMDFILE Datei wird nach erfolgreich Übertragung vollständig gelöscht.
+	- Beispiel: '4: sd 16 0 0'
+- **[RS/rs]** Reset Node Transfer Statistics, enter JOIN Mode, Reset SD Card.
+	- **Par1** Reset Node Level: 1: All (Lora + SD), 2: Lora only
+	- **Par2** SD Reset level =1: LogPath-file, =2: Directory
+	- **Par3** not used
+	- Die CMDFILE Datei wird nach erfolgreich Übertragung vollständig gelöscht.
+	- Beispiel: '4: rs 1 1 0'
+
 
 ## Logging
 Sowohl im CLient wie auf Server Seite ist derselbe Logging mechanismus über ein 16 Bit Flagfeld eingerichtet: **lflags**.

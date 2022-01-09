@@ -169,7 +169,19 @@ typedef struct {
 #define LOGNOTELEN	512		// length of logline comment string
 #define WEBIDXMAXLLEN	512
 #define WEBNOTICEMARKER "//NoticeAddHere"
-	
+
+// Bee-Command Structure -> parsed from Bee-Cmd file (as defined in config.ini)
+typedef struct {
+	char cmdcode;	// CMD_xxx from BeeiotWan.h Sensor node command list
+	int p1;			// opt: Parameter 1 for cmdcode
+	int p2;			// opt: Parameter 2 for cmdcode
+	int p3;			// opt: Parameter 3 for cmdcode
+} cmd_t;
+
+// in Beelog.cpp
+extern int beecmd(cmd_t* cmd, int ndid);
+extern int beeResultlog(char * result, int ndid, uint8_t seqid);
+
 // Some helper functions residing in main()
 void hexdump(unsigned char * msg, int len);
 void Printhex(unsigned char * pbin, int bytelen, const char * s = "0x", int format=1, int dir=0);

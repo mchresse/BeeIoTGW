@@ -63,9 +63,6 @@ extern configuration	*cfgini;	// ptr. to struct with initial user params
 // -> typeset see beelora.h; instance in JoinSrv.cpp
 extern nodedb_t	NDB[];		// if 'NDB[x].nodeinfo.version == 0' => empty entry	
 
-// in Beelog.cpp
-extern int beecmd(void);
-
 
 
 //******************************************************************************
@@ -355,6 +352,9 @@ char *ptr;					// ptr to next sensor parameter field
 int	mid;
 beeiotpkg_t mystatus;		// raw lora package buffer
 ackbcn_t * pbcn;			// ptr on Beacon ack. frame
+cmd_t cmd;					// global command struct for Bee-Cmd FIle parsing
+beeiot_sddir_t * sddirpkg;
+
 
 	msg->getpkg(&mystatus);	// copy LoRa Pkg for parsing out of MsgBuffer
 	mid = msg->getmid();
@@ -504,19 +504,17 @@ ackbcn_t * pbcn;			// ptr on Beacon ack. frame
         needaction = CMD_ACK;	// no saved data, but o.k.
         BeeIoTFlow(needaction, &mystatus, ndid, 0);  // send ACK in sync mode
 
-		if(beecmd() == CMD_GETSDLOG){
-			BHLOG(LOGBH) printf("  BeeIoTParse: RX1 cmd: GetSD detected\n");					
-		}	// check Bee-Cmd file
-        
-        if(rc == 1){
-			BHLOG(LOGLORAW) printf("  BeeIoTParse: Processing RX1 Msg prepared by AppServer\n");		
-			delay(MSGRX1DELAY);		// wait for RX1 window
-			// ToDo: detect addon packages to send in RX1 if any
-			//		E.g.	needaction = CMD_CONFIG;
-			//			BeeIoTFlow(needaction, &mystatus, 0);	// hand over mystatus for header data
+		delay(MSGRX1DELAY);		// wait for RX1 window start
+ 
+		BHLOG(LOGLORAW) printf("  BeeIoTParse: Processing RX1 Msg prepared by AppServer:");		
+		if(beecmd(&cmd, ndid) == 1){
+			BHLOG(LOGBH) printf("\n  BeeIoTParse: RX1 cmd detected %d\n", cmd.cmdcode);					
+			needaction = cmd.cmdcode;
+			BeeIoTFlow(needaction, &mystatus, ndid, 0);  // send ACK in sync mode
 		}else{
-			BHLOG(LOGLORAW) printf("  BeeIoTParse: No RX1 Msg requested by AppServer\n");		
+			BHLOG(LOGLORAW) printf(" none\n");		
 		}
+
 		rc=0;	
 		break;
 
@@ -546,23 +544,37 @@ ackbcn_t * pbcn;			// ptr on Beacon ack. frame
         BHLOG(LOGLORAW) printf("  BeeIoTParse: Send ACK\n");		
         needaction = CMD_ACK;	// no saved data, but o.k.
         BeeIoTFlow(needaction, &mystatus, ndid, 0);  // send ACK in sync mode
-		
-		if(beecmd() == CMD_GETSDLOG){
-			BHLOG(LOGBH) printf("  BeeIoTParse: RX1 cmd: GetSD detected\n");					
-		}	// check Bee-Cmd file
-        
-		if(rc == 1){
-			BHLOG(LOGLORAW) printf("  BeeIoTParse: Processing RX1 Msg prepared by AppServer\n");		
-			delay(MSGRX1DELAY);		// wait for RX1 window
-			// ToDo: detect addon packages to send in RX1 if any
-			//		E.g.	needaction = CMD_CONFIG;
-			//			BeeIoTFlow(needaction, &mystatus, 0);	// hand over mystatus for header data
+
+		delay(MSGRX1DELAY);		// wait for RX1 window start
+
+		BHLOG(LOGLORAW) printf("  BeeIoTParse: Processing RX1 Msg prepared by AppServer:");		
+		if(beecmd(&cmd, ndid) == 1){
+			BHLOG(LOGBH) printf("\n  BeeIoTParse: RX1 cmd detected %d\n", cmd.cmdcode);					
+			needaction = cmd.cmdcode;
+			// prepare msg package to hand over cmd params for actionflow. 
+			beeiot_cmd_t	*pkgrx1;	// to cast to RX1 window command package format 
+			pkgrx1 = (beeiot_cmd_t*) & mystatus;	 // use last pkg frame for param xfer
+			pkgrx1->p.cmdp1 =	(uint8_t) cmd.p1;
+			pkgrx1->p.cmdp2 =	(uint8_t) cmd.p2;
+			pkgrx1->p.cmdp3 =	(uint8_t) cmd.p3;
+			BeeIoTFlow(needaction, &mystatus, ndid, 0);  // send ACK in sync mode
 		}else{
-			BHLOG(LOGLORAW) printf("  BeeIoTParse: No RX1 Msg requested by AppServer\n");		
+			BHLOG(LOGLORAW) printf(" none\n");		
 		}
+
 		rc=0;	
 		break;
 
+	case CMD_GETSDDIR: // SD DIR data package received
+		BHLOG(LOGLORAW) printf("  BeeIoTParse: SDDIR Save command: CMD(%d) received\n", (unsigned char) mystatus.hd.cmd);		
+		// for test purpose: dump payload in hex format
+		//		BHLOG(LOGLORAR) hexdump((unsigned char*) &mystatus, pkglen);
+		sddirpkg = (beeiot_sddir_t*)& mystatus;
+
+		rc = beeResultlog(sddirpkg->sddir, ndid, sddirpkg->sddir_seq);
+		BHLOG(LOGBH) printf("  BeeIoTParse: SD-DIR[%d:%d]: %s\n", ndid, sddirpkg->sddir_seq, sddirpkg->sddir); 
+		break;
+		
 	case CMD_GETSDLOG: // SD LOG data package received
 		BHLOG(LOGLORAW) printf("  BeeIoTParse: SDLOG Save command: CMD(%d) not supported yet\n", (unsigned char) mystatus.hd.cmd);		
 		// for test purpose: dump paload in hex format
@@ -627,6 +639,8 @@ int NwSrv::BeeIoTFlow(u1_t action, beeiotpkg_t * pkg, int ndid, bool async){
 beeiotpkg_t		actionpkg;	// new TX package buffer for creation
 beeiot_header_t	*pack;	// ACK requires header only	-> reuse of pkg message field
 beeiot_cfg_t	*pcfg;	// CONFIG has HD + CData	-> reuse of pkg message field
+beeiot_cmd_t	*prx1;	// RX1 window command package
+cmd_param_t     *prx1par; // RX1 cmd parameter list
 nodedb_t		*pndb;	// ptr to NDB[ndid]
 byte			pkglen;	// length of raw TX pkg data (incl. MIC)
 struct tm		*tval;	// values of current timestamp
@@ -642,8 +656,7 @@ Radio *			Modem;	// Ptr on Modem used for transmission
 	case CMD_RETRY: // fall thru by intention ==> like CMD_ACK
 	case CMD_ACK:	// by intention do nothing but ACK
 	case CMD_ACKBCN:// Beacon ACK
-	case CMD_RESET: // Reset Node -> implicite new JOIN cycle on def. channel + selftest
-		
+
 		// give node some time to recover from SendMsg before 
 		delay(RXACKGRACETIME);
 
@@ -681,7 +694,7 @@ Radio *			Modem;	// Ptr on Modem used for transmission
 		// ToDO: add MIC field to end of actionpkg.data
 		break;
 
-	case CMD_CONFIG: // Send runtime config params as assiged to node
+	case CMD_CONFIG: // Send runtime config params as assigned to node
 		// give node some time to recover from SendMsg before 
 		delay(RXACKGRACETIME);
 		pcfg = (beeiot_cfg_t*) & actionpkg;	// use generic pkg space for CONFIG pkg
@@ -723,6 +736,31 @@ Radio *			Modem;	// Ptr on Modem used for transmission
 		pkglen = BIoT_HDRLEN + sizeof(devcfg_t) + BIoT_MICLEN;	// Cfg-Payload + BIOT Header
 		BHLOG(LOGLORAR) hexdump((byte*) &actionpkg, pkglen);
 
+		// ToDO: add MIC field to end of actionpkg.data
+		break;
+
+	// Send RX1 Cmd package incl. params as assigned to node	(intentionally fall though)
+	case CMD_GETSDDIR:	// Get SD Dir Structure
+	case CMD_GETSDLOG:	// Get SD Log Data
+	case CMD_RESET:		// Reset Node -> implicite new JOIN cycle on def. channel + selftest
+
+		// setup pkg header
+		prx1 = (beeiot_cmd_t*) & actionpkg;	 // use generic pkg space for RX1-cmd pkg
+		prx1->hd.destID = pkg->hd.sendID;	 // The BeeIoT node is the messenger
+		prx1->hd.sendID = (u1_t) pndb->nodecfg.gwid; // New sender: its me
+		prx1->hd.cmd	= action;			 // get our action command
+		prx1->hd.pkgid  = pkg->hd.pkgid;	 // get last pkg msgid
+
+		prx1->hd.frmlen = sizeof(cmd_param_t); // payload length
+		prx1->hd.res	= 0;
+		// get RX1 command parameter for action package
+		prx1par = (cmd_param_t *)& pkg->data;
+		prx1->p.cmdp1 =	prx1par->cmdp1;
+		prx1->p.cmdp2 =	prx1par->cmdp2;
+		prx1->p.cmdp3 =	prx1par->cmdp3;
+
+		pkglen = sizeof(beeiot_cmd_t);	// Pkg-Payload incl. BIOT Header + MIC
+		BHLOG(LOGLORAR) hexdump((byte*) &actionpkg, pkglen);
 		// ToDO: add MIC field to end of actionpkg.data
 		break;
 	

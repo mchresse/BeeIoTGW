@@ -6,10 +6,10 @@
 ;===============================================================================
 
 ; BeeIoT Gateway&Server config file for first runtime initialization 
-; 28.02.2021
-VERSION = 2.5	; Version of Config.INI File Format
-VMAJOR	= 1		; Major Version of BIoTWAN Protocol
-VMINOR	= 4		; Minor Version of BIoTWAN Protocol
+; 08.01.2022
+VERSION = 2.6   ; Version of Config.INI File Format
+VMAJOR	= 1     ; Major Version of BIoTWAN Protocol
+VMINOR	= 7     ; Minor Version of BIoTWAN Protocol
 
 ; BeeIoT Server configuration runtime parameters
 ; This file can be modified during runtime of beeiotgw !
@@ -108,7 +108,7 @@ LOGFILE         = beeiot.txt ; log file name (/w extension)
 CSVFILE         = beeiotlog  ; *.csv data log file name (/wo extension): results in beeiotlogYYYY.csv
 CSVDAYS         = beeiotdays ; *.csv file of daily statistic summary (/wo extension)
 ACTIOFAIL       = 1          ; allowed action on IO Error: 0= no Action, 1= exit, 2=reboot
-VERBOSE         = 1          ; verbose levels +1=main flow + 2=OneWire + 4=hx711 + 8 ePaper
+VERBOSE         = 0          ; verbose levels +1=main flow + 2=OneWire + 4=hx711 + 8 ePaper
                              ; 16=LANcfg + 32=SDCard + 64=ADS + 128=SPI Port
                              ; 256=Lora-Radio + 512=Lora-BIoTWAN-Protocol
 CMDFILE         = beecmd.txt        ; Command file for RX1 response window
