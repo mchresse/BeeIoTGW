@@ -508,7 +508,7 @@ beeiot_sddir_t * sddirpkg;
  
 		BHLOG(LOGLORAW) printf("  BeeIoTParse: Processing RX1 Msg prepared by AppServer:");		
 		if(beecmd(&cmd, ndid) == 1){
-			BHLOG(LOGBH) printf("\n  BeeIoTParse: RX1 cmd detected %d\n", cmd.cmdcode);					
+			BHLOG(LOGLORAW) printf("\n  BeeIoTParse: RX1 cmd detected %d\n", cmd.cmdcode);					
 			needaction = cmd.cmdcode;
 			BeeIoTFlow(needaction, &mystatus, ndid, 0);  // send ACK in sync mode
 		}else{
@@ -549,7 +549,7 @@ beeiot_sddir_t * sddirpkg;
 
 		BHLOG(LOGLORAW) printf("  BeeIoTParse: Processing RX1 Msg prepared by AppServer:");		
 		if(beecmd(&cmd, ndid) == 1){
-			BHLOG(LOGBH) printf("\n  BeeIoTParse: RX1 cmd detected %d\n", cmd.cmdcode);					
+			BHLOG(LOGLORAW) printf("\n  BeeIoTParse: RX1 cmd detected %d\n", cmd.cmdcode);					
 			needaction = cmd.cmdcode;
 			// prepare msg package to hand over cmd params for actionflow. 
 			beeiot_cmd_t	*pkgrx1;	// to cast to RX1 window command package format 

@@ -256,7 +256,7 @@ int		rc;
 
 	fseek(bhcmd, 0L, SEEK_END);		// check length of file
 	if(ftell(bhcmd) == 0){
-		BHLOG(LOGBH)printf("  BeeCmd: CMD-File at %s empty\n", filepath);
+		// BHLOG(LOGBH)printf("  BeeCmd: CMD-File at %s empty\n", filepath);
 		fclose(bhcmd);
 		return(0);
 	}
@@ -268,7 +268,7 @@ int		rc;
 		if(fgets(cmdline, sizeof(cmdline)-2, bhcmd) != NULL){ // read 1 line inclusive EOL + /0
 			rc = beecmd_parse(cmd, cmdline, ndid); // Parse retrieved command line
 		}else{	//EOL reached /wo any valid line
-			BHLOG(LOGBH)printf("  BeeCmd: No valid CMD string: %s in %s\n", cmdline, filepath);		
+			BHLOG(LOGBH)printf("  BeeCmd: No valid CMD string: %s in %s found\n", cmdline, filepath);		
 			fclose(bhcmd);
 			return(0);
 		}
@@ -281,51 +281,57 @@ int		rc;
 // BeeCmd()
 // Input:	cmd		 struct of cmd line + fields for parsed cmd + params
 //	        cmdline	 1 command line string from Bee-Cmd file
-// Return:  =0	Comment line only -> skip
-//			=1  Command line parsed succesfully
+// Return:  =0	Comment line only or wrong ndid -> skip
+//			=1  Command line parsed successfully
 //			=-1 Command line wrong/unknown format
+//			=-2 Unsupported Command code
 //******************************************************************************
 int beecmd_parse(cmd_t * cmd, char * cmdline, int ndid){	
 #define CMDSTRLEN 16
 char	cmdstr[CMDSTRLEN];
 int		id =0;		// cmdline Node-ID: 0 ... 9 (MAXNODES-1)
 int		rc;
-const char * format ="%d: %s %d %d";
+const char * format ="%d: %s %d %d %d";
 
 	if(cmdline[0] == '#'){	// skip/ignore comment lines
 		return(0);
 	}
 
 	rc = sscanf( cmdline, format, &id, cmdstr, &cmd->p1, &cmd->p2, &cmd->p3 );   // Cmd + params
+	
 	// check range of valid # of params + cmd-length + NodeID range
+	if(id != ndid) {	// skip wrong command line assignment to nodeid	
+		return(0);
+	}
 	if(	(rc < 2) || (rc > 5) ||	// min 2, max 4 params accepted: id + cmd + p1 + p2
-		(strlen(cmdstr)!= 2) ||	// only 2 letter commands accepted
-		(id != ndid)	    ) {	// skip wrong command line assignment to nodeid	
-		BHLOG(LOGBH)printf("  BeeCmd: No valid # of CMD string items(%d): %s\n", rc, cmdline);
+		(strlen(cmdstr)!= 2)){	// only 2 letter commands accepted
+		// skip wrong command line assignment to nodeid	
+	//	BHLOG(LOGBH)printf("  BeeCmd: Invalid CMD string format(%d): %s\n", rc, cmdline);
 		return(-1);
 	}
 	
-	// Parse command string and return Command code
+	// Valid command line of current node detected: Parse command string and return Command code
+
 	// GETSDDIR: Get SD card directory Structure
 	if( strncmp((char *) &cmdstr, "SX", 2)==0 ||  strncmp((char *)&cmdstr, "sx", 2)==0){
-		BHLOG(LOGBH)printf("  BeeCmd: CMD: %s  Params: %d %d %d\n", cmdstr, cmd->p1, cmd->p2, cmd->p3);
+		BHLOG(LOGBH)printf("  BeeCmd: RX1-CMD: %s  Params: %d %d %d\n", cmdstr, cmd->p1, cmd->p2, cmd->p3);
 		cmd->cmdcode = CMD_GETSDDIR;
 		return(1);
 	}
 	// GETSDDATA: Get SD Card data chunk
 	if( strncmp((char *) &cmdstr, "SD", 2)==0 ||  strncmp((char *)&cmdstr, "sd", 2)==0){
-		BHLOG(LOGBH)printf("  BeeCmd: CMD: %s  Params: %d %d %d\n", cmdstr, cmd->p1, cmd->p2, cmd->p3);
+		BHLOG(LOGBH)printf("  BeeCmd: RX1-CMD: %s  Params: %d %d %d\n", cmdstr, cmd->p1, cmd->p2, cmd->p3);
 		cmd->cmdcode = CMD_GETSDLOG;
 		return(1);
 	}
 	// RESET: Reset Node Statistics, JOIN mode, Job Queue
 	if( strncmp((char *) &cmdstr, "RS", 2)==0 ||  strncmp((char *)&cmdstr, "rs", 2)==0){
-		BHLOG(LOGBH)printf("  BeeCmd: CMD: %s  Params: %d %d %d\n", cmdstr, cmd->p1, cmd->p2, cmd->p3);
+		BHLOG(LOGBH)printf("  BeeCmd: RX1-CMD: %s  Params: %d %d %d\n", cmdstr, cmd->p1, cmd->p2, cmd->p3);
 		cmd->cmdcode = CMD_RESET;
 		return(1);
 	}
 	
-	return(CMD_NOP);
+	return(-2);	// unsupported command code detected
 }
 
 /*******************************************************************************
