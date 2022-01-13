@@ -151,6 +151,8 @@ configuration* pconfig = (configuration*) inibuf;
 			pconfig->nd1_freport = atoi(value);
 		} else if (MATCH("HWCONFIG", "ND1_WCALIB")) {
 			pconfig->nd1_wcalib = atoi(value);
+		} else if (MATCH("HWCONFIG", "ND1_HWCONF")) {
+			pconfig->nd1_hwconfig = atoi(value);
 
 		} else if (MATCH("HWCONFIG", "ND2_GWID")) {
 			pconfig->nd2_gwid = atoi(value);
@@ -166,6 +168,8 @@ configuration* pconfig = (configuration*) inibuf;
 			pconfig->nd2_freport = atoi(value);
 		} else if (MATCH("HWCONFIG", "ND2_WCALIB")) {
 			pconfig->nd2_wcalib = atoi(value);
+		} else if (MATCH("HWCONFIG", "ND2_HWCONF")) {
+			pconfig->nd2_hwconfig = atoi(value);
 
 		} else if (MATCH("HWCONFIG", "ND3_GWID")) {
 			pconfig->nd3_gwid = atoi(value);
@@ -181,6 +185,8 @@ configuration* pconfig = (configuration*) inibuf;
 			pconfig->nd3_freport = atoi(value);
 		} else if (MATCH("HWCONFIG", "ND3_WCALIB")) {
 			pconfig->nd3_wcalib = atoi(value);
+		} else if (MATCH("HWCONFIG", "ND3_HWCONF")) {
+			pconfig->nd3_hwconfig = atoi(value);
 
 		} else if (MATCH("HWCONFIG", "ND4_GWID")) {
 			pconfig->nd4_gwid = atoi(value);
@@ -196,6 +202,8 @@ configuration* pconfig = (configuration*) inibuf;
 			pconfig->nd4_freport = atoi(value);
 		} else if (MATCH("HWCONFIG", "ND4_WCALIB")) {
 			pconfig->nd4_wcalib = atoi(value);
+		} else if (MATCH("HWCONFIG", "ND4_HWCONF")) {
+			pconfig->nd4_hwconfig = atoi(value);
 	} else 
 		if (       MATCH("BEEIOT", "BHLOOPWAIT")) {
 			pconfig->biot_loopwait = atoi(value);

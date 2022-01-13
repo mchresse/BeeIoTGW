@@ -6,10 +6,10 @@
 ;===============================================================================
 
 ; BeeIoT Gateway&Server config file for first runtime initialization 
-; 08.01.2022
-VERSION = 2.6   ; Version of Config.INI File Format
+; 13.01.2022
+VERSION = 2.7   ; Version of Config.INI File Format
 VMAJOR	= 1     ; Major Version of BIoTWAN Protocol
-VMINOR	= 7     ; Minor Version of BIoTWAN Protocol
+VMINOR	= 8     ; Minor Version of BIoTWAN Protocol
 
 ; BeeIoT Server configuration runtime parameters
 ; This file can be modified during runtime of beeiotgw !
@@ -17,12 +17,13 @@ VMINOR	= 7     ; Minor Version of BIoTWAN Protocol
 [HWCONFIG]              ; wPi configuration settings
 
 ; Component enabler
-HCLORA          = 1	; =1 LoRa Port sending enabled
+HCLORA          = 1	; =1 GW LoRa Port sending enabled
 HCLORAWAN       = 0	; =0 BIoTWAN protocol enabled, =1 LoRaWAN enable (not supp. yet)
-HCWIFICLIENT    = 1	; =1 Client (!) onboard Wifi to be used 
-HCGPS           = 0	; =1 GPS module enabled
+HCWIFICLIENT    = 0	; =1 GW onboard WiFI Client (!) enabled 
+HCGPS           = 0	; =1 GW GPS module enabled
 HCLOCWEB        = 1	; =1 Activate local Webpage date preparation at BEEIOTWEB
 HCREMWEB        = 1	; =1 Activate remote Webpage date preparation at EXFTPURL > EXFTPPATH
+
 
 ; LoRa Modem Chip GPIo section
 LORANUMCHN	= 2		; # of supported LORA Modems (=1: single channel gateway)
@@ -69,6 +70,7 @@ ND1_DEVEUI1 = DC8AD5FF	; Unique DEVEUI of Node Upper Long
 ND1_DEVEUI2 = FE286F24	; Unique DEVEUI of Node Lower Long
 ND1_FREPORT = 10	; Report Frequency in Minutes
 ND1_WCALIB	= 0		; Weight Cell calibration (absolute +/-)
+ND1_HWCONF  = 7     ; EPD=+1, LORA=+2, SD=+4, WIFI=+8, NTP=+16, Beacon=+32
 
 ;---------------------------------------------------
 ; Node 2: ESP32-WROVERB: MAC 24:6F:28:F0:0D:AC		beacon test Module 1
@@ -79,6 +81,7 @@ ND2_DEVEUI1 = AC0DF0FF	; Unique DEVEUI of Node Upper Long
 ND2_DEVEUI2 = FE286F24	; Unique DEVEUI of Node Lower Long
 ND2_FREPORT = 1	    ; Report Frequency in Minutes
 ND2_WCALIB	= 0		; Weight Cell calibration (absolute +/-)
+ND2_HWCONF  = 7     ; EPD=+1, LORA=+2, SD=+4, WIFI=+8, NTP=+16, Beacon=+32
 
 ;---------------------------------------------------
 ; Node 3: BeeIoT ESP32-WROOM32:	MAC: 94:FE:8A:B5:AA:8C	Beacon test Module 2
@@ -89,6 +92,7 @@ ND3_DEVEUI1 = 94FE8AFF	; Unique DEVEUI of Node Upper Long
 ND3_DEVEUI2 = FEB5AA8C	; Unique DEVEUI of Node Lower Long
 ND3_FREPORT = 1	    ; Report Frequency in Minutes
 ND3_WCALIB	= 0		; Weight Cell calibration (absolute +/-)
+ND3_HWCONF  = 7     ; EPD=+1, LORA=+2, SD=+4, WIFI=+8, NTP=+16, Beacon=+32
 
 ;---------------------------------------------------
 ; Node 4: BeeIoT ESP32-WROOM32:	MAC: 2C:2B:16:28:6F:24 	Beehive Weight cell test Module 3
@@ -99,7 +103,7 @@ ND4_DEVEUI1 = 2C2B16FF	; Unique DEVEUI of Node Upper Long
 ND4_DEVEUI2 = FE286F24	; Unique DEVEUI of Node Lower Long
 ND4_FREPORT = 10	; Report Frequency in Minutes
 ND4_WCALIB	= 0		; Weight Cell calibration (absolute +/-)
-
+ND4_HWCONF  = 7     ; EPD=+1, LORA=+2, SD=+4, WIFI=+8, NTP=+16, Beacon=+32
 
 [BEEIOT]   ; Init of Main Programm
 BHLOOPWAIT      = 10          ; Sensor loop wait time in Minutes

@@ -732,6 +732,7 @@ Radio *			Modem;	// Ptr on Modem used for transmission
 		pcfg->cfg.min		= tval->tm_min;
 		pcfg->cfg.sec		= tval->tm_sec+2;			// sec. + CONFIG xfer correction
 		pcfg->cfg.woffset	= pndb->wcalib;				// calibrate weight cell value to final one
+		pcfg->cfg.hwconfig	= pndb->hwconfig;
 		
 		pkglen = BIoT_HDRLEN + sizeof(devcfg_t) + BIoT_MICLEN;	// Cfg-Payload + BIOT Header
 		BHLOG(LOGLORAR) hexdump((byte*) &actionpkg, pkglen);

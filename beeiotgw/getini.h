@@ -60,13 +60,13 @@ typedef struct{
 	int		vmajor;			// BIoTWAN Version
 	int		vminor;
 
-	// component enabler flags
-	int		hc_lora;
-	int		hc_lorawan;     // =0 BIoTWAN; =1 LoRaWAN
-	int		hc_wifi;        // =1 WIFI enabled on client side
-	int		hc_gps;
-	int		hc_locweb;		// report to local webpage at BEEIOTWEB
-	int		hc_remweb;
+	// GW HW components enabler flags
+	int		hc_lora;		// =1 GW Lora Module enabled on client side
+	int		hc_lorawan;     // =0 BIoTWAN; =1 LoRaWAN protocol on both sides
+	int		hc_wifi;        // =1 GW WIFI enabled on client side
+	int		hc_gps;			// =1 GW GPS module connected on client side
+	int		hc_locweb;		// =1 GW report to local webpage at BEEIOTWEB
+	int		hc_remweb;		// =1 GW xfer of logfiles to remote Web
 
 	// section HWCONFIG
 	int		loranumchn;		// number of support BIoT LoRa Channels
@@ -107,7 +107,8 @@ typedef struct{
 	ulong	nd1_deveuilo;	// LoRa-Client1 DEV-EUI lower
 	int		nd1_freport;	// LoRa Client1 Status Report Frq.in Min.
 	int		nd1_wcalib;		// Weight cell calibration
-
+	int		nd1_hwconfig;	// Node HW component flag field
+	
 	int		nd2_gwid;		// LoRa-Client2 GWID
 	int		nd2_mid;		// LoRa Client2 Modem assigned to GWID
 	int		nd2_appeui;		// LoRa-Client2 APP-EUI
@@ -115,6 +116,7 @@ typedef struct{
 	ulong	nd2_deveuilo;	// LoRa-Client2 DEV-EUI lower
 	int		nd2_freport;	// LoRa Client2 Status Report Frq.in Min.
 	int		nd2_wcalib;		// Weight cell calibration
+	int		nd2_hwconfig;	// Node HW component flag field
 
 	int		nd3_gwid;		// LoRa-Client3 GWID
 	int		nd3_mid;		// LoRa Client3 Modem assigned to GWID
@@ -123,6 +125,7 @@ typedef struct{
 	ulong	nd3_deveuilo;	// LoRa-Client3 DEV-EUI lower
 	int		nd3_freport;	// LoRa Client3 Status Report Frq.in Min.
 	int		nd3_wcalib;		// Weight cell calibration
+	int		nd3_hwconfig;	// Node HW component flag field
 
 	int		nd4_gwid;		// LoRa-Client4 GWID
 	int		nd4_mid;		// LoRa Client4 Modem assigned to GWID
@@ -131,6 +134,7 @@ typedef struct{
 	ulong	nd4_deveuilo;	// LoRa-Client4 DEV-EUI lower
 	int		nd4_freport;	// LoRa Client4 Status Report Frq.in Min.
 	int		nd4_wcalib;		// Weight cell calibration
+	int		nd4_hwconfig;	// Node HW component flag field
 	
 	// section BeeIoT
 	int		biot_loopwait;

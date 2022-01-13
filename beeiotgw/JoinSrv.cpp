@@ -80,36 +80,36 @@ extern int AppGH		(int ndid, char* data, byte len, int mid);	// GreenHouse Contr
 // NODEIDBASE+0 to be used by new node for JOIN communication -> else rejected !
 
 static nodewltable_t WLTab[MAXNODES+2]={			// +2 for dummy JOIN lines ID=0,n
-// Active entries are defined/overwritten in the constructor by cfgini-Data !
+// Active entries may get defined/overwritten by JoinSrv constructor with cfgini-Data !
 
 // 0: Dummy start marker of table 
 // (NODEID == 0x00 -> used for JOIN requests only => don't change)
-	NODEIDBASE, GWID0, 0,  0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0,  10,0,0,0,
+	NODEIDBASE, GWID0, 0,  0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0,  10,0,0,0,0x00,
 //---------------------------------------------------
 // 1: BeeIoT ESP32-WROOM32:	MAC: 24:6F:28:D5:8A:DC	// default: BeeHive Weightcell #1
 	NODEID1, GWID1,	0, BIoT_EUID,					// ndid, gwid, mid, AppEUI: BIoT
 	0xDC, 0x8A, 0xD5, 0xFF, 0xFE, 0x28, 0x6F, 0x24, // DevEUI 
-	10, 0, 0, 0,									// reportfrq, joinflag, chncfg
+	10, 0, 0, 0, 0x00,								// reportfrq, joinflag, chncfg, hwconfig
 //---------------------------------------------------
 // 2: ESP32-WROVERB: MAC 24:6F:28:F0:0D:AC			// beacon test Module 1
 	NODEID2, GWID1,	0, BIoT_EUID,					// ndid, gwid, mid, AppEUI: BIoT
 	0xAC, 0x0D, 0xF0, 0xFF, 0xFE, 0x28, 0x6F, 0x24, // DevEUI
-	1, 0, 0, 0,										// reportfrq, joinflag, chncfg
+	1, 0, 0, 0, 0x00,								// reportfrq, joinflag, chncfg, hwconfig
 //---------------------------------------------------
 // 3: BeeIoT ESP32-WROOM32:	MAC: 94:FE:8A:B5:AA:8C	// Beacon test Module 2
 	NODEID3, GWID1,	0, BIoT_EUID,					// ndid, gwid, mid, AppEUI: BIoT
 	0x94, 0xFE, 0x8A, 0xFF, 0xFE, 0xB5, 0xAA, 0x8C, // DevEUI 
-	1, 0, 0, 0,										// reportfrq, joinflag, chncfg
+	1, 0, 0, 0, 0x00,									// reportfrq, joinflag, chncfg, hwconfig
 //---------------------------------------------------
 // 4: BeeIoT ESP32-WROOM32:	MAC: 2C:2B:16:28:6F:24 	// Beehive Weight cell test Module 3
 	NODEID4, GWID2,	0, BIoT_EUID,					// ndid, gwid, mid, AppEUI: BIoT
 	0x2C, 0x2B, 0x16, 0xFF, 0xFE, 0x28, 0x6F, 0x24, // DevEUI 
-	10, 0, 0, 0,									// reportfrq, joinflag, chncfg
+	10, 0, 0, 0, 0x00,								// reportfrq, joinflag, chncfg, hwconfig
 //---------------------------------------------------
 // 5: fill in more nodes here ... ( but add in config.ini as well)
 //---------------------------------------------------
 // N: Dummy end marker of table (NODEID == 0x00)
-	0x00, 0x00, 0x00, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0,  0,0,0,0,
+	0x00, 0x00, 0x00, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0,  0,0,0,0,0x00,
 //---------------------------------------------------
 };
 
@@ -201,12 +201,14 @@ void JoinSrv::JS_Cfg2Wlt(void){
 	WLTab[nid].gwid		= GWIDx-cfgini->nd1_gwid;
 	WLTab[nid].mid		= cfgini->nd1_mid;
 	WLTab[nid].chncfg	= gwt.gwset[WLTab[nid].mid]->chncfgid;	// get Radio channel cfg of current Gateway
-	WLTab[nid].reportfrq= cfgini->nd1_freport;
-	WLTab[nid].wcalib	= cfgini->nd1_wcalib;
+	WLTab[nid].reportfrq= cfgini->nd1_freport;			// status report frequency in Min.
+	WLTab[nid].wcalib	= cfgini->nd1_wcalib;			// 16bit weight calibration value
+	WLTab[nid].hwconfig = cfgini->nd1_hwconfig;			// get HW component enable flags (8bit)
 	NDB[nid].msg.mid			= WLTab[nid].mid;		// preset MID even /wo any prev. package
 	NDB[nid].nodecfg.channelidx	= WLTab[nid].chncfg;	// cfg.-channelid of modem
 	NDB[nid].nodecfg.freqsensor	= WLTab[nid].reportfrq; // [min] reporting frequence of status pkg.
 	NDB[nid].wcalib				= WLTab[nid].wcalib;	// get static Weight cell calib value for daily work
+	NDB[nid].hwconfig			= WLTab[nid].hwconfig;	// get HW component flag field
 	if(cfgini->nd1_appeui > NAPPID)
 		cfgini->nd1_appeui = 1;
 	memcpy(&WLTab[nid].AppEUI, &appid[cfgini->nd1_appeui-1][0], LENJOINEUI);
@@ -225,10 +227,12 @@ void JoinSrv::JS_Cfg2Wlt(void){
 	WLTab[nid].chncfg	= gwt.gwset[WLTab[nid].mid]->chncfgid;	// get Radio channel cfg of current Gateway
 	WLTab[nid].reportfrq= cfgini->nd2_freport;
 	WLTab[nid].wcalib	= cfgini->nd2_wcalib;
+	WLTab[nid].hwconfig = cfgini->nd2_hwconfig;			// get HW component enable flags (8bit)
 	NDB[nid].msg.mid			= WLTab[nid].mid;		// preset MID even /wo any prev. package
 	NDB[nid].nodecfg.channelidx	= WLTab[nid].chncfg;	// cfg.-channelid of modem
 	NDB[nid].nodecfg.freqsensor	= WLTab[nid].reportfrq; // [min] reporting frequence of status pkg.
 	NDB[nid].wcalib				= WLTab[nid].wcalib;	// get static Weight cell calib value for daily work
+	NDB[nid].hwconfig			= WLTab[nid].hwconfig;	// get HW component flag field
 	if(cfgini->nd2_appeui > NAPPID)
 		cfgini->nd2_appeui = 1;
 	memcpy(&WLTab[nid].AppEUI, &appid[cfgini->nd2_appeui-1][0], LENJOINEUI);
@@ -246,10 +250,12 @@ void JoinSrv::JS_Cfg2Wlt(void){
 	WLTab[nid].chncfg	= gwt.gwset[WLTab[nid].mid]->chncfgid;	// get Radio channel cfg of current Gateway
 	WLTab[nid].reportfrq= cfgini->nd3_freport;
 	WLTab[nid].wcalib	= cfgini->nd3_wcalib;
+	WLTab[nid].hwconfig = cfgini->nd3_hwconfig;			// get HW component enable flags (8bit)
 	NDB[nid].msg.mid			= WLTab[nid].mid;		// preset MID even /wo any prev. package
 	NDB[nid].nodecfg.channelidx	= WLTab[nid].chncfg;	// cfg.-channelid of modem
 	NDB[nid].nodecfg.freqsensor	= WLTab[nid].reportfrq; // [min] reporting frequence of status pkg.
 	NDB[nid].wcalib				= WLTab[nid].wcalib;	// get static Weight cell calib value for daily work
+	NDB[nid].hwconfig			= WLTab[nid].hwconfig;	// get HW component flag field
 	if(cfgini->nd3_appeui > NAPPID)
 		cfgini->nd3_appeui = 1;
 	memcpy(&WLTab[nid].AppEUI, &appid[cfgini->nd3_appeui-1][0], LENJOINEUI);
@@ -267,10 +273,12 @@ void JoinSrv::JS_Cfg2Wlt(void){
 	WLTab[nid].chncfg	= gwt.gwset[WLTab[nid].mid]->chncfgid;	// get Radio channel cfg of current Gateway
 	WLTab[nid].reportfrq= cfgini->nd4_freport;
 	WLTab[nid].wcalib	= cfgini->nd4_wcalib;
+	WLTab[nid].hwconfig = cfgini->nd4_hwconfig;			// get HW component enable flags (8bit)
 	NDB[nid].msg.mid			= WLTab[nid].mid;		// preset MID even /wo any prev. package
 	NDB[nid].nodecfg.channelidx	= WLTab[nid].chncfg;	// cfg.-channelid of modem
 	NDB[nid].nodecfg.freqsensor	= WLTab[nid].reportfrq; // [min] reporting frequence of status pkg.
 	NDB[nid].wcalib				= WLTab[nid].wcalib;	// get static Weight cell calib value for daily work
+	NDB[nid].hwconfig			= WLTab[nid].hwconfig;	// get HW component flag field
 	if(cfgini->nd4_appeui > NAPPID)
 		cfgini->nd4_appeui = 1;
 	memcpy(&WLTab[nid].AppEUI, &appid[cfgini->nd4_appeui-1][0], LENJOINEUI);
@@ -287,6 +295,7 @@ void JoinSrv::JS_Cfg2Wlt(void){
 	WLTab[nid].mid		= 0;
 	WLTab[nid].reportfrq= 0;
 	WLTab[nid].joined	= 0;
+	WLTab[nid].hwconfig	= 0;
 
 } // end of JS_Cfg2Wlt()
 
@@ -384,6 +393,7 @@ int  rc =0;
 	pndb->nodecfg.vmajor	= pjoin->info.vmajor;	// get Version of BIoT protocol of node
 	pndb->nodecfg.vminor	= pjoin->info.vminor;	// gives room for backward support stepping
 	pndb->nodecfg.nonce		= pndb->nodeinfo.frmid[1];	// init packet index by LSB of FrmID
+	pndb->nodecfg.hwconfig	= pwltab->hwconfig;		// init HW configuration of node
 	// date and time will be defined dynamic at each JOIN ACK creation by BIoTFlow()
 	pndb->msg.ack			= 0;
 	pndb->msg.retries		= 0;
