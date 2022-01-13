@@ -221,15 +221,15 @@ int		idx;
 *
 * Input :
 *	ndid	NodeID of current cmd session -> for filtering the right command line
-*
+*   *cmd	CMD-struct: special command from BIOTWAN.h command file
 * Global:	
 *	cfgini struct	struct of runtime parameters
 *	Bee-CMD File: Expecting 1 Command line with format:
 *		<NodeID#>: <Cmd>	optional: <Par1> <Par2>
 *
 * Output:
-*	return		NULL	Bee-Cmd file was empty 
-*				*CMD	CMD-struct: special command from BIOTWAN.h command file
+*	return		0	Bee-Cmd file was empty 
+*				1	CMD-struct code updated
 *********************************************************************************
 */
 
@@ -328,6 +328,8 @@ const char * format ="%d: %s %d %d %d";
 	if( strncmp((char *) &cmdstr, "RS", 2)==0 ||  strncmp((char *)&cmdstr, "rs", 2)==0){
 		BHLOG(LOGBH)printf("  BeeCmd: RX1-CMD: %s  Params: %d %d %d\n", cmdstr, cmd->p1, cmd->p2, cmd->p3);
 		cmd->cmdcode = CMD_RESET;
+		beeResultlog("Node Reset initiated", ndid, 1);
+		
 		return(1);
 	}
 	
