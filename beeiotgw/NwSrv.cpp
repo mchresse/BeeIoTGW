@@ -722,6 +722,9 @@ Radio *			Modem;	// Ptr on Modem used for transmission
 		pcfg->cfg.vmajor	= pndb->nodecfg.vmajor;		// get Version of BIoT protocol of node
 		pcfg->cfg.vminor	= pndb->nodecfg.vminor;		// gives room for backward support stepping		
 		pcfg->cfg.nonce		= pndb->nodecfg.nonce;
+		pcfg->cfg.hwconfig	= pndb->nodecfg.hwconfig;
+		pcfg->cfg.woffset	= pndb->wcalib;				// calibrate weight cell value to final one
+
 		// get current local time for the client RTC update
 		gettimeofday(&now, 0);
 		tval = localtime(&now.tv_sec);
@@ -731,8 +734,6 @@ Radio *			Modem;	// Ptr on Modem used for transmission
 		pcfg->cfg.hour		= tval->tm_hour;
 		pcfg->cfg.min		= tval->tm_min;
 		pcfg->cfg.sec		= tval->tm_sec+2;			// sec. + CONFIG xfer correction
-		pcfg->cfg.woffset	= pndb->wcalib;				// calibrate weight cell value to final one
-		pcfg->cfg.hwconfig	= pndb->hwconfig;
 		
 		pkglen = BIoT_HDRLEN + sizeof(devcfg_t) + BIoT_MICLEN;	// Cfg-Payload + BIOT Header
 		BHLOG(LOGLORAR) hexdump((byte*) &actionpkg, pkglen);

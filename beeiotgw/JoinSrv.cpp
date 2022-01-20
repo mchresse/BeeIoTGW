@@ -155,6 +155,7 @@ JoinSrv::JoinSrv(gwbind_t &gwtab, int nmodem): gwt(gwtab), mactive(nmodem){
 		pndb->nodecfg.vminor		= BIoT_VMINOR;
 		pndb->nodecfg.verbose		= lflags;			// finally set by CONFIG command
 		pndb->nodecfg.nonce			= 0;
+		pndb->nodecfg.hwconfig		= WLTab[i].hwconfig;
 
 		pndb->msg.ack				= 0;
 		pndb->msg.pkgid				= 0;
@@ -208,7 +209,7 @@ void JoinSrv::JS_Cfg2Wlt(void){
 	NDB[nid].nodecfg.channelidx	= WLTab[nid].chncfg;	// cfg.-channelid of modem
 	NDB[nid].nodecfg.freqsensor	= WLTab[nid].reportfrq; // [min] reporting frequence of status pkg.
 	NDB[nid].wcalib				= WLTab[nid].wcalib;	// get static Weight cell calib value for daily work
-	NDB[nid].hwconfig			= WLTab[nid].hwconfig;	// get HW component flag field
+
 	if(cfgini->nd1_appeui > NAPPID)
 		cfgini->nd1_appeui = 1;
 	memcpy(&WLTab[nid].AppEUI, &appid[cfgini->nd1_appeui-1][0], LENJOINEUI);
@@ -232,7 +233,7 @@ void JoinSrv::JS_Cfg2Wlt(void){
 	NDB[nid].nodecfg.channelidx	= WLTab[nid].chncfg;	// cfg.-channelid of modem
 	NDB[nid].nodecfg.freqsensor	= WLTab[nid].reportfrq; // [min] reporting frequence of status pkg.
 	NDB[nid].wcalib				= WLTab[nid].wcalib;	// get static Weight cell calib value for daily work
-	NDB[nid].hwconfig			= WLTab[nid].hwconfig;	// get HW component flag field
+
 	if(cfgini->nd2_appeui > NAPPID)
 		cfgini->nd2_appeui = 1;
 	memcpy(&WLTab[nid].AppEUI, &appid[cfgini->nd2_appeui-1][0], LENJOINEUI);
@@ -255,7 +256,7 @@ void JoinSrv::JS_Cfg2Wlt(void){
 	NDB[nid].nodecfg.channelidx	= WLTab[nid].chncfg;	// cfg.-channelid of modem
 	NDB[nid].nodecfg.freqsensor	= WLTab[nid].reportfrq; // [min] reporting frequence of status pkg.
 	NDB[nid].wcalib				= WLTab[nid].wcalib;	// get static Weight cell calib value for daily work
-	NDB[nid].hwconfig			= WLTab[nid].hwconfig;	// get HW component flag field
+
 	if(cfgini->nd3_appeui > NAPPID)
 		cfgini->nd3_appeui = 1;
 	memcpy(&WLTab[nid].AppEUI, &appid[cfgini->nd3_appeui-1][0], LENJOINEUI);
@@ -278,7 +279,7 @@ void JoinSrv::JS_Cfg2Wlt(void){
 	NDB[nid].nodecfg.channelidx	= WLTab[nid].chncfg;	// cfg.-channelid of modem
 	NDB[nid].nodecfg.freqsensor	= WLTab[nid].reportfrq; // [min] reporting frequence of status pkg.
 	NDB[nid].wcalib				= WLTab[nid].wcalib;	// get static Weight cell calib value for daily work
-	NDB[nid].hwconfig			= WLTab[nid].hwconfig;	// get HW component flag field
+
 	if(cfgini->nd4_appeui > NAPPID)
 		cfgini->nd4_appeui = 1;
 	memcpy(&WLTab[nid].AppEUI, &appid[cfgini->nd4_appeui-1][0], LENJOINEUI);
@@ -349,8 +350,8 @@ int  rc =0;
 	if(pwltab->joined){		// already joined known node ?	-> was a rejoin ?
 		// assumed NDB[] was already initialized with this node till last session
 		pndb = & NDB[ndid];							// get pointer to already initialized NDB entry
-		BHLOG(LOGLORAW) printf("  RegisterNode: Node found in WLTable[%d] -> joined on modem %i (chn%i)\n",
-				(int) ndid, pndb->middef, pndb->nodecfg.channelidx);
+		BHLOG(LOGLORAW) printf("  RegisterNode: Node found in WLTable[%d] -> joined on modem %i (chn%i,HWCfg:%d)\n",
+				(int) ndid, pndb->middef, pndb->nodecfg.channelidx, pndb->nodecfg.hwconfig);
 		pndb->nodecfg.channelidx= pwltab->chncfg;	// but we start with default Channel IDX again
 		pndb->middef = pwltab->mid;					// and default modem
 		
@@ -408,8 +409,8 @@ int  rc =0;
 	pndb->AppSKey[0] = 0;
 	pndb->NwSKey[0]  = 0;
 
-    BHLOG(LOGBH) printf("  Node Joined now!  -> assigned: GWID:0x%02X, NodeID:0x%02X, ", 
-				(unsigned char) pwltab->gwid, (unsigned char)pwltab->nodeid);
+    BHLOG(LOGBH) printf("  Node Joined now!  -> assigned: GWID:0x%02X, NodeID:0x%02X, HWCfg:%d ", 
+				(unsigned char) pwltab->gwid, (unsigned char)pwltab->nodeid, pndb->nodecfg.hwconfig);
 	BHLOG(LOGLORAW) Printhex((byte*)& pndb->DevAddr, 4,  "DevAddr: 0x", 4); 
 	BHLOG(LOGLORAW) printf("\n");
     BHLOG(LOGLORAW) Printhex( pndb->nodeinfo.devEUI,  8, "    DEVEUI: 0x-"); 

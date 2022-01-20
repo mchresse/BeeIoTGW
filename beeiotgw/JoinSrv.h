@@ -50,7 +50,7 @@ typedef struct{
 	byte		middef;		// Default Modem ID from WLTab[] corresponding to nodecfg.gwid
 	// but GW is always in slave mode -> only pkg sent as answer pkg (see msg.mid above)
 	int			wcalib;		// weight cell calibration value +/- 
-	int			hwconfig;	// HW component flag field from WLtab
+//	int			hwconfig;	// HW component flag field from WLtab
 } nodedb_t;
 
 class JoinSrv {
