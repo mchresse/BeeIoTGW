@@ -210,6 +210,7 @@ char	sbuf[MAXMSGLEN];
 
 	
 	// retrieve initial config runtime settings
+
 	cfgini = getini((char *)CONFIGINI);
 	if( cfgini == NULL){
 		printf("    BeeIoT-Init: INI FIle not found at: %s\n", CONFIGINI);

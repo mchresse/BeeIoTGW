@@ -58,8 +58,9 @@ configuration config;	// global default runtime data configuration buffer
 						// used by all modules
 
 
-static int handler(void* inibuf, const char* section, const char* name, const char* value){
+static int handler(void * inibuf, const char* section, const char* name, const char* value){
 configuration* pconfig = (configuration*) inibuf;
+
 #define MATCH(s, n) strcmp(section, s) == 0 && strcmp(name, n) == 0
 
     if (strcmp(name, "VERSION") == 0) {
@@ -204,6 +205,91 @@ configuration* pconfig = (configuration*) inibuf;
 			pconfig->nd4_wcalib = atoi(value);
 		} else if (MATCH("HWCONFIG", "ND4_HWCONF")) {
 			pconfig->nd4_hwconfig = atoi(value);
+
+		} else if (MATCH("HWCONFIG", "ND5_GWID")) {
+			pconfig->nd5_gwid = atoi(value);
+		} else if (MATCH("HWCONFIG", "ND5_MID")) {
+			pconfig->nd5_mid = atoi(value);
+		} else if (MATCH("HWCONFIG", "ND5_APPEUI")) {
+			pconfig->nd5_appeui = atoi(value);
+		} else if (MATCH("HWCONFIG", "ND5_DEVEUI1")) {
+			pconfig->nd5_deveuiup = strtoul(value, NULL, 16);
+		} else if (MATCH("HWCONFIG", "ND5_DEVEUI2")) {
+			pconfig->nd5_deveuilo = strtoul(value, NULL, 16);
+		} else if (MATCH("HWCONFIG", "ND5_FREPORT")) {
+			pconfig->nd5_freport = atoi(value);
+		} else if (MATCH("HWCONFIG", "ND5_WCALIB")) {
+			pconfig->nd5_wcalib = atoi(value);
+		} else if (MATCH("HWCONFIG", "ND5_HWCONF")) {
+			pconfig->nd5_hwconfig = atoi(value);
+
+		} else if (MATCH("HWCONFIG", "ND6_GWID")) {
+			pconfig->nd6_gwid = atoi(value);
+		} else if (MATCH("HWCONFIG", "ND6_MID")) {
+			pconfig->nd6_mid = atoi(value);
+		} else if (MATCH("HWCONFIG", "ND6_APPEUI")) {
+			pconfig->nd6_appeui = atoi(value);
+		} else if (MATCH("HWCONFIG", "ND6_DEVEUI1")) {
+			pconfig->nd6_deveuiup = strtoul(value, NULL, 16);
+		} else if (MATCH("HWCONFIG", "ND6_DEVEUI2")) {
+			pconfig->nd6_deveuilo = strtoul(value, NULL, 16);
+		} else if (MATCH("HWCONFIG", "ND6_FREPORT")) {
+			pconfig->nd6_freport = atoi(value);
+		} else if (MATCH("HWCONFIG", "ND6_WCALIB")) {
+			pconfig->nd6_wcalib = atoi(value);
+		} else if (MATCH("HWCONFIG", "ND6_HWCONF")) {
+			pconfig->nd6_hwconfig = atoi(value);
+
+		} else if (MATCH("HWCONFIG", "ND7_GWID")) {
+			pconfig->nd7_gwid = atoi(value);
+		} else if (MATCH("HWCONFIG", "ND7_MID")) {
+			pconfig->nd7_mid = atoi(value);
+		} else if (MATCH("HWCONFIG", "ND7_APPEUI")) {
+			pconfig->nd7_appeui = atoi(value);
+		} else if (MATCH("HWCONFIG", "ND7_DEVEUI1")) {
+			pconfig->nd7_deveuiup = strtoul(value, NULL, 16);
+		} else if (MATCH("HWCONFIG", "ND7_DEVEUI2")) {
+			pconfig->nd7_deveuilo = strtoul(value, NULL, 16);
+		} else if (MATCH("HWCONFIG", "ND7_FREPORT")) {
+			pconfig->nd7_freport = atoi(value);
+		} else if (MATCH("HWCONFIG", "ND7_WCALIB")) {
+			pconfig->nd7_wcalib = atoi(value);
+		} else if (MATCH("HWCONFIG", "ND7_HWCONF")) {
+			pconfig->nd7_hwconfig = atoi(value);
+
+		} else if (MATCH("HWCONFIG", "ND8_GWID")) {
+			pconfig->nd8_gwid = atoi(value);
+		} else if (MATCH("HWCONFIG", "ND8_MID")) {
+			pconfig->nd8_mid = atoi(value);
+		} else if (MATCH("HWCONFIG", "ND8_APPEUI")) {
+			pconfig->nd8_appeui = atoi(value);
+		} else if (MATCH("HWCONFIG", "ND8_DEVEUI1")) {
+			pconfig->nd8_deveuiup = strtoul(value, NULL, 16);
+		} else if (MATCH("HWCONFIG", "ND8_DEVEUI2")) {
+			pconfig->nd8_deveuilo = strtoul(value, NULL, 16);
+		} else if (MATCH("HWCONFIG", "ND8_FREPORT")) {
+			pconfig->nd8_freport = atoi(value);
+		} else if (MATCH("HWCONFIG", "ND8_WCALIB")) {
+			pconfig->nd8_wcalib = atoi(value);
+		} else if (MATCH("HWCONFIG", "ND8_HWCONF")) {
+			pconfig->nd8_hwconfig = atoi(value);
+
+		} else if (MATCH("HWCONFIG", "ND9_GWID")) {
+			pconfig->nd9_gwid = atoi(value);
+		} else if (MATCH("HWCONFIG", "ND9_MID")) {
+			pconfig->nd9_mid = atoi(value);
+		} else if (MATCH("HWCONFIG", "ND9_APPEUI")) {
+			pconfig->nd9_appeui = atoi(value);
+		} else if (MATCH("HWCONFIG", "ND9_DEVEUI1")) {
+			pconfig->nd9_deveuiup = strtoul(value, NULL, 16);
+		} else if (MATCH("HWCONFIG", "ND9_DEVEUI2")) {
+			pconfig->nd9_deveuilo = strtoul(value, NULL, 16);
+		} else if (MATCH("HWCONFIG", "ND9_FREPORT")) {
+			pconfig->nd9_freport = atoi(value);
+		} else if (MATCH("HWCONFIG", "ND9_WCALIB")) {
+			pconfig->nd9_wcalib = atoi(value);
+		} else if (MATCH("HWCONFIG", "ND9_HWCONF")) {
+			pconfig->nd9_hwconfig = atoi(value);
 	} else 
 		if (       MATCH("BEEIOT", "BHLOOPWAIT")) {
 			pconfig->biot_loopwait = atoi(value);
@@ -302,7 +388,10 @@ configuration* pconfig = (configuration*) inibuf;
 *********************************************************************************
 */
 configuration* getini(char* inifile){
-	
+	// init config data buffer = 0
+	memset(&config, 0, sizeof(configuration));	// reset config data buffer
+
+	// get real config data from 'inifile' FILE
     if (ini_parse(inifile, handler, &config) < 0) {
         printf("    GetINI: Can't load user cfgfile: %s\n", inifile);
 		if(!newini(inifile)){	// creation of new config file works ?

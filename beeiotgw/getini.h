@@ -135,7 +135,52 @@ typedef struct{
 	int		nd4_freport;	// LoRa Client4 Status Report Frq.in Min.
 	int		nd4_wcalib;		// Weight cell calibration
 	int		nd4_hwconfig;	// Node HW component flag field
+
+	int		nd5_gwid;		// LoRa-Client5 GWID
+	int		nd5_mid;		// LoRa Client5 Modem assigned to GWID
+	int		nd5_appeui;		// LoRa-Client5 APP-EUI
+	ulong	nd5_deveuiup;	// LoRa-Client5 DEV-EUI upper
+	ulong	nd5_deveuilo;	// LoRa-Client5 DEV-EUI lower
+	int		nd5_freport;	// LoRa Client5 Status Report Frq.in Min.
+	int		nd5_wcalib;		// Weight cell calibration
+	int		nd5_hwconfig;	// Node HW component flag field
+
+	int		nd6_gwid;		// LoRa-Client6 GWID
+	int		nd6_mid;		// LoRa Client6 Modem assigned to GWID
+	int		nd6_appeui;		// LoRa-Client6 APP-EUI
+	ulong	nd6_deveuiup;	// LoRa-Client6 DEV-EUI upper
+	ulong	nd6_deveuilo;	// LoRa-Client6 DEV-EUI lower
+	int		nd6_freport;	// LoRa Client6 Status Report Frq.in Min.
+	int		nd6_wcalib;		// Weight cell calibration
+	int		nd6_hwconfig;	// Node HW component flag field
+
+	int		nd7_gwid;		// LoRa-Client7 GWID
+	int		nd7_mid;		// LoRa Client7 Modem assigned to GWID
+	int		nd7_appeui;		// LoRa-Client7 APP-EUI
+	ulong	nd7_deveuiup;	// LoRa-Client7 DEV-EUI upper
+	ulong	nd7_deveuilo;	// LoRa-Client7 DEV-EUI lower
+	int		nd7_freport;	// LoRa Client7 Status Report Frq.in Min.
+	int		nd7_wcalib;		// Weight cell calibration
+	int		nd7_hwconfig;	// Node HW component flag field
 	
+	int		nd8_gwid;		// LoRa-Client8 GWID
+	int		nd8_mid;		// LoRa Client8 Modem assigned to GWID
+	int		nd8_appeui;		// LoRa-Client8 APP-EUI
+	ulong	nd8_deveuiup;	// LoRa-Client8 DEV-EUI upper
+	ulong	nd8_deveuilo;	// LoRa-Client8 DEV-EUI lower
+	int		nd8_freport;	// LoRa Client8 Status Report Frq.in Min.
+	int		nd8_wcalib;		// Weight cell calibration
+	int		nd8_hwconfig;	// Node HW component flag field
+
+	int		nd9_gwid;		// LoRa-Client9 GWID
+	int		nd9_mid;		// LoRa Client9 Modem assigned to GWID
+	int		nd9_appeui;		// LoRa-Client9 APP-EUI
+	ulong	nd9_deveuiup;	// LoRa-Client9 DEV-EUI upper
+	ulong	nd9_deveuilo;	// LoRa-Client9 DEV-EUI lower
+	int		nd9_freport;	// LoRa Client9 Status Report Frq.in Min.
+	int		nd9_wcalib;		// Weight cell calibration
+	int		nd9_hwconfig;	// Node HW component flag field
+
 	// section BeeIoT
 	int		biot_loopwait;
 	char	biot_home[PATHLEN];

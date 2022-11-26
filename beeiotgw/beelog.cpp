@@ -328,7 +328,8 @@ const char * format ="%d: %s %d %d %d";
 	if( strncmp((char *) &cmdstr, "RS", 2)==0 ||  strncmp((char *)&cmdstr, "rs", 2)==0){
 		BHLOG(LOGBH)printf("  BeeCmd: RX1-CMD: %s  Params: %d %d %d\n", cmdstr, cmd->p1, cmd->p2, cmd->p3);
 		cmd->cmdcode = CMD_RESET;
-		beeResultlog("Node Reset initiated", ndid, 1);
+		char resbuf[100]="Node Reset initiated";
+		beeResultlog((char*)&resbuf[0], ndid, 1);
 		
 		return(1);
 	}
