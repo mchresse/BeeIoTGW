@@ -181,6 +181,60 @@ typedef struct{
 	int		nd9_wcalib;		// Weight cell calibration
 	int		nd9_hwconfig;	// Node HW component flag field
 
+	int		nd10_gwid;		// LoRa-Client10 GWID
+	int		nd10_mid;		// LoRa Client10 Modem assigned to GWID
+	int		nd10_appeui;	// LoRa-Client10 APP-EUI
+	ulong	nd10_deveuiup;	// LoRa-Client10 DEV-EUI upper
+	ulong	nd10_deveuilo;	// LoRa-Client10 DEV-EUI lower
+	int		nd10_freport;	// LoRa Client10 Status Report Frq.in Min.
+	int		nd10_wcalib;	// Weight cell calibration
+	int		nd10_hwconfig;	// Node HW component flag field
+
+	int		nd11_gwid;		// LoRa-Client11 GWID
+	int		nd11_mid;		// LoRa Client11 Modem assigned to GWID
+	int		nd11_appeui;	// LoRa-Client11 APP-EUI
+	ulong	nd11_deveuiup;	// LoRa-Client11 DEV-EUI upper
+	ulong	nd11_deveuilo;	// LoRa-Client11 DEV-EUI lower
+	int		nd11_freport;	// LoRa Client11 Status Report Frq.in Min.
+	int		nd11_wcalib;	// Weight cell calibration
+	int		nd11_hwconfig;	// Node HW component flag field
+
+	int		nd12_gwid;		// LoRa-Client12 GWID
+	int		nd12_mid;		// LoRa Client12 Modem assigned to GWID
+	int		nd12_appeui;	// LoRa-Client12 APP-EUI
+	ulong	nd12_deveuiup;	// LoRa-Client12 DEV-EUI upper
+	ulong	nd12_deveuilo;	// LoRa-Client12 DEV-EUI lower
+	int		nd12_freport;	// LoRa Client12 Status Report Frq.in Min.
+	int		nd12_wcalib;	// Weight cell calibration
+	int		nd12_hwconfig;	// Node HW component flag field
+
+	int		nd13_gwid;		// LoRa-Client13 GWID
+	int		nd13_mid;		// LoRa Client13 Modem assigned to GWID
+	int		nd13_appeui;	// LoRa-Client13 APP-EUI
+	ulong	nd13_deveuiup;	// LoRa-Client13 DEV-EUI upper
+	ulong	nd13_deveuilo;	// LoRa-Client13 DEV-EUI lower
+	int		nd13_freport;	// LoRa Client13 Status Report Frq.in Min.
+	int		nd13_wcalib;	// Weight cell calibration
+	int		nd13_hwconfig;	// Node HW component flag field
+
+	int		nd14_gwid;		// LoRa-Client14 GWID
+	int		nd14_mid;		// LoRa Client14 Modem assigned to GWID
+	int		nd14_appeui;	// LoRa-Client14 APP-EUI
+	ulong	nd14_deveuiup;	// LoRa-Client14 DEV-EUI upper
+	ulong	nd14_deveuilo;	// LoRa-Client14 DEV-EUI lower
+	int		nd14_freport;	// LoRa Client14 Status Report Frq.in Min.
+	int		nd14_wcalib;	// Weight cell calibration
+	int		nd14_hwconfig;	// Node HW component flag field
+
+	int		nd15_gwid;		// LoRa-Client15 GWID
+	int		nd15_mid;		// LoRa Client15 Modem assigned to GWID
+	int		nd15_appeui;	// LoRa-Client15 APP-EUI
+	ulong	nd15_deveuiup;	// LoRa-Client15 DEV-EUI upper
+	ulong	nd15_deveuilo;	// LoRa-Client15 DEV-EUI lower
+	int		nd15_freport;	// LoRa Client15 Status Report Frq.in Min.
+	int		nd15_wcalib;	// Weight cell calibration
+	int		nd15_hwconfig;	// Node HW component flag field
+
 	// section BeeIoT
 	int		biot_loopwait;
 	char	biot_home[PATHLEN];

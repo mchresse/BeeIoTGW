@@ -485,6 +485,7 @@ int c; int bytype;
 // INPUT
 //    pbin    byte ptr on binary field[0]
 //    bitlen  number of bits (!) to be printed in bit stream format
+//    prefix  pointer on string field as text prefix to bit fild text stream
 // (0)dir     =0 -> forward  [0...len-1],   =1 -> backward [len-1...0]
 // (1)format  =1: bytewise  =2: 2bytes(short)  =4bytes(word) =8bytes(long)...
 //*************************************************************************

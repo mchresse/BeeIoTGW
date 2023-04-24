@@ -561,7 +561,6 @@ beeiot_sddir_t * sddirpkg;
 		}else{
 			BHLOG(LOGLORAW) printf(" none\n");		
 		}
-
 		rc=0;	
 		break;
 

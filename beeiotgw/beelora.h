@@ -50,10 +50,11 @@ typedef              s4_t  ostime_t;		// tome stamp for LoRa messages
 enum { RADIO_RST=0, RADIO_TX, RADIO_RX, RADIO_RXON };
 enum { RXMODE_SINGLE, RXMODE_SCAN, RXMODE_RSSI };
 
-#define MAXNODES	10			// max. # of supported/known nodes
+#define MAXNODES	16			// max. # of supported/known nodes in WLTAB[] & NDB[]
 // NODEIDBASE defined in BeeIoTWAN.h
 enum {	NODEID1=NODEIDBASE+1, NODEID2, NODEID3, NODEID4, NODEID5,
-		NODEID6, NODEID7, NODEID8, NODEID9, NODEID10
+		NODEID6, NODEID7, NODEID8, NODEID9, NODEID10, NODEID11, NODEID12,
+		NODEID13, NODEID14, NODEID15
 };	// Transfer IDs of LoRa Clients
 
 // GWIDx (enum base) already defined in BeeIoTWAN.h

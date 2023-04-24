@@ -79,7 +79,7 @@ extern int AppGH		(int ndid, char* data, byte len, int mid);	// GreenHouse Contr
 // => The hit index position in this table results to NodeID = NODEIDBASE + idx !
 // NODEIDBASE+0 to be used by new node for JOIN communication -> else rejected !
 
-static nodewltable_t WLTab[MAXNODES+1]={			// +2 for dummy JOIN lines ID=0,n
+static nodewltable_t WLTab[MAXNODES+1]={			// +1 for first dummy JOIN line ID=n0
 // Active entries may get defined/overwritten by JoinSrv constructor with cfgini-Data !
 
 // 0: Dummy start marker of table 
@@ -102,12 +102,12 @@ static nodewltable_t WLTab[MAXNODES+1]={			// +2 for dummy JOIN lines ID=0,n
 	1, 0, 0, 0, 0x00,									// reportfrq, joinflag, chncfg, hwconfig
 //---------------------------------------------------
 // 4: BeeIoT ESP32-WROOM32:	MAC: 2C:2B:16:28:6F:24 	// Beehive Weight cell test Module 3
-	NODEID4, GWID2,	0, BIoT_EUID,					// ndid, gwid, mid, AppEUI: BIoT
+	NODEID4, GWID1,	0, BIoT_EUID,					// ndid, gwid, mid, AppEUI: BIoT
 	0x2C, 0x2B, 0x16, 0xFF, 0xFE, 0x28, 0x6F, 0x24, // DevEUI 
 	10, 0, 0, 0, 0x00,								// reportfrq, joinflag, chncfg, hwconfig
 //---------------------------------------------------
 // 5: BeeIoT ESP32-WROOM32:	MAC: xx:xx:xx:xx:xx:xx 	// Claim for a Beehive Weight Cell
-	NODEID5, GWID2,	0, BIoT_EUID,					// ndid, gwid, mid, AppEUI: BIoT
+	NODEID5, GWID1,	0, BIoT_EUID,					// ndid, gwid, mid, AppEUI: BIoT
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // DevEUI 
 	10, 0, 0, 0, 0x00,								// reportfrq, joinflag, chncfg, hwconfig
 //---------------------------------------------------
@@ -131,10 +131,40 @@ static nodewltable_t WLTab[MAXNODES+1]={			// +2 for dummy JOIN lines ID=0,n
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // DevEUI 
 	10, 0, 0, 0, 0x00,								// reportfrq, joinflag, chncfg, hwconfig
 //---------------------------------------------------
+//10: BeeIoT ESP32-WROOM32:	MAC: xx:xx:xx:xx:xx:xx 	// Claim for a Beehive Weight Cell
+	NODEID10, GWID2,	0, BIoT_EUID,				// ndid, gwid, mid, AppEUI: BIoT
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // DevEUI 
+	10, 0, 0, 0, 0x00,								// reportfrq, joinflag, chncfg, hwconfig
+//---------------------------------------------------
+//11: BeeIoT ESP32-WROOM32:	MAC: xx:xx:xx:xx:xx:xx 	// Claim for a Beehive Weight Cell
+	NODEID11, GWID2,	0, BIoT_EUID,				// ndid, gwid, mid, AppEUI: BIoT
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // DevEUI 
+	10, 0, 0, 0, 0x00,								// reportfrq, joinflag, chncfg, hwconfig
+//---------------------------------------------------
+//12: BeeIoT ESP32-WROOM32:	MAC: xx:xx:xx:xx:xx:xx 	// Claim for a Beehive Weight Cell
+	NODEID12, GWID2,	0, BIoT_EUID,				// ndid, gwid, mid, AppEUI: BIoT
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // DevEUI 
+	10, 0, 0, 0, 0x00,								// reportfrq, joinflag, chncfg, hwconfig
+//---------------------------------------------------
+//13: BeeIoT ESP32-WROOM32:	MAC: xx:xx:xx:xx:xx:xx 	// Claim for a Beehive Weight Cell
+	NODEID13, GWID2,	0, BIoT_EUID,				// ndid, gwid, mid, AppEUI: BIoT
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // DevEUI 
+	10, 0, 0, 0, 0x00,								// reportfrq, joinflag, chncfg, hwconfig
+//---------------------------------------------------
+//14: BeeIoT ESP32-WROOM32:	MAC: xx:xx:xx:xx:xx:xx 	// Claim for a Beehive Weight Cell
+	NODEID14, GWID2,	0, BIoT_EUID,				// ndid, gwid, mid, AppEUI: BIoT
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // DevEUI 
+	10, 0, 0, 0, 0x00,								// reportfrq, joinflag, chncfg, hwconfig
+//---------------------------------------------------
+//15: BeeIoT ESP32-WROOM32:	MAC: xx:xx:xx:xx:xx:xx 	// Claim for a Beehive Weight Cell
+	NODEID15, GWID2,	0, BIoT_EUID,				// ndid, gwid, mid, AppEUI: BIoT
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // DevEUI 
+	10, 0, 0, 0, 0x00,								// reportfrq, joinflag, chncfg, hwconfig
+//---------------------------------------------------
 // All Nodes must be configured in config.ini as well !
 // and WLTab[] will be overwritten in JoinSrv::JS_Cfg2Wlt() by this config.ini data
 //---------------------------------------------------
-// N=MAXNODES: Dummy end marker of table (NODEID == 0x00)
+// 16: N=MAXNODES: Dummy end marker of table (NODEID == 0x00)
 	0x00, 0x00, 0x00, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0,  0,0,0,0,0x00,
 //---------------------------------------------------
 };
@@ -204,7 +234,7 @@ JoinSrv::JoinSrv(gwbind_t &gwtab, int nmodem): gwt(gwtab), mactive(nmodem){
 JoinSrv::~JoinSrv(void){}
 
 //***************************************************************************
-// JS_Cfg2Wlt()
+// JS_Cfg2Wltab()
 // - copy cfgini dataset of GW settings to corresponding WLTab[] entry 
 // This function should be called anytime cfgini was parsed again to keep WLTab up to date.
 // INPUT:
@@ -432,6 +462,145 @@ void JoinSrv::JS_Cfg2Wlt(void){
 	}
 	
 	nid = 10;
+	WLTab[nid].nodeid	= NODEIDBASE + nid;
+	WLTab[nid].gwid		= GWIDx-cfgini->nd10_gwid;
+	WLTab[nid].mid		= cfgini->nd10_mid;
+	WLTab[nid].chncfg	= gwt.gwset[WLTab[nid].mid]->chncfgid;	// get Radio channel cfg of current Gateway
+	WLTab[nid].reportfrq= cfgini->nd10_freport;
+	WLTab[nid].wcalib	= cfgini->nd10_wcalib;
+	WLTab[nid].hwconfig = cfgini->nd10_hwconfig;		// get HW component enable flags (8bit)
+	NDB[nid].msg.mid			= WLTab[nid].mid;		// preset MID even /wo any prev. package
+	NDB[nid].nodecfg.channelidx	= WLTab[nid].chncfg;	// cfg.-channelid of modem
+	NDB[nid].nodecfg.freqsensor	= WLTab[nid].reportfrq; // [min] reporting frequence of status pkg.
+	NDB[nid].wcalib				= WLTab[nid].wcalib;	// get static Weight cell calib value for daily work
+
+	if(cfgini->nd10_appeui > NAPPID)
+	   cfgini->nd10_appeui = 1;
+	memcpy(&WLTab[nid].AppEUI, &appid[cfgini->nd10_appeui-1][0], LENJOINEUI);
+	p1= (byte *) &cfgini->nd10_deveuiup;
+	p2= (byte *) &cfgini->nd10_deveuilo;
+	for (i=0;i<4; i++){
+		WLTab[nid].DevEUI[i]	= (byte) p1[3-i];
+		WLTab[nid].DevEUI[4+i]	= (byte) p2[3-i];
+	}
+	
+	nid = 11;
+	WLTab[nid].nodeid	= NODEIDBASE + nid;
+	WLTab[nid].gwid		= GWIDx-cfgini->nd11_gwid;
+	WLTab[nid].mid		= cfgini->nd11_mid;
+	WLTab[nid].chncfg	= gwt.gwset[WLTab[nid].mid]->chncfgid;	// get Radio channel cfg of current Gateway
+	WLTab[nid].reportfrq= cfgini->nd11_freport;
+	WLTab[nid].wcalib	= cfgini->nd11_wcalib;
+	WLTab[nid].hwconfig = cfgini->nd11_hwconfig;		// get HW component enable flags (8bit)
+	NDB[nid].msg.mid			= WLTab[nid].mid;		// preset MID even /wo any prev. package
+	NDB[nid].nodecfg.channelidx	= WLTab[nid].chncfg;	// cfg.-channelid of modem
+	NDB[nid].nodecfg.freqsensor	= WLTab[nid].reportfrq; // [min] reporting frequence of status pkg.
+	NDB[nid].wcalib				= WLTab[nid].wcalib;	// get static Weight cell calib value for daily work
+
+	if(cfgini->nd11_appeui > NAPPID)
+	   cfgini->nd11_appeui = 1;
+	memcpy(&WLTab[nid].AppEUI, &appid[cfgini->nd11_appeui-1][0], LENJOINEUI);
+	p1= (byte *) &cfgini->nd11_deveuiup;
+	p2= (byte *) &cfgini->nd11_deveuilo;
+	for (i=0;i<4; i++){
+		WLTab[nid].DevEUI[i]	= (byte) p1[3-i];
+		WLTab[nid].DevEUI[4+i]	= (byte) p2[3-i];
+	}
+	
+	nid = 12;
+	WLTab[nid].nodeid	= NODEIDBASE + nid;
+	WLTab[nid].gwid		= GWIDx-cfgini->nd12_gwid;
+	WLTab[nid].mid		= cfgini->nd12_mid;
+	WLTab[nid].chncfg	= gwt.gwset[WLTab[nid].mid]->chncfgid;	// get Radio channel cfg of current Gateway
+	WLTab[nid].reportfrq= cfgini->nd12_freport;
+	WLTab[nid].wcalib	= cfgini->nd12_wcalib;
+	WLTab[nid].hwconfig = cfgini->nd12_hwconfig;		// get HW component enable flags (8bit)
+	NDB[nid].msg.mid			= WLTab[nid].mid;		// preset MID even /wo any prev. package
+	NDB[nid].nodecfg.channelidx	= WLTab[nid].chncfg;	// cfg.-channelid of modem
+	NDB[nid].nodecfg.freqsensor	= WLTab[nid].reportfrq; // [min] reporting frequence of status pkg.
+	NDB[nid].wcalib				= WLTab[nid].wcalib;	// get static Weight cell calib value for daily work
+
+	if(cfgini->nd12_appeui > NAPPID)
+	   cfgini->nd12_appeui = 1;
+	memcpy(&WLTab[nid].AppEUI, &appid[cfgini->nd12_appeui-1][0], LENJOINEUI);
+	p1= (byte *) &cfgini->nd12_deveuiup;
+	p2= (byte *) &cfgini->nd12_deveuilo;
+	for (i=0;i<4; i++){
+		WLTab[nid].DevEUI[i]	= (byte) p1[3-i];
+		WLTab[nid].DevEUI[4+i]	= (byte) p2[3-i];
+	}
+	
+	nid = 13;
+	WLTab[nid].nodeid	= NODEIDBASE + nid;
+	WLTab[nid].gwid		= GWIDx-cfgini->nd13_gwid;
+	WLTab[nid].mid		= cfgini->nd13_mid;
+	WLTab[nid].chncfg	= gwt.gwset[WLTab[nid].mid]->chncfgid;	// get Radio channel cfg of current Gateway
+	WLTab[nid].reportfrq= cfgini->nd13_freport;
+	WLTab[nid].wcalib	= cfgini->nd13_wcalib;
+	WLTab[nid].hwconfig = cfgini->nd13_hwconfig;		// get HW component enable flags (8bit)
+	NDB[nid].msg.mid			= WLTab[nid].mid;		// preset MID even /wo any prev. package
+	NDB[nid].nodecfg.channelidx	= WLTab[nid].chncfg;	// cfg.-channelid of modem
+	NDB[nid].nodecfg.freqsensor	= WLTab[nid].reportfrq; // [min] reporting frequence of status pkg.
+	NDB[nid].wcalib				= WLTab[nid].wcalib;	// get static Weight cell calib value for daily work
+
+	if(cfgini->nd13_appeui > NAPPID)
+	   cfgini->nd13_appeui = 1;
+	memcpy(&WLTab[nid].AppEUI, &appid[cfgini->nd13_appeui-1][0], LENJOINEUI);
+	p1= (byte *) &cfgini->nd13_deveuiup;
+	p2= (byte *) &cfgini->nd13_deveuilo;
+	for (i=0;i<4; i++){
+		WLTab[nid].DevEUI[i]	= (byte) p1[3-i];
+		WLTab[nid].DevEUI[4+i]	= (byte) p2[3-i];
+	}
+	
+	nid = 14;
+	WLTab[nid].nodeid	= NODEIDBASE + nid;
+	WLTab[nid].gwid		= GWIDx-cfgini->nd14_gwid;
+	WLTab[nid].mid		= cfgini->nd14_mid;
+	WLTab[nid].chncfg	= gwt.gwset[WLTab[nid].mid]->chncfgid;	// get Radio channel cfg of current Gateway
+	WLTab[nid].reportfrq= cfgini->nd14_freport;
+	WLTab[nid].wcalib	= cfgini->nd14_wcalib;
+	WLTab[nid].hwconfig = cfgini->nd14_hwconfig;		// get HW component enable flags (8bit)
+	NDB[nid].msg.mid			= WLTab[nid].mid;		// preset MID even /wo any prev. package
+	NDB[nid].nodecfg.channelidx	= WLTab[nid].chncfg;	// cfg.-channelid of modem
+	NDB[nid].nodecfg.freqsensor	= WLTab[nid].reportfrq; // [min] reporting frequence of status pkg.
+	NDB[nid].wcalib				= WLTab[nid].wcalib;	// get static Weight cell calib value for daily work
+
+	if(cfgini->nd14_appeui > NAPPID)
+	   cfgini->nd14_appeui = 1;
+	memcpy(&WLTab[nid].AppEUI, &appid[cfgini->nd14_appeui-1][0], LENJOINEUI);
+	p1= (byte *) &cfgini->nd14_deveuiup;
+	p2= (byte *) &cfgini->nd14_deveuilo;
+	for (i=0;i<4; i++){
+		WLTab[nid].DevEUI[i]	= (byte) p1[3-i];
+		WLTab[nid].DevEUI[4+i]	= (byte) p2[3-i];
+	}
+	
+	nid = 15;
+	WLTab[nid].nodeid	= NODEIDBASE + nid;
+	WLTab[nid].gwid		= GWIDx-cfgini->nd15_gwid;
+	WLTab[nid].mid		= cfgini->nd15_mid;
+	WLTab[nid].chncfg	= gwt.gwset[WLTab[nid].mid]->chncfgid;	// get Radio channel cfg of current Gateway
+	WLTab[nid].reportfrq= cfgini->nd15_freport;
+	WLTab[nid].wcalib	= cfgini->nd15_wcalib;
+	WLTab[nid].hwconfig = cfgini->nd15_hwconfig;		// get HW component enable flags (8bit)
+	NDB[nid].msg.mid			= WLTab[nid].mid;		// preset MID even /wo any prev. package
+	NDB[nid].nodecfg.channelidx	= WLTab[nid].chncfg;	// cfg.-channelid of modem
+	NDB[nid].nodecfg.freqsensor	= WLTab[nid].reportfrq; // [min] reporting frequence of status pkg.
+	NDB[nid].wcalib				= WLTab[nid].wcalib;	// get static Weight cell calib value for daily work
+
+	if(cfgini->nd15_appeui > NAPPID)
+	   cfgini->nd15_appeui = 1;
+	memcpy(&WLTab[nid].AppEUI, &appid[cfgini->nd15_appeui-1][0], LENJOINEUI);
+	p1= (byte *) &cfgini->nd15_deveuiup;
+	p2= (byte *) &cfgini->nd15_deveuilo;
+	for (i=0;i<4; i++){
+		WLTab[nid].DevEUI[i]	= (byte) p1[3-i];
+		WLTab[nid].DevEUI[4+i]	= (byte) p2[3-i];
+	}
+	
+
+	nid = MAXNODES;
 	WLTab[nid].nodeid	= 0;	// flag table end here
 	WLTab[nid].gwid		= 0;
 	WLTab[nid].mid		= 0;
@@ -478,16 +647,16 @@ int  rc =0;
 	BHLOG(LOGBH) Printhex((byte*)& pjoin->info.devEUI,  8, "Pkg-DEVEUI: 0x-"); 
 	BHLOG(LOGBH) printf("\n");
 
-	BHLOG(LOGLORAW) printf("  RegisterNode: search WLTable[]\n");
+	BHLOG(LOGLORAW) printf("  RegisterNode: parse WLTable[]\n");
 
-	for(ndid=1; ndid < MAXNODES+1; ndid++){
+	for(ndid=1; ndid <= MAXNODES; ndid++){
 		pwltab = & WLTab[ndid];	//0..MAXNODES-1
 		if(pwltab->nodeid ==0){ // reached end of "initialized" table ?
-			BHLOG(LOGLORAW) printf("  RegisterNode: Node not registered till WLTable[%i]\n",ndid);
+			BHLOG(LOGLORAW) printf("  RegisterNode: Node not registered till WLTable[%X]\n",ndid);
 			rc=-1;
 			return(rc);	// nothing more to do => DevEUI unknown -> have to reject this join request
 		}
-		BHLOG(LOGLORAW) printf("    Cmp[%d] ", (unsigned char) ndid);
+		BHLOG(LOGLORAW) printf("    Cmp[%02X] ", (unsigned char) ndid);
 		BHLOG(LOGLORAW) Printhex((byte*)& pjoin->info.devEUI,  8, "  Pkg-DEVEUI: 0x-"); 
 		BHLOG(LOGLORAW) Printhex((byte*)& pwltab->DevEUI,  8, "  WL-DEVEUI: 0x-"); 
 		BHLOG(LOGLORAW) printf("\n");
@@ -497,14 +666,14 @@ int  rc =0;
 		}
 		rc=-1;	// for this entry we have no hit, try next one
 	}
-	if (ndid == MAXNODES){	// reached end of table ?
+	if (ndid == MAXNODES+1){	// reached end of table ?
 		BHLOG(LOGLORAW) printf("  RegisterNode: Node not registered till WLTable-End\n");
 		return(rc); // nothing more to do => DevEUI unknown -> have to reject this join request
 	}
 	if(pwltab->joined){		// already joined known node ?	-> was a rejoin ?
 		// assumed NDB[] was already initialized with this node till last session
 		pndb = & NDB[ndid];							// get pointer to already initialized NDB entry
-		BHLOG(LOGLORAW) printf("  RegisterNode: Node found in WLTable[%d] -> joined on modem %i (chn%i,HWCfg:%d)\n",
+		BHLOG(LOGLORAW) printf("  RegisterNode: Node found in WLTable[%02X] -> joined on modem %i (chn%i,HWCfg:%d)\n",
 				(int) ndid, pndb->middef, pndb->nodecfg.channelidx, pndb->nodecfg.hwconfig);
 		pndb->nodecfg.channelidx= pwltab->chncfg;	// but we start with default Channel IDX again
 		pndb->middef = pwltab->mid;					// and default modem
@@ -535,8 +704,8 @@ int  rc =0;
 	// initialize NDB entry:
 	memcpy(&pndb->nodeinfo.devEUI, &pwltab->DevEUI,8);
 	memcpy(&pndb->nodeinfo.joinEUI, &pjoin->info.joinEUI, 8);
-	pndb->nodeinfo.frmid[0] = 0;			// MSB: init "last frame msg id"
-	pndb->nodeinfo.frmid[1] = 0;			// LSB:  -> First Session to be started with 0x01
+	pndb->nodeinfo.frmid[0] = 0;					// MSB: init "last frame msg id"
+	pndb->nodeinfo.frmid[1] = 0;					// LSB:  -> First Session to be started with 0x01
 	pndb->nodeinfo.vmajor	= pjoin->info.vmajor;	// get Version of BIoT protocol of node
 	pndb->nodeinfo.vminor	= pjoin->info.vminor;
 
@@ -552,11 +721,11 @@ int  rc =0;
 	// date and time will be defined dynamic at each JOIN ACK creation by BIoTFlow()
 	pndb->msg.ack			= 0;
 	pndb->msg.retries		= 0;
-	pndb->msg.pkgid			= 0;	// last msg idx => no msg received yet
+	pndb->msg.pkgid			= 0;					// last msg idx => no msg received yet
 	// FrmID & PkgID are handled/checked identical !
-	pndb->msg.mid			= 0;	// pkg-mid: will be redefined by each new package on which channel it came in
-	pndb->middef			= pwltab->mid;	// get default Modem ID from WL Table; used by ???
-	pndb->pwltab			= pwltab;	// back link to WL Table
+	pndb->msg.mid			= 0;					// pkg-mid: will be redefined by each new package on which channel it came in
+	pndb->middef			= pwltab->mid;			// get default Modem ID from WL Table; used by ???
+	pndb->pwltab			= pwltab;				// back link to WL Table
 
 	// Values T.b.d
 	pndb->DevAddr = ndid;	// better than 0;
@@ -604,7 +773,7 @@ int JoinSrv::JS_ValidatePkg(beeiotpkg_t* mystatus){
 	// 1. check range of mutual GWID and NodeID (incl. JOIN requests !)
 	if((mystatus->hd.sendID < NODEIDBASE) || (mystatus->hd.sendID > NODEIDBASE+MAXNODES)){
 		// This is no known NodeID for this curr. Nw server instance !
-		rc=-1;
+		rc = -1;
 		return(rc);
 	}
 	// 2. Pkg GW ID in range: (GWIDx-MAXGW-1)...GWIDx ?
@@ -632,9 +801,10 @@ int JoinSrv::JS_ValidatePkg(beeiotpkg_t* mystatus){
 		}
 		// Known but not joined -> Node should initiate a JOIN request first -> rejected
 		// Not joined &  any CMD: any Node ID allowed but new JOIN requested (e.g. GW was restarted)
-		rc=-3;
+		rc = -3;
 		return(rc);
 	}
+
 	// 5. Node is joined already -> a fully defined NDB[] is expected
 	// take ndid as valid by now
 	if( (mystatus->hd.cmd == CMD_REJOIN) ||
@@ -651,7 +821,7 @@ int JoinSrv::JS_ValidatePkg(beeiotpkg_t* mystatus){
 			// ... Also for RE-/JOIN requests
 			if(JS_ValidateMic(mystatus, CMD_JOIN, ndid) < 0){ // Pkg Integrity by MIC o.k. ?
 				// PKG data is corrupted !
-				rc=-3;	// JOIN pkg corrupt -> initiate a rejoin request
+				rc = -3;	// JOIN pkg corrupt -> initiate a rejoin request
 				return(rc);
 			}
 			// o.k. Node is already joined and requests reactivation -> lets do it...
@@ -663,16 +833,15 @@ int JoinSrv::JS_ValidatePkg(beeiotpkg_t* mystatus){
 		// this joined node is (still) not using the assigned GWID
 		// pkg rejected -> request a rejoin needed
 		BHLOG(LOGLORAW) printf("  JS_ValidateNode: joined node is (still) not using the assigned GWID (0x%02X) -> should rejoin\n", (unsigned char) mystatus->hd.destID);
-		rc=-4;
+		rc = -4;
 		return(rc);
 	}
 	
 	// 7. BIoT-Nw addresses assured now: "This was a package for us" -> now we could answer in any case
-
 	// This check normally to be done by AppServer:
 	// Check User Status data length
 	if(mystatus->hd.frmlen > BIoT_FRAMELEN){
-		BHLOG(LOGLORAW) printf("  JS_ValidateNode: Wrong package size detected (%i) -> retry requested\n", (unsigned char) mystatus->hd.frmlen);		
+		BHLOG(LOGLORAW) printf("  JS_ValidateNode: Wrong package size detected (%i) -> retry requested\n", (unsigned char) mystatus->hd.frmlen);
 		// for test purpose: dump payload in hex format
 		BHLOG(LOGLORAR) hexdump((unsigned char*) mystatus, MAX_PAYLOAD_LENGTH);
 		BHLOG(LOGLORAR) printf("\n");
@@ -684,7 +853,7 @@ int JoinSrv::JS_ValidatePkg(beeiotpkg_t* mystatus){
 	// Validate Pkg-data with Pkg-MIC integrity check
 	if(JS_ValidateMic(mystatus, -1, ndid) < 0){ // Pkg Integrity by MIC o.k. ?
 		// PKG data is corrupted !
-		rc=-6;	// JOIN pkg corrupt -> initiate a rejoin request
+		rc = -6;	// JOIN pkg corrupt -> initiate a rejoin request
 		return(rc);
 	}
 
@@ -745,7 +914,7 @@ beeiot_join_t* pjoin;
 	pmic += mystatus->hd.frmlen;
 	
 	BHLOG(LOGLORAW) printf("  JS_ValidateMic: Pkg-MIC[4]: 0x%02X%02X%02X%02X == 0x%X ", 
-      pmic[0], pmic[1],  pmic[2], pmic[3], bufmic);
+							pmic[0], pmic[1], pmic[2], pmic[3], bufmic);
 
   	if(	((bufmic >>24) & 0xFF) == pmic[0] &&
 		((bufmic >>16) & 0xFF) == pmic[1] &&

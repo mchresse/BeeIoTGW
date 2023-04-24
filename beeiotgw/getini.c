@@ -290,8 +290,110 @@ configuration* pconfig = (configuration*) inibuf;
 			pconfig->nd9_wcalib = atoi(value);
 		} else if (MATCH("HWCONFIG", "ND9_HWCONF")) {
 			pconfig->nd9_hwconfig = atoi(value);
-	} else 
-		if (       MATCH("BEEIOT", "BHLOOPWAIT")) {
+
+		} else if (MATCH("HWCONFIG", "ND10_GWID")) {
+			pconfig->nd10_gwid = atoi(value);
+		} else if (MATCH("HWCONFIG", "ND10_MID")) {
+			pconfig->nd10_mid = atoi(value);
+		} else if (MATCH("HWCONFIG", "ND10_APPEUI")) {
+			pconfig->nd10_appeui = atoi(value);
+		} else if (MATCH("HWCONFIG", "ND10_DEVEUI1")) {
+			pconfig->nd10_deveuiup = strtoul(value, NULL, 16);
+		} else if (MATCH("HWCONFIG", "ND10_DEVEUI2")) {
+			pconfig->nd10_deveuilo = strtoul(value, NULL, 16);
+		} else if (MATCH("HWCONFIG", "ND10_FREPORT")) {
+			pconfig->nd10_freport = atoi(value);
+		} else if (MATCH("HWCONFIG", "ND10_WCALIB")) {
+			pconfig->nd10_wcalib = atoi(value);
+		} else if (MATCH("HWCONFIG", "ND10_HWCONF")) {
+			pconfig->nd10_hwconfig = atoi(value);
+
+		} else if (MATCH("HWCONFIG", "ND11_GWID")) {
+			pconfig->nd11_gwid = atoi(value);
+		} else if (MATCH("HWCONFIG", "ND11_MID")) {
+			pconfig->nd11_mid = atoi(value);
+		} else if (MATCH("HWCONFIG", "ND11_APPEUI")) {
+			pconfig->nd11_appeui = atoi(value);
+		} else if (MATCH("HWCONFIG", "ND11_DEVEUI1")) {
+			pconfig->nd11_deveuiup = strtoul(value, NULL, 16);
+		} else if (MATCH("HWCONFIG", "ND11_DEVEUI2")) {
+			pconfig->nd11_deveuilo = strtoul(value, NULL, 16);
+		} else if (MATCH("HWCONFIG", "ND11_FREPORT")) {
+			pconfig->nd11_freport = atoi(value);
+		} else if (MATCH("HWCONFIG", "ND11_WCALIB")) {
+			pconfig->nd11_wcalib = atoi(value);
+		} else if (MATCH("HWCONFIG", "ND11_HWCONF")) {
+			pconfig->nd11_hwconfig = atoi(value);
+
+		} else if (MATCH("HWCONFIG", "ND12_GWID")) {
+			pconfig->nd12_gwid = atoi(value);
+		} else if (MATCH("HWCONFIG", "ND12_MID")) {
+			pconfig->nd12_mid = atoi(value);
+		} else if (MATCH("HWCONFIG", "ND12_APPEUI")) {
+			pconfig->nd12_appeui = atoi(value);
+		} else if (MATCH("HWCONFIG", "ND12_DEVEUI1")) {
+			pconfig->nd12_deveuiup = strtoul(value, NULL, 16);
+		} else if (MATCH("HWCONFIG", "ND12_DEVEUI2")) {
+			pconfig->nd12_deveuilo = strtoul(value, NULL, 16);
+		} else if (MATCH("HWCONFIG", "ND12_FREPORT")) {
+			pconfig->nd12_freport = atoi(value);
+		} else if (MATCH("HWCONFIG", "ND12_WCALIB")) {
+			pconfig->nd12_wcalib = atoi(value);
+		} else if (MATCH("HWCONFIG", "ND12_HWCONF")) {
+			pconfig->nd12_hwconfig = atoi(value);
+
+		} else if (MATCH("HWCONFIG", "ND13_GWID")) {
+			pconfig->nd13_gwid = atoi(value);
+		} else if (MATCH("HWCONFIG", "ND13_MID")) {
+			pconfig->nd13_mid = atoi(value);
+		} else if (MATCH("HWCONFIG", "ND13_APPEUI")) {
+			pconfig->nd13_appeui = atoi(value);
+		} else if (MATCH("HWCONFIG", "ND13_DEVEUI1")) {
+			pconfig->nd13_deveuiup = strtoul(value, NULL, 16);
+		} else if (MATCH("HWCONFIG", "ND13_DEVEUI2")) {
+			pconfig->nd13_deveuilo = strtoul(value, NULL, 16);
+		} else if (MATCH("HWCONFIG", "ND13_FREPORT")) {
+			pconfig->nd13_freport = atoi(value);
+		} else if (MATCH("HWCONFIG", "ND13_WCALIB")) {
+			pconfig->nd13_wcalib = atoi(value);
+		} else if (MATCH("HWCONFIG", "ND13_HWCONF")) {
+			pconfig->nd13_hwconfig = atoi(value);
+
+		} else if (MATCH("HWCONFIG", "ND14_GWID")) {
+			pconfig->nd14_gwid = atoi(value);
+		} else if (MATCH("HWCONFIG", "ND14_MID")) {
+			pconfig->nd14_mid = atoi(value);
+		} else if (MATCH("HWCONFIG", "ND14_APPEUI")) {
+			pconfig->nd14_appeui = atoi(value);
+		} else if (MATCH("HWCONFIG", "ND14_DEVEUI1")) {
+			pconfig->nd14_deveuiup = strtoul(value, NULL, 16);
+		} else if (MATCH("HWCONFIG", "ND14_DEVEUI2")) {
+			pconfig->nd14_deveuilo = strtoul(value, NULL, 16);
+		} else if (MATCH("HWCONFIG", "ND14_FREPORT")) {
+			pconfig->nd14_freport = atoi(value);
+		} else if (MATCH("HWCONFIG", "ND14_WCALIB")) {
+			pconfig->nd14_wcalib = atoi(value);
+		} else if (MATCH("HWCONFIG", "ND14_HWCONF")) {
+			pconfig->nd14_hwconfig = atoi(value);
+
+		} else if (MATCH("HWCONFIG", "ND155_GWID")) {
+			pconfig->nd15_gwid = atoi(value);
+		} else if (MATCH("HWCONFIG", "ND15_MID")) {
+			pconfig->nd15_mid = atoi(value);
+		} else if (MATCH("HWCONFIG", "ND15_APPEUI")) {
+			pconfig->nd15_appeui = atoi(value);
+		} else if (MATCH("HWCONFIG", "ND15_DEVEUI1")) {
+			pconfig->nd15_deveuiup = strtoul(value, NULL, 16);
+		} else if (MATCH("HWCONFIG", "ND15_DEVEUI2")) {
+			pconfig->nd15_deveuilo = strtoul(value, NULL, 16);
+		} else if (MATCH("HWCONFIG", "ND15_FREPORT")) {
+			pconfig->nd15_freport = atoi(value);
+		} else if (MATCH("HWCONFIG", "ND15_WCALIB")) {
+			pconfig->nd15_wcalib = atoi(value);
+		} else if (MATCH("HWCONFIG", "ND15_HWCONF")) {
+			pconfig->nd15_hwconfig = atoi(value);
+
+		} else if (MATCH("BEEIOT", "BHLOOPWAIT")) {
 			pconfig->biot_loopwait = atoi(value);
 		} else if (MATCH("BEEIOT", "BEEIOTHOME")) {
 			strcpy(pconfig->biot_home,value);
