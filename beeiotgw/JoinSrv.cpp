@@ -771,13 +771,13 @@ int JoinSrv::JS_ValidatePkg(beeiotpkg_t* mystatus){
 	int ndid;
 
 	// 1. check range of mutual GWID and NodeID (incl. JOIN requests !)
-	if((mystatus->hd.sendID < NODEIDBASE) || (mystatus->hd.sendID > NODEIDBASE+MAXNODES)){
+	if((mystatus->hd.sendID < (uint8_t) NODEIDBASE) || (mystatus->hd.sendID > (uint8_t) NODEIDBASE+MAXNODES)){
 		// This is no known NodeID for this curr. Nw server instance !
 		rc = -1;
 		return(rc);
 	}
 	// 2. Pkg GW ID in range: (GWIDx-MAXGW-1)...GWIDx ?
-	if((mystatus->hd.destID >= GWIDx) && (mystatus->hd.destID < (GWIDx-MAXGW))){ 
+	if((mystatus->hd.destID >= (uint8_t) GWIDx) && (mystatus->hd.destID < (uint8_t)(GWIDx-MAXGW))){ 
 		// This is no packet for this current Nw server instance !
 		rc = -2;
 		return(rc);
@@ -793,7 +793,7 @@ int JoinSrv::JS_ValidatePkg(beeiotpkg_t* mystatus){
 				// ... Also for JOIN requests
 				if(JS_ValidateMic(mystatus, CMD_JOIN, ndid) < 0){ // Pkg Integrity by MIC o.k. ?
 					// PKG payload data is corrupted !
-					rc=-3;	// JOIN pkg corrupt -> initiate a rejoin request
+					rc=-3;	// JOIN pkg corruption -> initiate a rejoin request
 					return(rc);
 				}
 			// o.k. this is already a valid JOIN request -> lets do it by usual parse function...

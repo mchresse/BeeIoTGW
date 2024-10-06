@@ -377,13 +377,14 @@ beeiot_sddir_t * sddirpkg;
 			// ignore this package: no action
 			gwt.cp_nb_rx_bad++;					// bad pkg
 			return(rc);
-		}else if (rc == -3) {
-			BHLOG(LOGLORAW) printf("  BeeIoTParse: Node registered but not joined yet (NodeID:0x%02X) -> Request a RE-JOIN\n", 
-				(unsigned char)mystatus.hd.sendID);
-			needaction = CMD_REJOIN;			// Request JOIN command from Node
+		}else if (rc == -3) { // JOIN pkg corruption -> initiate a rejoin request
+			BHLOG(LOGLORAW) printf("  BeeIoTParse: Node registered but JoinPkg Corrupted (NodeID:0x%02X>0x%02X) -> Request a RE-JOIN\n", 
+				(unsigned char)mystatus.hd.sendID, (unsigned char)mystatus.hd.destID);
+			hexdump((unsigned char*)& mystatus, BIoT_HDRLEN + mystatus.hd.frmlen);
+			// return rejoin request ´to retrieve right config set again 
+			needaction = CMD_REJOIN;			// Request new valid JOIN command from Node
 			ndid = mystatus.hd.sendID - NODEIDBASE;
 			gwt.jsrv->NDB[ndid].msg.mid = mid;	// safe last used mid for any further action
-			// return rejoin request ´to retrieve right config set again 
 			BeeIoTFlow(needaction, &mystatus, ndid, 0);
 			gwt.cp_nb_rx_ok++;					// incr. # of correct received packages	
 			return(rc);
