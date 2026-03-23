@@ -254,13 +254,13 @@ void JoinSrv::JS_Cfg2Wlt(void){
 
 	// Update WLTab[] entries by pconfig data
 	nid = 1;
-	WLTab[nid].nodeid	= NODEIDBASE + nid;
-	WLTab[nid].gwid		= GWIDx-cfgini->nd1_gwid;
-	WLTab[nid].mid		= cfgini->nd1_mid;
-	WLTab[nid].chncfg	= gwt.gwset[WLTab[nid].mid]->chncfgid;	// get Radio channel cfg of current Gateway
-	WLTab[nid].reportfrq= cfgini->nd1_freport;			// status report frequency in Min.
-	WLTab[nid].wcalib	= cfgini->nd1_wcalib;			// 16bit weight calibration value
-	WLTab[nid].hwconfig = cfgini->nd1_hwconfig;			// get HW component enable flags (8bit)
+	WLTab[nid].nodeid			= NODEIDBASE + nid;
+	WLTab[nid].gwid				= GWIDx-cfgini->nd1_gwid;
+	WLTab[nid].mid				= cfgini->nd1_mid;
+	WLTab[nid].chncfg			= gwt.gwset[WLTab[nid].mid]->chncfgid;	// get Radio channel cfg of current Gateway
+	WLTab[nid].reportfrq		= cfgini->nd1_freport;			// status report frequency in Min.
+	WLTab[nid].wcalib			= cfgini->nd1_wcalib;			// 16bit weight calibration value
+	WLTab[nid].hwconfig			= cfgini->nd1_hwconfig;			// get HW component enable flags (8bit)
 	NDB[nid].msg.mid			= WLTab[nid].mid;		// preset MID even /wo any prev. package
 	NDB[nid].nodecfg.channelidx	= WLTab[nid].chncfg;	// cfg.-channelid of modem
 	NDB[nid].nodecfg.freqsensor	= WLTab[nid].reportfrq; // [min] reporting frequence of status pkg.
@@ -278,13 +278,13 @@ void JoinSrv::JS_Cfg2Wlt(void){
 	}
 	
 	nid = 2;
-	WLTab[nid].nodeid	= NODEIDBASE + nid;
-	WLTab[nid].gwid		= GWIDx-cfgini->nd2_gwid;
-	WLTab[nid].mid		= cfgini->nd2_mid;
-	WLTab[nid].chncfg	= gwt.gwset[WLTab[nid].mid]->chncfgid;	// get Radio channel cfg of current Gateway
-	WLTab[nid].reportfrq= cfgini->nd2_freport;
-	WLTab[nid].wcalib	= cfgini->nd2_wcalib;
-	WLTab[nid].hwconfig = cfgini->nd2_hwconfig;			// get HW component enable flags (8bit)
+	WLTab[nid].nodeid			= NODEIDBASE + nid;
+	WLTab[nid].gwid				= GWIDx-cfgini->nd2_gwid;
+	WLTab[nid].mid				= cfgini->nd2_mid;
+	WLTab[nid].chncfg			= gwt.gwset[WLTab[nid].mid]->chncfgid;	// get Radio channel cfg of current Gateway
+	WLTab[nid].reportfrq		= cfgini->nd2_freport;
+	WLTab[nid].wcalib			= cfgini->nd2_wcalib;
+	WLTab[nid].hwconfig			= cfgini->nd2_hwconfig;			// get HW component enable flags (8bit)
 	NDB[nid].msg.mid			= WLTab[nid].mid;		// preset MID even /wo any prev. package
 	NDB[nid].nodecfg.channelidx	= WLTab[nid].chncfg;	// cfg.-channelid of modem
 	NDB[nid].nodecfg.freqsensor	= WLTab[nid].reportfrq; // [min] reporting frequence of status pkg.
@@ -301,13 +301,13 @@ void JoinSrv::JS_Cfg2Wlt(void){
 	}
 	
 	nid = 3;
-	WLTab[nid].nodeid	= NODEIDBASE + nid;
-	WLTab[nid].gwid		= GWIDx-cfgini->nd3_gwid;
-	WLTab[nid].mid		= cfgini->nd3_mid;
-	WLTab[nid].chncfg	= gwt.gwset[WLTab[nid].mid]->chncfgid;	// get Radio channel cfg of current Gateway
-	WLTab[nid].reportfrq= cfgini->nd3_freport;
-	WLTab[nid].wcalib	= cfgini->nd3_wcalib;
-	WLTab[nid].hwconfig = cfgini->nd3_hwconfig;			// get HW component enable flags (8bit)
+	WLTab[nid].nodeid			= NODEIDBASE + nid;
+	WLTab[nid].gwid				= GWIDx-cfgini->nd3_gwid;
+	WLTab[nid].mid				= cfgini->nd3_mid;
+	WLTab[nid].chncfg			= gwt.gwset[WLTab[nid].mid]->chncfgid;	// get Radio channel cfg of current Gateway
+	WLTab[nid].reportfrq		= cfgini->nd3_freport;
+	WLTab[nid].wcalib			= cfgini->nd3_wcalib;
+	WLTab[nid].hwconfig			= cfgini->nd3_hwconfig;			// get HW component enable flags (8bit)
 	NDB[nid].msg.mid			= WLTab[nid].mid;		// preset MID even /wo any prev. package
 	NDB[nid].nodecfg.channelidx	= WLTab[nid].chncfg;	// cfg.-channelid of modem
 	NDB[nid].nodecfg.freqsensor	= WLTab[nid].reportfrq; // [min] reporting frequence of status pkg.
@@ -324,13 +324,13 @@ void JoinSrv::JS_Cfg2Wlt(void){
 	}
 	
 	nid = 4;
-	WLTab[nid].nodeid	= NODEIDBASE + nid;
-	WLTab[nid].gwid		= GWIDx-cfgini->nd4_gwid;
-	WLTab[nid].mid		= cfgini->nd4_mid;
-	WLTab[nid].chncfg	= gwt.gwset[WLTab[nid].mid]->chncfgid;	// get Radio channel cfg of current Gateway
-	WLTab[nid].reportfrq= cfgini->nd4_freport;
-	WLTab[nid].wcalib	= cfgini->nd4_wcalib;
-	WLTab[nid].hwconfig = cfgini->nd4_hwconfig;			// get HW component enable flags (8bit)
+	WLTab[nid].nodeid			= NODEIDBASE + nid;
+	WLTab[nid].gwid				= GWIDx-cfgini->nd4_gwid;
+	WLTab[nid].mid				= cfgini->nd4_mid;
+	WLTab[nid].chncfg			= gwt.gwset[WLTab[nid].mid]->chncfgid;	// get Radio channel cfg of current Gateway
+	WLTab[nid].reportfrq		= cfgini->nd4_freport;
+	WLTab[nid].wcalib			= cfgini->nd4_wcalib;
+	WLTab[nid].hwconfig			= cfgini->nd4_hwconfig;			// get HW component enable flags (8bit)
 	NDB[nid].msg.mid			= WLTab[nid].mid;		// preset MID even /wo any prev. package
 	NDB[nid].nodecfg.channelidx	= WLTab[nid].chncfg;	// cfg.-channelid of modem
 	NDB[nid].nodecfg.freqsensor	= WLTab[nid].reportfrq; // [min] reporting frequence of status pkg.
@@ -347,13 +347,13 @@ void JoinSrv::JS_Cfg2Wlt(void){
 	}
 	
 	nid = 5;
-	WLTab[nid].nodeid	= NODEIDBASE + nid;
-	WLTab[nid].gwid		= GWIDx-cfgini->nd5_gwid;
-	WLTab[nid].mid		= cfgini->nd5_mid;
-	WLTab[nid].chncfg	= gwt.gwset[WLTab[nid].mid]->chncfgid;	// get Radio channel cfg of current Gateway
-	WLTab[nid].reportfrq= cfgini->nd5_freport;
-	WLTab[nid].wcalib	= cfgini->nd5_wcalib;
-	WLTab[nid].hwconfig = cfgini->nd5_hwconfig;			// get HW component enable flags (8bit)
+	WLTab[nid].nodeid			= NODEIDBASE + nid;
+	WLTab[nid].gwid				= GWIDx-cfgini->nd5_gwid;
+	WLTab[nid].mid				= cfgini->nd5_mid;
+	WLTab[nid].chncfg			= gwt.gwset[WLTab[nid].mid]->chncfgid;	// get Radio channel cfg of current Gateway
+	WLTab[nid].reportfrq		= cfgini->nd5_freport;
+	WLTab[nid].wcalib			= cfgini->nd5_wcalib;
+	WLTab[nid].hwconfig			= cfgini->nd5_hwconfig;			// get HW component enable flags (8bit)
 	NDB[nid].msg.mid			= WLTab[nid].mid;		// preset MID even /wo any prev. package
 	NDB[nid].nodecfg.channelidx	= WLTab[nid].chncfg;	// cfg.-channelid of modem
 	NDB[nid].nodecfg.freqsensor	= WLTab[nid].reportfrq; // [min] reporting frequence of status pkg.
@@ -370,13 +370,13 @@ void JoinSrv::JS_Cfg2Wlt(void){
 	}
 	
 	nid = 6;
-	WLTab[nid].nodeid	= NODEIDBASE + nid;
-	WLTab[nid].gwid		= GWIDx-cfgini->nd6_gwid;
-	WLTab[nid].mid		= cfgini->nd6_mid;
-	WLTab[nid].chncfg	= gwt.gwset[WLTab[nid].mid]->chncfgid;	// get Radio channel cfg of current Gateway
-	WLTab[nid].reportfrq= cfgini->nd6_freport;
-	WLTab[nid].wcalib	= cfgini->nd6_wcalib;
-	WLTab[nid].hwconfig = cfgini->nd6_hwconfig;			// get HW component enable flags (8bit)
+	WLTab[nid].nodeid			= NODEIDBASE + nid;
+	WLTab[nid].gwid				= GWIDx-cfgini->nd6_gwid;
+	WLTab[nid].mid				= cfgini->nd6_mid;
+	WLTab[nid].chncfg			= gwt.gwset[WLTab[nid].mid]->chncfgid;	// get Radio channel cfg of current Gateway
+	WLTab[nid].reportfrq		= cfgini->nd6_freport;
+	WLTab[nid].wcalib			= cfgini->nd6_wcalib;
+	WLTab[nid].hwconfig			= cfgini->nd6_hwconfig;			// get HW component enable flags (8bit)
 	NDB[nid].msg.mid			= WLTab[nid].mid;		// preset MID even /wo any prev. package
 	NDB[nid].nodecfg.channelidx	= WLTab[nid].chncfg;	// cfg.-channelid of modem
 	NDB[nid].nodecfg.freqsensor	= WLTab[nid].reportfrq; // [min] reporting frequence of status pkg.
@@ -393,13 +393,13 @@ void JoinSrv::JS_Cfg2Wlt(void){
 	}
 	
 	nid = 7;
-	WLTab[nid].nodeid	= NODEIDBASE + nid;
-	WLTab[nid].gwid		= GWIDx-cfgini->nd7_gwid;
-	WLTab[nid].mid		= cfgini->nd7_mid;
-	WLTab[nid].chncfg	= gwt.gwset[WLTab[nid].mid]->chncfgid;	// get Radio channel cfg of current Gateway
-	WLTab[nid].reportfrq= cfgini->nd7_freport;
-	WLTab[nid].wcalib	= cfgini->nd7_wcalib;
-	WLTab[nid].hwconfig = cfgini->nd7_hwconfig;			// get HW component enable flags (8bit)
+	WLTab[nid].nodeid			= NODEIDBASE + nid;
+	WLTab[nid].gwid				= GWIDx-cfgini->nd7_gwid;
+	WLTab[nid].mid				= cfgini->nd7_mid;
+	WLTab[nid].chncfg			= gwt.gwset[WLTab[nid].mid]->chncfgid;	// get Radio channel cfg of current Gateway
+	WLTab[nid].reportfrq		= cfgini->nd7_freport;
+	WLTab[nid].wcalib			= cfgini->nd7_wcalib;
+	WLTab[nid].hwconfig			= cfgini->nd7_hwconfig;			// get HW component enable flags (8bit)
 	NDB[nid].msg.mid			= WLTab[nid].mid;		// preset MID even /wo any prev. package
 	NDB[nid].nodecfg.channelidx	= WLTab[nid].chncfg;	// cfg.-channelid of modem
 	NDB[nid].nodecfg.freqsensor	= WLTab[nid].reportfrq; // [min] reporting frequence of status pkg.
@@ -416,13 +416,13 @@ void JoinSrv::JS_Cfg2Wlt(void){
 	}
 	
 	nid = 8;
-	WLTab[nid].nodeid	= NODEIDBASE + nid;
-	WLTab[nid].gwid		= GWIDx-cfgini->nd8_gwid;
-	WLTab[nid].mid		= cfgini->nd8_mid;
-	WLTab[nid].chncfg	= gwt.gwset[WLTab[nid].mid]->chncfgid;	// get Radio channel cfg of current Gateway
-	WLTab[nid].reportfrq= cfgini->nd8_freport;
-	WLTab[nid].wcalib	= cfgini->nd8_wcalib;
-	WLTab[nid].hwconfig = cfgini->nd8_hwconfig;			// get HW component enable flags (8bit)
+	WLTab[nid].nodeid			= NODEIDBASE + nid;
+	WLTab[nid].gwid				= GWIDx-cfgini->nd8_gwid;
+	WLTab[nid].mid				= cfgini->nd8_mid;
+	WLTab[nid].chncfg			= gwt.gwset[WLTab[nid].mid]->chncfgid;	// get Radio channel cfg of current Gateway
+	WLTab[nid].reportfrq		= cfgini->nd8_freport;
+	WLTab[nid].wcalib			= cfgini->nd8_wcalib;
+	WLTab[nid].hwconfig			= cfgini->nd8_hwconfig;			// get HW component enable flags (8bit)
 	NDB[nid].msg.mid			= WLTab[nid].mid;		// preset MID even /wo any prev. package
 	NDB[nid].nodecfg.channelidx	= WLTab[nid].chncfg;	// cfg.-channelid of modem
 	NDB[nid].nodecfg.freqsensor	= WLTab[nid].reportfrq; // [min] reporting frequence of status pkg.
@@ -439,13 +439,13 @@ void JoinSrv::JS_Cfg2Wlt(void){
 	}
 	
 	nid = 9;
-	WLTab[nid].nodeid	= NODEIDBASE + nid;
-	WLTab[nid].gwid		= GWIDx-cfgini->nd9_gwid;
-	WLTab[nid].mid		= cfgini->nd9_mid;
-	WLTab[nid].chncfg	= gwt.gwset[WLTab[nid].mid]->chncfgid;	// get Radio channel cfg of current Gateway
-	WLTab[nid].reportfrq= cfgini->nd9_freport;
-	WLTab[nid].wcalib	= cfgini->nd9_wcalib;
-	WLTab[nid].hwconfig = cfgini->nd9_hwconfig;			// get HW component enable flags (8bit)
+	WLTab[nid].nodeid			= NODEIDBASE + nid;
+	WLTab[nid].gwid				= GWIDx-cfgini->nd9_gwid;
+	WLTab[nid].mid				= cfgini->nd9_mid;
+	WLTab[nid].chncfg			= gwt.gwset[WLTab[nid].mid]->chncfgid;	// get Radio channel cfg of current Gateway
+	WLTab[nid].reportfrq		= cfgini->nd9_freport;
+	WLTab[nid].wcalib			= cfgini->nd9_wcalib;
+	WLTab[nid].hwconfig			= cfgini->nd9_hwconfig;			// get HW component enable flags (8bit)
 	NDB[nid].msg.mid			= WLTab[nid].mid;		// preset MID even /wo any prev. package
 	NDB[nid].nodecfg.channelidx	= WLTab[nid].chncfg;	// cfg.-channelid of modem
 	NDB[nid].nodecfg.freqsensor	= WLTab[nid].reportfrq; // [min] reporting frequence of status pkg.
@@ -462,13 +462,13 @@ void JoinSrv::JS_Cfg2Wlt(void){
 	}
 	
 	nid = 10;
-	WLTab[nid].nodeid	= NODEIDBASE + nid;
-	WLTab[nid].gwid		= GWIDx-cfgini->nd10_gwid;
-	WLTab[nid].mid		= cfgini->nd10_mid;
-	WLTab[nid].chncfg	= gwt.gwset[WLTab[nid].mid]->chncfgid;	// get Radio channel cfg of current Gateway
-	WLTab[nid].reportfrq= cfgini->nd10_freport;
-	WLTab[nid].wcalib	= cfgini->nd10_wcalib;
-	WLTab[nid].hwconfig = cfgini->nd10_hwconfig;		// get HW component enable flags (8bit)
+	WLTab[nid].nodeid			= NODEIDBASE + nid;
+	WLTab[nid].gwid				= GWIDx-cfgini->nd10_gwid;
+	WLTab[nid].mid				= cfgini->nd10_mid;
+	WLTab[nid].chncfg			= gwt.gwset[WLTab[nid].mid]->chncfgid;	// get Radio channel cfg of current Gateway
+	WLTab[nid].reportfrq		= cfgini->nd10_freport;
+	WLTab[nid].wcalib			= cfgini->nd10_wcalib;
+	WLTab[nid].hwconfig			= cfgini->nd10_hwconfig;		// get HW component enable flags (8bit)
 	NDB[nid].msg.mid			= WLTab[nid].mid;		// preset MID even /wo any prev. package
 	NDB[nid].nodecfg.channelidx	= WLTab[nid].chncfg;	// cfg.-channelid of modem
 	NDB[nid].nodecfg.freqsensor	= WLTab[nid].reportfrq; // [min] reporting frequence of status pkg.
@@ -485,13 +485,13 @@ void JoinSrv::JS_Cfg2Wlt(void){
 	}
 	
 	nid = 11;
-	WLTab[nid].nodeid	= NODEIDBASE + nid;
-	WLTab[nid].gwid		= GWIDx-cfgini->nd11_gwid;
-	WLTab[nid].mid		= cfgini->nd11_mid;
-	WLTab[nid].chncfg	= gwt.gwset[WLTab[nid].mid]->chncfgid;	// get Radio channel cfg of current Gateway
-	WLTab[nid].reportfrq= cfgini->nd11_freport;
-	WLTab[nid].wcalib	= cfgini->nd11_wcalib;
-	WLTab[nid].hwconfig = cfgini->nd11_hwconfig;		// get HW component enable flags (8bit)
+	WLTab[nid].nodeid			= NODEIDBASE + nid;
+	WLTab[nid].gwid				= GWIDx-cfgini->nd11_gwid;
+	WLTab[nid].mid				= cfgini->nd11_mid;
+	WLTab[nid].chncfg			= gwt.gwset[WLTab[nid].mid]->chncfgid;	// get Radio channel cfg of current Gateway
+	WLTab[nid].reportfrq		= cfgini->nd11_freport;
+	WLTab[nid].wcalib			= cfgini->nd11_wcalib;
+	WLTab[nid].hwconfig			= cfgini->nd11_hwconfig;		// get HW component enable flags (8bit)
 	NDB[nid].msg.mid			= WLTab[nid].mid;		// preset MID even /wo any prev. package
 	NDB[nid].nodecfg.channelidx	= WLTab[nid].chncfg;	// cfg.-channelid of modem
 	NDB[nid].nodecfg.freqsensor	= WLTab[nid].reportfrq; // [min] reporting frequence of status pkg.
@@ -508,13 +508,13 @@ void JoinSrv::JS_Cfg2Wlt(void){
 	}
 	
 	nid = 12;
-	WLTab[nid].nodeid	= NODEIDBASE + nid;
-	WLTab[nid].gwid		= GWIDx-cfgini->nd12_gwid;
-	WLTab[nid].mid		= cfgini->nd12_mid;
-	WLTab[nid].chncfg	= gwt.gwset[WLTab[nid].mid]->chncfgid;	// get Radio channel cfg of current Gateway
-	WLTab[nid].reportfrq= cfgini->nd12_freport;
-	WLTab[nid].wcalib	= cfgini->nd12_wcalib;
-	WLTab[nid].hwconfig = cfgini->nd12_hwconfig;		// get HW component enable flags (8bit)
+	WLTab[nid].nodeid			= NODEIDBASE + nid;
+	WLTab[nid].gwid				= GWIDx-cfgini->nd12_gwid;
+	WLTab[nid].mid				= cfgini->nd12_mid;
+	WLTab[nid].chncfg			= gwt.gwset[WLTab[nid].mid]->chncfgid;	// get Radio channel cfg of current Gateway
+	WLTab[nid].reportfrq		= cfgini->nd12_freport;
+	WLTab[nid].wcalib			= cfgini->nd12_wcalib;
+	WLTab[nid].hwconfig			= cfgini->nd12_hwconfig;		// get HW component enable flags (8bit)
 	NDB[nid].msg.mid			= WLTab[nid].mid;		// preset MID even /wo any prev. package
 	NDB[nid].nodecfg.channelidx	= WLTab[nid].chncfg;	// cfg.-channelid of modem
 	NDB[nid].nodecfg.freqsensor	= WLTab[nid].reportfrq; // [min] reporting frequence of status pkg.
@@ -531,13 +531,13 @@ void JoinSrv::JS_Cfg2Wlt(void){
 	}
 	
 	nid = 13;
-	WLTab[nid].nodeid	= NODEIDBASE + nid;
-	WLTab[nid].gwid		= GWIDx-cfgini->nd13_gwid;
-	WLTab[nid].mid		= cfgini->nd13_mid;
-	WLTab[nid].chncfg	= gwt.gwset[WLTab[nid].mid]->chncfgid;	// get Radio channel cfg of current Gateway
-	WLTab[nid].reportfrq= cfgini->nd13_freport;
-	WLTab[nid].wcalib	= cfgini->nd13_wcalib;
-	WLTab[nid].hwconfig = cfgini->nd13_hwconfig;		// get HW component enable flags (8bit)
+	WLTab[nid].nodeid			= NODEIDBASE + nid;
+	WLTab[nid].gwid				= GWIDx-cfgini->nd13_gwid;
+	WLTab[nid].mid				= cfgini->nd13_mid;
+	WLTab[nid].chncfg			= gwt.gwset[WLTab[nid].mid]->chncfgid;	// get Radio channel cfg of current Gateway
+	WLTab[nid].reportfrq		= cfgini->nd13_freport;
+	WLTab[nid].wcalib			= cfgini->nd13_wcalib;
+	WLTab[nid].hwconfig			= cfgini->nd13_hwconfig;		// get HW component enable flags (8bit)
 	NDB[nid].msg.mid			= WLTab[nid].mid;		// preset MID even /wo any prev. package
 	NDB[nid].nodecfg.channelidx	= WLTab[nid].chncfg;	// cfg.-channelid of modem
 	NDB[nid].nodecfg.freqsensor	= WLTab[nid].reportfrq; // [min] reporting frequence of status pkg.
@@ -554,13 +554,13 @@ void JoinSrv::JS_Cfg2Wlt(void){
 	}
 	
 	nid = 14;
-	WLTab[nid].nodeid	= NODEIDBASE + nid;
-	WLTab[nid].gwid		= GWIDx-cfgini->nd14_gwid;
-	WLTab[nid].mid		= cfgini->nd14_mid;
-	WLTab[nid].chncfg	= gwt.gwset[WLTab[nid].mid]->chncfgid;	// get Radio channel cfg of current Gateway
-	WLTab[nid].reportfrq= cfgini->nd14_freport;
-	WLTab[nid].wcalib	= cfgini->nd14_wcalib;
-	WLTab[nid].hwconfig = cfgini->nd14_hwconfig;		// get HW component enable flags (8bit)
+	WLTab[nid].nodeid			= NODEIDBASE + nid;
+	WLTab[nid].gwid				= GWIDx-cfgini->nd14_gwid;
+	WLTab[nid].mid				= cfgini->nd14_mid;
+	WLTab[nid].chncfg			= gwt.gwset[WLTab[nid].mid]->chncfgid;	// get Radio channel cfg of current Gateway
+	WLTab[nid].reportfrq		= cfgini->nd14_freport;
+	WLTab[nid].wcalib			= cfgini->nd14_wcalib;
+	WLTab[nid].hwconfig			= cfgini->nd14_hwconfig;		// get HW component enable flags (8bit)
 	NDB[nid].msg.mid			= WLTab[nid].mid;		// preset MID even /wo any prev. package
 	NDB[nid].nodecfg.channelidx	= WLTab[nid].chncfg;	// cfg.-channelid of modem
 	NDB[nid].nodecfg.freqsensor	= WLTab[nid].reportfrq; // [min] reporting frequence of status pkg.
@@ -577,13 +577,13 @@ void JoinSrv::JS_Cfg2Wlt(void){
 	}
 	
 	nid = 15;
-	WLTab[nid].nodeid	= NODEIDBASE + nid;
-	WLTab[nid].gwid		= GWIDx-cfgini->nd15_gwid;
-	WLTab[nid].mid		= cfgini->nd15_mid;
-	WLTab[nid].chncfg	= gwt.gwset[WLTab[nid].mid]->chncfgid;	// get Radio channel cfg of current Gateway
-	WLTab[nid].reportfrq= cfgini->nd15_freport;
-	WLTab[nid].wcalib	= cfgini->nd15_wcalib;
-	WLTab[nid].hwconfig = cfgini->nd15_hwconfig;		// get HW component enable flags (8bit)
+	WLTab[nid].nodeid			= NODEIDBASE + nid;
+	WLTab[nid].gwid				= GWIDx-cfgini->nd15_gwid;
+	WLTab[nid].mid				= cfgini->nd15_mid;
+	WLTab[nid].chncfg			= gwt.gwset[WLTab[nid].mid]->chncfgid;	// get Radio channel cfg of current Gateway
+	WLTab[nid].reportfrq		= cfgini->nd15_freport;
+	WLTab[nid].wcalib			= cfgini->nd15_wcalib;
+	WLTab[nid].hwconfig			= cfgini->nd15_hwconfig;		// get HW component enable flags (8bit)
 	NDB[nid].msg.mid			= WLTab[nid].mid;		// preset MID even /wo any prev. package
 	NDB[nid].nodecfg.channelidx	= WLTab[nid].chncfg;	// cfg.-channelid of modem
 	NDB[nid].nodecfg.freqsensor	= WLTab[nid].reportfrq; // [min] reporting frequence of status pkg.
