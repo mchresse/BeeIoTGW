@@ -124,8 +124,8 @@ int main () {
 
 	
 	setbuf(stdout, 0);		// disable buffering on stdout
-	lflags = LOGBH;   // Define Log level (search for Log values in beeiot.h)
-//  lflags = LOGBH + LOGOW + LOGHX + LOGLAN + LOGEPD + LOGSD + LOGADS + LOGSPI + LOGLORAR + LOGLORAW;
+//	lflags = LOGBH+ LOGLORAW;   // Define Log level (search for Log values in beeiot.h)
+  lflags = LOGBH + LOGOW + LOGHX + LOGLAN + LOGEPD + LOGSD + LOGADS + LOGSPI + LOGLORAR + LOGLORAW;
 
 	// get current timestamp
 	gettimeofday(&now, 0);

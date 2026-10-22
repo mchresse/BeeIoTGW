@@ -239,11 +239,6 @@ FILE *	bhcmd;					// file handle of cmdfile
 char	filepath[1024];			// file path buffer	
 int		rc;
 
-	cmd->cmdcode = CMD_NOP;	// default cmd code: do nothing
-	cmd->p1 = -1;			// mark Param as empty/n.a.
-	cmd->p2 = -1;			// mark Param as empty/n.a.
-	cmd->p3 = -1;			// mark Param as empty/n.a.	
-
 	// now read command line from file
 	sprintf(filepath, "%s/%s", cfgini->web_root, cfgini->biot_CMDFILE); 
 		//----- FILE NOT FOUND -----	
@@ -263,17 +258,22 @@ int		rc;
 	// Get 1. (and only !) command line
 	fseek(bhcmd, 0L, SEEK_SET);		// return back to start of file
 
+	cmdline[0]=0;			// reset command line string
+	cmd->cmdcode = CMD_NOP;	// default cmd code: do nothing
+	cmd->p1 = -1;			// mark Param as empty/n.a.
+	cmd->p2 = -1;			// mark Param as empty/n.a.
+	cmd->p3 = -1;			// mark Param as empty/n.a.	
 	rc = -1;	// preset to "no cmd line found"
 	do{
 		if(fgets(cmdline, sizeof(cmdline)-2, bhcmd) != NULL){ // read 1 line inclusive EOL + /0
 			rc = beecmd_parse(cmd, cmdline, ndid); // Parse retrieved command line
 		}else{	//EOL reached /wo any valid line
 			BHLOG(LOGBH)printf("  BeeCmd: No valid CMD string: %s in %s found\n", cmdline, filepath);		
-			fclose(bhcmd);
 			return(0);
 		}
 	} while(rc < 1);	// read next cmdline and skip comment lines with leading '#'
 
+	fclose(bhcmd);
 	return(1);	
 }
 

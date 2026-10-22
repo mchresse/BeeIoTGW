@@ -542,15 +542,14 @@ beeiot_sddir_t * sddirpkg;
                     // AppProblem: no break here -> ACK pkg is needed to Node; Sent data was o.k.
 		}
 
-        BHLOG(LOGLORAW) printf("  BeeIoTParse: Send ACK\n");		
-        needaction = CMD_ACK;	// no saved data, but o.k.
-        BeeIoTFlow(needaction, &mystatus, ndid, 0);  // send ACK in sync mode
-
-		delay(MSGRX1DELAY);		// wait for RX1 window start
-
-		BHLOG(LOGLORAW) printf("  BeeIoTParse: Processing RX1 Msg prepared by AppServer:");		
 		if(beecmd(&cmd, ndid) == 1){
-			BHLOG(LOGLORAW) printf("\n  BeeIoTParse: RX1 cmd detected %d\n", cmd.cmdcode);					
+			BHLOG(LOGLORAW) printf("  BeeIoTParse: RX1 cmd detected %d\n", cmd.cmdcode);					
+			BHLOG(LOGLORAW) printf("  BeeIoTParse: Send ACKRX1\n");		
+			needaction = CMD_ACKRX1;	// no saved data, but o.k.
+			BeeIoTFlow(needaction, &mystatus, ndid, 0);  // send ACK in sync mode
+			
+			delay(MSGRX1DELAY);		// wait for RX1 window start
+			
 			needaction = cmd.cmdcode;
 			// prepare msg package to hand over cmd params for actionflow. 
 			beeiot_cmd_t	*pkgrx1;	// to cast to RX1 window command package format 
@@ -560,7 +559,9 @@ beeiot_sddir_t * sddirpkg;
 			pkgrx1->p.cmdp3 =	(uint8_t) cmd.p3;
 			BeeIoTFlow(needaction, &mystatus, ndid, 0);  // send ACK in sync mode
 		}else{
-			BHLOG(LOGLORAW) printf(" none\n");		
+			BHLOG(LOGLORAW) printf("  BeeIoTParse: Send ACK\n");		
+			needaction = CMD_ACK;	// no saved data, but o.k.
+			BeeIoTFlow(needaction, &mystatus, ndid, 0);  // send ACK in sync mode
 		}
 		rc=0;	
 		break;
@@ -577,7 +578,7 @@ beeiot_sddir_t * sddirpkg;
 		
 	case CMD_GETSDLOG: // SD LOG data package received
 		BHLOG(LOGLORAW) printf("  BeeIoTParse: SDLOG Save command: CMD(%d) not supported yet\n", (unsigned char) mystatus.hd.cmd);		
-		// for test purpose: dump paload in hex format
+		// for test purpose: dump payload in hex format
 		BHLOG(LOGLORAR) hexdump((unsigned char*) &mystatus, pkglen);
 
 		// ToDO: we can send ACK or SD data packages directly ?!
@@ -655,6 +656,7 @@ Radio *			Modem;	// Ptr on Modem used for transmission
 	case CMD_NOP:	// fall thru by intention ==> like CMD_ACK
 	case CMD_RETRY: // fall thru by intention ==> like CMD_ACK
 	case CMD_ACK:	// by intention do nothing but ACK
+	case CMD_ACKRX1:// Ack last command but signal a RX1 window is started
 	case CMD_ACKBCN:// Beacon ACK
 
 		// give node some time to recover from SendMsg before 

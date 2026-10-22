@@ -235,7 +235,7 @@ int AppSrv::AppBIoT	(int ndid, char* data, byte len, int mid){
 
 	idx = 0; // start with first entry (by now the only one)
 	dsensor = (biot_dsensor_t *) data;	// map to binary data format
-	BHLOG(LOGLORAR) hexdump((unsigned char*) dsensor, len);
+//	BHLOG(LOGLORAR) hexdump((unsigned char*) dsensor, len);
 	
 	// Received Sensor data in a binary or ASCII data format ?
 	if((len == BIoT_DSENSORLEN - BIoT_NOTICELEN + dsensor->tlen) & (dsensor->crc8 == 0)) {	// t.b.d. real CRC8 calculation
